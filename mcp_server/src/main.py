@@ -347,11 +347,19 @@ async def delete_client(
 
 
 # SSE endpoint for Claude Desktop
-@app.get("/{client_id}")
+@app.get("/sse/{client_id}")
 async def sse_endpoint(client_id: str, request: Request):
     """SSE endpoint for Claude Desktop MCP connections"""
     
     print(f"SSE connection requested for client: {client_id}")
+    
+    # Check for Authorization header
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        print(f"Received token: {token}")
+    else:
+        print("No authorization header found")
     
     # Verify client exists
     async with get_db_session() as db:
@@ -370,19 +378,28 @@ async def sse_endpoint(client_id: str, request: Request):
         # According to MCP spec, first send an endpoint event
         # This tells the client where to send messages
         base_url = f"{request.url.scheme}://{request.headers.get('host', 'localhost:8000')}"
-        message_endpoint = f"{base_url}/{client_id}/messages"
+        message_endpoint = f"{base_url}/sse/{client_id}/messages"
         
+        print(f"Sending endpoint event: {message_endpoint}")
         yield f"event: endpoint\ndata: {message_endpoint}\n\n"
         
+        # Send a simple message to test
+        test_message = {"jsonrpc": "2.0", "method": "test", "params": {}}
+        print(f"Sending test message: {test_message}")
+        yield f"event: message\ndata: {json.dumps(test_message)}\n\n"
+        
         try:
+            count = 0
             while True:
+                count += 1
                 # Check if client is still connected
                 if await request.is_disconnected():
-                    print("Client disconnected")
+                    print(f"Client disconnected after {count} cycles")
                     break
                     
+                print(f"SSE connection active, cycle {count}")
                 # Wait for messages or send keepalive
-                await asyncio.sleep(30)
+                await asyncio.sleep(5)
                 
         except asyncio.CancelledError:
             print("SSE connection cancelled")
@@ -402,6 +419,13 @@ async def sse_endpoint(client_id: str, request: Request):
     )
 
 
+# Alternative endpoint for compatibility
+@app.get("/mcp/{client_id}")
+async def sse_endpoint_alt(client_id: str, request: Request):
+    """Alternative SSE endpoint path for compatibility"""
+    return await sse_endpoint(client_id, request)
+
+
 # Alternative SSE endpoint path that Claude might expect
 @app.get("/mcp-sse/sse/{client_id}")
 async def sse_endpoint_alt(client_id: str, request: Request):
@@ -410,7 +434,7 @@ async def sse_endpoint_alt(client_id: str, request: Request):
 
 
 # Message endpoint for MCP protocol
-@app.post("/{client_id}/messages")
+@app.post("/sse/{client_id}/messages")
 async def mcp_messages(client_id: str, request: Request):
     """Handle MCP protocol messages"""
     body = await request.body()
