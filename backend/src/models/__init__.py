@@ -1,9 +1,10 @@
 """SQLAlchemy models."""
 
 from src.models.content import ContentSection
+from src.models.mcp_client import MCPClient
 from src.models.page import Page
 from src.models.site import Site
 from src.models.theme import Theme
 from src.models.user import User
 
-__all__ = ["User", "Site", "Page", "ContentSection", "Theme"]
+__all__ = ["User", "Site", "Page", "ContentSection", "Theme", "MCPClient"]

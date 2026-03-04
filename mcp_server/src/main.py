@@ -446,7 +446,7 @@ async def sse_endpoint(client_id: str, request: Request):
                                         sites = response.json()
                                         if sites:
                                             content_text = "Your sites:\n" + "\n".join(
-                                                f"- {s['name']} (slug: {s['slug']}, theme: {s.get('theme_slug', 'default')})"
+                                                f"- {s['name']} (slug: {s['slug']}, theme: {s.get('theme_slug', 'default')}, ID: {s['id']})"
                                                 for s in sites
                                             )
                                         else:
@@ -466,7 +466,7 @@ async def sse_endpoint(client_id: str, request: Request):
                                     )
                                     if response.status_code in (200, 201):
                                         site = response.json()
-                                        content_text = f"Site '{site['name']}' created successfully with slug '{site['slug']}'"
+                                        content_text = f"Site '{site['name']}' created successfully with slug '{site['slug']}' (ID: {site['id']})"
                                     else:
                                         content_text = f"Error creating site: {response.status_code} - {response.text}"
                                 
@@ -514,6 +514,228 @@ async def sse_endpoint(client_id: str, request: Request):
                                         content_text = f"Page '{page['title']}' created successfully"
                                     else:
                                         content_text = f"Error: {response.status_code} - {response.text}"
+                                
+                                elif tool_name == "apply_theme":
+                                    site_id = args["site_id"]
+                                    theme_slug = args["theme_slug"]
+                                    
+                                    # If site_id looks like a slug (not UUID), try to get the UUID first
+                                    if len(site_id) < 36 or "-" not in site_id:
+                                        # Try to find site by slug
+                                        sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                        if sites_resp.status_code == 200:
+                                            sites = sites_resp.json()
+                                            for s in sites:
+                                                if s["slug"] == site_id:
+                                                    site_id = s["id"]
+                                                    break
+                                    
+                                    response = await client.patch(
+                                        f"{base_url}/sites/{site_id}",
+                                        headers=headers,
+                                        json={"theme_slug": theme_slug}
+                                    )
+                                    if response.status_code == 200:
+                                        content_text = f"Theme '{theme_slug}' applied successfully to site"
+                                    else:
+                                        content_text = f"Error applying theme: {response.status_code} - {response.text}"
+                                
+                                elif tool_name == "list_themes":
+                                    response = await client.get(f"{base_url}/themes/", headers=headers)
+                                    if response.status_code == 200:
+                                        themes = response.json()
+                                        if themes:
+                                            content_text = "Available themes:\n" + "\n".join(
+                                                f"- {t['slug']} ({t.get('name', 'No name')})"
+                                                for t in themes
+                                            )
+                                        else:
+                                            content_text = "No themes available."
+                                    else:
+                                        content_text = f"Error listing themes: {response.status_code}"
+                                
+                                elif tool_name == "get_page_content":
+                                    page_id = args["page_id"]
+                                    # First get page details to find site_id
+                                    response = await client.get(f"{base_url}/sites/", headers=headers)
+                                    page_found = False
+                                    if response.status_code == 200:
+                                        sites = response.json()
+                                        for site in sites:
+                                            pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
+                                            if pages_resp.status_code == 200:
+                                                pages = pages_resp.json()
+                                                for page in pages:
+                                                    if page['id'] == page_id or page['slug'] == page_id:
+                                                        content_resp = await client.get(f"{base_url}/sites/{site['id']}/pages/{page['id']}/content", headers=headers)
+                                                        if content_resp.status_code == 200:
+                                                            content_sections = content_resp.json()
+                                                            if content_sections:
+                                                                content_text = "Content sections:\n" + "\n".join(
+                                                                    f"- {c['section_type']}: {c['content'][:100]}..."
+                                                                    for c in content_sections
+                                                                )
+                                                            else:
+                                                                content_text = "No content sections found."
+                                                        else:
+                                                            content_text = f"Error fetching content: {content_resp.status_code}"
+                                                        page_found = True
+                                                        break
+                                            if page_found:
+                                                break
+                                    if not page_found:
+                                        content_text = f"Page not found: {page_id}"
+                                
+                                elif tool_name == "update_page_content":
+                                    page_id = args["page_id"]
+                                    section_type = args["section_type"]
+                                    content = args["content"]
+                                    
+                                    # Find the site and page
+                                    sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                    content_text = f"Error: Could not find page {page_id}"
+                                    if sites_resp.status_code == 200:
+                                        sites = sites_resp.json()
+                                        for site in sites:
+                                            pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
+                                            if pages_resp.status_code == 200:
+                                                pages = pages_resp.json()
+                                                for page in pages:
+                                                    if page['id'] == page_id or page['slug'] == page_id:
+                                                        # Check for existing content section
+                                                        content_resp = await client.get(f"{base_url}/sites/{site['id']}/pages/{page['id']}/content", headers=headers)
+                                                        if content_resp.status_code == 200:
+                                                            sections = content_resp.json()
+                                                            existing = next((s for s in sections if s['section_type'] == section_type), None)
+                                                            if existing:
+                                                                # Update existing
+                                                                patch_resp = await client.patch(
+                                                                    f"{base_url}/sites/{site['id']}/pages/{page['id']}/content/{existing['id']}",
+                                                                    headers=headers,
+                                                                    json={"content": content}
+                                                                )
+                                                                if patch_resp.status_code == 200:
+                                                                    content_text = f"Updated {section_type} section with new content"
+                                                                else:
+                                                                    content_text = f"Error updating: {patch_resp.status_code}"
+                                                            else:
+                                                                # Create new section
+                                                                post_resp = await client.post(
+                                                                    f"{base_url}/sites/{site['id']}/pages/{page['id']}/content",
+                                                                    headers=headers,
+                                                                    json={"section_type": section_type, "content": content, "order": 0}
+                                                                )
+                                                                if post_resp.status_code in (200, 201):
+                                                                    content_text = f"Created {section_type} section with content"
+                                                                else:
+                                                                    content_text = f"Error creating: {post_resp.status_code}"
+                                                        break
+                                
+                                elif tool_name == "update_page":
+                                    page_id = args["page_id"]
+                                    update_data = {}
+                                    if "title" in args:
+                                        update_data["title"] = args["title"]
+                                    if "slug" in args:
+                                        update_data["slug"] = args["slug"]
+                                    if "is_published" in args:
+                                        update_data["is_published"] = args["is_published"]
+                                    
+                                    # Find site and update page
+                                    sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                    content_text = f"Error: Could not find page {page_id}"
+                                    if sites_resp.status_code == 200:
+                                        sites = sites_resp.json()
+                                        for site in sites:
+                                            pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
+                                            if pages_resp.status_code == 200:
+                                                pages = pages_resp.json()
+                                                for page in pages:
+                                                    if page['id'] == page_id or page['slug'] == page_id:
+                                                        resp = await client.patch(
+                                                            f"{base_url}/sites/{site['id']}/pages/{page['id']}",
+                                                            headers=headers,
+                                                            json=update_data
+                                                        )
+                                                        if resp.status_code == 200:
+                                                            content_text = f"Page updated successfully"
+                                                        else:
+                                                            content_text = f"Error: {resp.status_code}"
+                                                        break
+                                
+                                elif tool_name == "delete_page":
+                                    page_id = args["page_id"]
+                                    sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                    content_text = f"Error: Could not find page {page_id}"
+                                    if sites_resp.status_code == 200:
+                                        sites = sites_resp.json()
+                                        for site in sites:
+                                            pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
+                                            if pages_resp.status_code == 200:
+                                                pages = pages_resp.json()
+                                                for page in pages:
+                                                    if page['id'] == page_id or page['slug'] == page_id:
+                                                        resp = await client.delete(
+                                                            f"{base_url}/sites/{site['id']}/pages/{page['id']}",
+                                                            headers=headers
+                                                        )
+                                                        if resp.status_code in (200, 204):
+                                                            content_text = f"Page deleted successfully"
+                                                        else:
+                                                            content_text = f"Error: {resp.status_code}"
+                                                        break
+                                
+                                elif tool_name == "update_site":
+                                    site_id = args["site_id"]
+                                    update_data = {}
+                                    if "name" in args:
+                                        update_data["name"] = args["name"]
+                                    if "slug" in args:
+                                        update_data["slug"] = args["slug"]
+                                    if "theme_slug" in args:
+                                        update_data["theme_slug"] = args["theme_slug"]
+                                    
+                                    # Convert slug to UUID if needed
+                                    if len(site_id) < 36 or "-" not in site_id:
+                                        sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                        if sites_resp.status_code == 200:
+                                            sites = sites_resp.json()
+                                            for s in sites:
+                                                if s["slug"] == site_id:
+                                                    site_id = s["id"]
+                                                    break
+                                    
+                                    response = await client.patch(
+                                        f"{base_url}/sites/{site_id}",
+                                        headers=headers,
+                                        json=update_data
+                                    )
+                                    if response.status_code == 200:
+                                        content_text = f"Site updated successfully"
+                                    else:
+                                        content_text = f"Error updating site: {response.status_code} - {response.text}"
+                                
+                                elif tool_name == "delete_site":
+                                    site_id = args["site_id"]
+                                    
+                                    # Convert slug to UUID if needed
+                                    if len(site_id) < 36 or "-" not in site_id:
+                                        sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                        if sites_resp.status_code == 200:
+                                            sites = sites_resp.json()
+                                            for s in sites:
+                                                if s["slug"] == site_id:
+                                                    site_id = s["id"]
+                                                    break
+                                    
+                                    response = await client.delete(
+                                        f"{base_url}/sites/{site_id}",
+                                        headers=headers
+                                    )
+                                    if response.status_code in (200, 204):
+                                        content_text = f"Site deleted successfully"
+                                    else:
+                                        content_text = f"Error deleting site: {response.status_code} - {response.text}"
                                 
                                 else:
                                     content_text = f"Tool {tool_name} executed with args: {args}"

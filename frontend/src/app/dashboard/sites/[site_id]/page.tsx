@@ -7,9 +7,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Globe, Layout, Palette, Trash2, Type } from 'lucide-react';
+import { Globe, Layout, Palette, Trash2, Type, Plus, X } from 'lucide-react';
 
 interface Site {
   id: string;
@@ -38,13 +54,27 @@ interface Theme {
   slug: string;
 }
 
+const SECTION_TEMPLATES: Record<string, string> = {
+  hero: '# Welcome to {site_name}\n\nYour compelling headline here.',
+  body: 'Add your content here. You can use **markdown** formatting.',
+  features: '## Features\n\n- Feature 1\n- Feature 2\n- Feature 3',
+  cta: '## Ready to get started?\n\nContact us today!',
+  footer: '© 2024 {site_name}. All rights reserved.',
+};
+
 export default function SiteEditorPage({ params }: { params: Promise<{ site_id: string }> }) {
   const { site_id } = use(params);
   const [site, setSite] = useState<Site | null>(null);
+  const [pages, setPages] = useState<Page[]>([]);
   const [currentPage, setCurrentPage] = useState<Page | null>(null);
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newSectionType, setNewSectionType] = useState('body');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAddPageDialogOpen, setIsAddPageDialogOpen] = useState(false);
+  const [newPageTitle, setNewPageTitle] = useState('');
+  const [newPageSlug, setNewPageSlug] = useState('');
   const { toast } = useToast();
   const router = useRouter();
 
@@ -122,6 +152,96 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     }
   };
 
+  const handleAddSection = async () => {
+    if (!currentPage || !site) return;
+    try {
+      const template = SECTION_TEMPLATES[newSectionType] || SECTION_TEMPLATES.body;
+      const content = template.replace(/{site_name}/g, site.name);
+      const response = await api.post(`/sites/${site_id}/pages/${currentPage.id}/content`, {
+        section_type: newSectionType,
+        content,
+        order: sections.length,
+      });
+      setSections([...sections, response.data]);
+      setIsAddDialogOpen(false);
+      toast({ title: 'Success', description: `${newSectionType} section added.` });
+    } catch (error) {
+      console.error('Failed to add section', error);
+      toast({ title: 'Error', description: 'Failed to add section.', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteSection = async (sectionId: string) => {
+    if (!currentPage) return;
+    if (!confirm('Are you sure you want to delete this section?')) return;
+    try {
+      await api.delete(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`);
+      setSections(sections.filter((s) => s.id !== sectionId));
+      toast({ title: 'Deleted', description: 'Section removed.' });
+    } catch (error) {
+      console.error('Failed to delete section', error);
+      toast({ title: 'Error', description: 'Failed to delete section.', variant: 'destructive' });
+    }
+  };
+
+  const handleAddPage = async () => {
+    if (!newPageTitle || !newPageSlug) return;
+    try {
+      const response = await api.post(`/sites/${site_id}/pages`, {
+        title: newPageTitle,
+        slug: newPageSlug.toLowerCase().replace(/ /g, '-'),
+        is_published: true,
+        order: pages.length,
+      });
+      const newPage = response.data;
+      setPages([...pages, newPage]);
+      setCurrentPage(newPage);
+      setSections([]);
+      setIsAddPageDialogOpen(false);
+      setNewPageTitle('');
+      setNewPageSlug('');
+      toast({ title: 'Success', description: `Page "${newPageTitle}" created.` });
+    } catch (error) {
+      console.error('Failed to create page', error);
+      toast({ title: 'Error', description: 'Failed to create page.', variant: 'destructive' });
+    }
+  };
+
+  const handleSwitchPage = async (page: Page) => {
+    setCurrentPage(page);
+    try {
+      const sectionsRes = await api.get(`/sites/${site_id}/pages/${page.id}/content`);
+      setSections(sectionsRes.data);
+    } catch (error) {
+      console.error('Failed to fetch page content', error);
+      setSections([]);
+    }
+  };
+
+  const handleDeletePage = async (pageId: string) => {
+    if (!confirm('Are you sure you want to delete this page?')) return;
+    try {
+      await api.delete(`/sites/${site_id}/pages/${pageId}`);
+      const updatedPages = pages.filter((p) => p.id !== pageId);
+      setPages(updatedPages);
+      if (currentPage?.id === pageId) {
+        setCurrentPage(updatedPages[0] || null);
+        if (updatedPages[0]) {
+          const sectionsRes = await api.get(
+            `/sites/${site_id}/pages/${updatedPages[0].id}/content`
+          );
+          setSections(sectionsRes.data);
+        } else {
+          setSections([]);
+        }
+      }
+      toast({ title: 'Deleted', description: 'Page removed.' });
+    } catch (error) {
+      console.error('Failed to delete page', error);
+      toast({ title: 'Error', description: 'Failed to delete page.', variant: 'destructive' });
+    }
+  };
+
   const handleUpdateContent = async (sectionId: string, content: string) => {
     if (!currentPage) return;
     try {
@@ -190,10 +310,124 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
         </TabsList>
 
         <TabsContent value="content" className="mt-6 space-y-6">
+          {/* Page Selector */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Pages</CardTitle>
+                <Dialog open={isAddPageDialogOpen} onOpenChange={setIsAddPageDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      <Plus size={16} /> Add Page
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Page</DialogTitle>
+                      <DialogDescription>Add a new page to your site.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="pageTitle">Page Title</Label>
+                        <Input
+                          id="pageTitle"
+                          value={newPageTitle}
+                          onChange={(e) => setNewPageTitle(e.target.value)}
+                          placeholder="e.g., About Us"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pageSlug">URL Slug</Label>
+                        <Input
+                          id="pageSlug"
+                          value={newPageSlug}
+                          onChange={(e) => setNewPageSlug(e.target.value)}
+                          placeholder="e.g., about"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleAddPage}>Create Page</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {pages.map((page) => (
+                  <div key={page.id} className="flex items-center gap-1">
+                    <Button
+                      variant={currentPage?.id === page.id ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleSwitchPage(page)}
+                    >
+                      {page.title}
+                      {page.is_published ? (
+                        <span className="ml-2 w-2 h-2 rounded-full bg-green-500" />
+                      ) : (
+                        <span className="ml-2 w-2 h-2 rounded-full bg-gray-400" />
+                      )}
+                    </Button>
+                    {pages.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleDeletePage(page.id)}
+                      >
+                        <X size={14} />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Content Sections */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">
+              {currentPage ? `"${currentPage.title}" Content` : 'Content'}
+            </h2>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus size={16} /> Add Section
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Content Section</DialogTitle>
+                  <DialogDescription>Choose a section type to add to your page.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Select value={newSectionType} onValueChange={setNewSectionType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select section type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hero">Hero (Header)</SelectItem>
+                      <SelectItem value="body">Body Text</SelectItem>
+                      <SelectItem value="features">Features List</SelectItem>
+                      <SelectItem value="cta">Call to Action</SelectItem>
+                      <SelectItem value="footer">Footer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleAddSection}>Add Section</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           {sections.length === 0 ? (
             <Card className="p-12 text-center">
               <p className="text-gray-500 mb-4">No content sections yet.</p>
-              <Button variant="outline">Add Hero Section</Button>
+              <Button onClick={() => setIsAddDialogOpen(true)} variant="outline">
+                <Plus size={16} className="mr-2" /> Add Your First Section
+              </Button>
             </Card>
           ) : (
             sections.map((section) => (
@@ -204,6 +438,13 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                       {section.section_type} Section
                     </CardTitle>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteSection(section.id)}
+                  >
+                    <Trash2 size={16} className="text-red-500" />
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <textarea

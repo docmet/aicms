@@ -40,7 +40,9 @@ export function ClaudeConnect({ token, clientId }: ClaudeConnectProps) {
 
   const connectionParams = {
     Name: 'AI CMS',
-    'Server URL': clientId ? `${window.location.origin}/sse/${clientId}` : `${window.location.origin}/sse`,
+    'Server URL': clientId
+      ? `${window.location.origin}/sse/${clientId}`
+      : `${window.location.origin}/sse`,
     client_id: 'aicms-client',
     authorization_token: token,
   };
@@ -63,7 +65,9 @@ export function ClaudeConnect({ token, clientId }: ClaudeConnectProps) {
           </h4>
           <p className="text-sm text-green-700 dark:text-green-300">
             Your MCP server is accessible at:{' '}
-            <code className="bg-green-100 dark:bg-green-800 px-1 rounded">{window.location.origin}</code>
+            <code className="bg-green-100 dark:bg-green-800 px-1 rounded">
+              {window.location.origin}
+            </code>
           </p>
         </div>
 

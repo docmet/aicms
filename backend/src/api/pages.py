@@ -47,7 +47,7 @@ async def create_page(
 
     # Check if slug is already taken within this site
     result = await db.execute(
-        select(Page).where(Page.site_id == site_id, Page.slug == page_in.slug)
+        select(Page).where(Page.site_id == site_id, Page.slug == page_in.slug).limit(1)
     )
     if result.scalar_one_or_none():
         raise HTTPException(
