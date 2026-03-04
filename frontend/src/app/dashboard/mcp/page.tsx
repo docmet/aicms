@@ -163,6 +163,7 @@ Token: ${token}`,
       {/* Quick Connect for Claude Desktop */}
       <ClaudeConnect
         token={clients.find((c) => c.tool_type === 'claude')?.token || ''}
+        clientId={clients.find((c) => c.tool_type === 'claude')?.id || ''}
         ngrokUrl="https://033a-45-155-40-197.ngrok-free.app"
       />
 

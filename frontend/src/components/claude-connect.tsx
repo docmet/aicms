@@ -7,10 +7,11 @@ import { useToast } from '@/hooks/use-toast';
 
 interface ClaudeConnectProps {
   token: string;
+  clientId: string;
   ngrokUrl: string;
 }
 
-export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
+export function ClaudeConnect({ token, clientId, ngrokUrl }: ClaudeConnectProps) {
   const { toast } = useToast();
 
   if (!token) {
@@ -40,7 +41,7 @@ export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
 
   const connectionParams = {
     Name: 'AI CMS',
-    'Server URL': `${ngrokUrl}/mcp`,
+    'Server URL': clientId ? `${ngrokUrl}/mcp/${clientId}` : `${ngrokUrl}/mcp`,
     'Client ID': 'aicms-client', // Optional - can be any value
     'Client Secret': token, // Using token as client secret for authentication
   };
