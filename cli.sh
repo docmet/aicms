@@ -551,7 +551,7 @@ main() {
   cd "$(dirname "$0")/.."
   
   # Set up Python path
-  export PYTHONPATH="${PYTHONPATH}:$(pwd)/backend/src"
+  export PYTHONPATH="${PYTHONPATH:-}:$(pwd)/backend/src"
   
   if [[ $# -lt 1 ]]; then
     usage
