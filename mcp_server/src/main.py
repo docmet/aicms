@@ -410,6 +410,7 @@ async def sse_endpoint(client_id: str, request: Request):
                             {"name": "update_page_content", "description": "Update content", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_type": {"type": "string"}, "content": {"type": "string"}}, "required": ["page_id", "section_type", "content"]}},
                             {"name": "update_page", "description": "Update page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["page_id"]}},
                             {"name": "delete_page", "description": "Delete page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
+                            {"name": "reorder_sections", "description": "Reorder content sections", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_orders": {"type": "array", "items": {"type": "object", "properties": {"section_id": {"type": "string"}, "new_order": {"type": "number"}}}}, "required": ["page_id", "section_orders"]}},
                             {"name": "list_themes", "description": "List themes", "inputSchema": {"type": "object", "properties": {}}},
                             {"name": "apply_theme", "description": "Apply theme", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}},
                         ]
@@ -683,6 +684,49 @@ async def sse_endpoint(client_id: str, request: Request):
                                                             content_text = f"Page deleted successfully"
                                                         else:
                                                             content_text = f"Error: {resp.status_code}"
+                                                        break
+                                
+                                elif tool_name == "reorder_sections":
+                                    page_id = args["page_id"]
+                                    section_orders = args.get("section_orders", [])
+                                    
+                                    # Find the site and page
+                                    sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                    content_text = f"Error: Could not find page {page_id}"
+                                    updated_count = 0
+                                    
+                                    if sites_resp.status_code == 200:
+                                        sites = sites_resp.json()
+                                        for site in sites:
+                                            pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
+                                            if pages_resp.status_code == 200:
+                                                pages = pages_resp.json()
+                                                for page in pages:
+                                                    if page['id'] == page_id or page['slug'] == page_id:
+                                                        # Update each section's order
+                                                        for item in section_orders:
+                                                            section_id = item.get("section_id")
+                                                            new_order = item.get("new_order")
+                                                            
+                                                            # Get content sections to find by ID or type
+                                                            content_resp = await client.get(
+                                                                f"{base_url}/sites/{site['id']}/pages/{page['id']}/content",
+                                                                headers=headers
+                                                            )
+                                                            if content_resp.status_code == 200:
+                                                                sections = content_resp.json()
+                                                                for section in sections:
+                                                                    if section['id'] == section_id or section['section_type'] == section_id:
+                                                                        patch_resp = await client.patch(
+                                                                            f"{base_url}/sites/{site['id']}/pages/{page['id']}/content/{section['id']}",
+                                                                            headers=headers,
+                                                                            json={"order": new_order}
+                                                                        )
+                                                                        if patch_resp.status_code == 200:
+                                                                            updated_count += 1
+                                                                        break
+                                                        
+                                                        content_text = f"Reordered {updated_count} sections successfully"
                                                         break
                                 
                                 elif tool_name == "update_site":

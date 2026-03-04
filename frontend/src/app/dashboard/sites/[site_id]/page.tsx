@@ -184,6 +184,36 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     }
   };
 
+  const handleMoveSection = async (sectionId: string, direction: 'up' | 'down') => {
+    if (!currentPage) return;
+    const index = sections.findIndex((s) => s.id === sectionId);
+    if (index === -1) return;
+    
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= sections.length) return;
+    
+    // Swap sections
+    const newSections = [...sections];
+    [newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]];
+    
+    // Update order values
+    const updatedSections = newSections.map((s, i) => ({ ...s, order: i }));
+    setSections(updatedSections);
+    
+    // Update backend
+    try {
+      await api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
+        order: newIndex,
+      });
+      toast({ title: 'Success', description: `Section moved ${direction}.` });
+    } catch (error) {
+      console.error('Failed to move section', error);
+      toast({ title: 'Error', description: 'Failed to move section.', variant: 'destructive' });
+      // Revert on error
+      setSections(sections);
+    }
+  };
+
   const handleAddPage = async () => {
     if (!newPageTitle || !newPageSlug) return;
     try {
@@ -438,13 +468,33 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                       {section.section_type} Section
                     </CardTitle>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteSection(section.id)}
-                  >
-                    <Trash2 size={16} className="text-red-500" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleMoveSection(section.id, 'up')}
+                      disabled={sections.indexOf(section) === 0}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleMoveSection(section.id, 'down')}
+                      disabled={sections.indexOf(section) === sections.length - 1}
+                    >
+                      ↓
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteSection(section.id)}
+                    >
+                      <Trash2 size={16} className="text-red-500" />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <textarea
