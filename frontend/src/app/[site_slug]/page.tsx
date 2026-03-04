@@ -64,9 +64,8 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   // Parse JSON content for certain sections
   const parseContent = (content: string, sectionType: string) => {
     try {
-      if (sectionType === 'hero' || sectionType === 'services' || sectionType === 'contact') {
+      if (sectionType === 'services' || sectionType === 'contact') {
         const parsed = JSON.parse(content);
-        // For services, the content is wrapped in a "services" object
         if (sectionType === 'services' && parsed.services) {
           return parsed.services;
         }
@@ -78,6 +77,28 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
     }
   };
 
+  // Parse hero content - supports both JSON and Markdown formats
+  const parseHeroContent = (content: string): { headline: string; subheadline: string } => {
+    try {
+      // Try JSON format first
+      const parsed = JSON.parse(content);
+      if (parsed.headline) {
+        return parsed;
+      }
+    } catch {
+      // Not JSON, parse as Markdown
+      const lines = content.split('\n').filter(line => line.trim());
+      if (lines.length > 0) {
+        // First line is headline (remove # if present)
+        const headline = lines[0].replace(/^#+\s*/, '');
+        // Rest is subheadline
+        const subheadline = lines.slice(1).join(' ').trim();
+        return { headline, subheadline };
+      }
+    }
+    return { headline: 'Welcome', subheadline: '' };
+  };
+
   return (
     <div className="min-h-screen" data-theme={data.theme_slug || 'default'}>
       {data.sections
@@ -85,7 +106,7 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
           const parsedContent = parseContent(section.content, section.section_type);
 
           if (section.section_type === 'hero') {
-            const heroContent = parsedContent as HeroContent;
+            const heroContent = parseHeroContent(section.content);
             return (
               <section key={section.id} className="py-20 px-4 bg-primary-50 text-center">
                 <div className="max-w-4xl mx-auto">
@@ -93,6 +114,16 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
                     {heroContent.headline}
                   </h1>
                   <p className="text-xl text-primary-700">{heroContent.subheadline}</p>
+                </div>
+              </section>
+            );
+          }
+
+          if (section.section_type === 'body' || section.section_type === 'main') {
+            return (
+              <section key={section.id} className="py-16 px-4 bg-white">
+                <div className="max-w-4xl mx-auto">
+                  <div className="prose prose-lg max-w-none">{section.content}</div>
                 </div>
               </section>
             );
