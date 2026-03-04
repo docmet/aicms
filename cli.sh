@@ -77,6 +77,9 @@ Commands:
   build:frontend       Build frontend only
   build:backend        Build backend only
   
+  mcp:install          Install MCP server dependencies
+  mcp:run              Run MCP server (requires token)
+  
   verify               Verify all required tools are installed
   clean                Remove all containers, volumes, and build artifacts
   help                 Show this help message
@@ -512,13 +515,50 @@ clean_command() {
   log_success "Cleanup completed"
 }
 
+mcp_install_command() {
+  log_info "Installing MCP server..."
+  cd mcp_server
+  if command -v uv &> /dev/null; then
+    uv sync
+  else
+    pip install -e .
+  fi
+  cd ..
+  log_success "MCP server installed"
+}
+
+mcp_run_command() {
+  local api_url="${2:-http://localhost:8000/api/v1}"
+  local token="${3:-}"
+  
+  if [[ -z "$token" ]]; then
+    log_error "API token required. Usage: ./cli.sh mcp:run [api_url] [token]"
+    exit 1
+  fi
+  
+  log_info "Starting MCP server..."
+  cd mcp_server
+  if command -v uv &> /dev/null; then
+    uv run aicms-mcp --api-url "$api_url" --api-token "$token"
+  else
+    aicms-mcp --api-url "$api_url" --api-token "$token"
+  fi
+  cd ..
+}
+
 main() {
+  # Ensure we're in the project root
+  cd "$(dirname "$0")/.."
+  
+  # Set up Python path
+  export PYTHONPATH="${PYTHONPATH}:$(pwd)/backend/src"
+  
   if [[ $# -lt 1 ]]; then
     usage
     exit 1
   fi
 
-  case "$1" in
+  case "${1:-}" in
     init)
       init_command
       ;;
@@ -614,6 +654,12 @@ main() {
       ;;
     clean)
       clean_command
+      ;;
+    mcp:install)
+      mcp_install_command
+      ;;
+    mcp:run)
+      mcp_run_command
       ;;
     help|-h|--help)
       usage
