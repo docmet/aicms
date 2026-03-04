@@ -346,12 +346,12 @@ async def delete_client(
     return {"message": "Client deleted successfully"}
 
 
-# SSE endpoint for Claude Desktop
-@app.get("/sse/{client_id}")
+# SSE endpoint for Claude Desktop - supports both GET (SSE) and POST (Streamable HTTP)
+@app.api_route("/sse/{client_id}", methods=["GET", "POST"])
 async def sse_endpoint(client_id: str, request: Request):
-    """SSE endpoint for Claude Desktop MCP connections"""
+    """SSE endpoint for Claude Desktop MCP connections - supports SSE and Streamable HTTP"""
     
-    print(f"SSE connection requested for client: {client_id}")
+    print(f"MCP connection requested for client: {client_id}, method: {request.method}")
     
     # Check for Authorization header
     auth_header = request.headers.get("authorization", "")
@@ -369,7 +369,26 @@ async def sse_endpoint(client_id: str, request: Request):
             print(f"Client {client_id} not found")
             raise HTTPException(status_code=404, detail="Client not found")
     
-    print(f"Client {client_id} verified, establishing SSE connection")
+    print(f"Client {client_id} verified")
+    
+    # For POST requests (Streamable HTTP), check if client wants SSE upgrade
+    if request.method == "POST":
+        accept_header = request.headers.get("accept", "")
+        print(f"POST request with Accept: {accept_header}")
+        
+        # If client wants SSE stream, return streaming response
+        if "text/event-stream" in accept_header:
+            print("Client requesting SSE stream via POST - Streamable HTTP mode")
+        else:
+            # Regular HTTP POST - handle as message request
+            print("Regular HTTP POST - checking for body")
+            body = await request.body()
+            if body:
+                print(f"Received POST body: {body}")
+            # Return empty JSON-RPC response to acknowledge
+            return {"jsonrpc": "2.0", "id": None, "result": {}}
+    
+    print(f"Establishing SSE connection for {client_id}")
     
     async def event_stream():
         """SSE event stream for MCP protocol"""
