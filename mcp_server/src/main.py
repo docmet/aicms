@@ -166,24 +166,37 @@ async def token(request: Request):
     """OAuth token endpoint - returns access token for Claude Desktop"""
     # Claude Desktop uses client credentials flow
     try:
-        body = await request.body()
-        if body:
+        content_type = request.headers.get("content-type", "")
+        
+        if "application/json" in content_type:
+            body = await request.body()
             data = json.loads(body.decode())
-        else:
-            # Handle form-encoded data
+        elif "application/x-www-form-urlencoded" in content_type:
             form = await request.form()
             data = dict(form)
-    except:
+        else:
+            # Try JSON first, then form
+            body = await request.body()
+            if body:
+                try:
+                    data = json.loads(body.decode())
+                except:
+                    form = await request.form()
+                    data = dict(form)
+            else:
+                form = await request.form()
+                data = dict(form)
+    except Exception as e:
         data = {}
     
     client_id = data.get("client_id")
     client_secret = data.get("client_secret")
     
-    # For now, accept the test credentials
-    if client_id == "aicms-client" and client_secret:
+    # For now, accept any credentials with client_id=aicms-client
+    if client_id == "aicms-client":
         # Return a token that Claude can use
         return {
-            "access_token": client_secret,  # Use the secret as the token
+            "access_token": client_secret or "dummy-token",  # Use the secret or a dummy token
             "token_type": "Bearer",
             "expires_in": 86400  # 24 hours
         }
