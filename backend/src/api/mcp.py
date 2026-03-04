@@ -23,6 +23,7 @@ async def register_mcp_client(
         response = await client.post(
             "http://mcp_server:8000/register",
             json={**client_data, "user_id": str(current_user.id)},
+            headers={"X-User-ID": str(current_user.id)},
         )
 
         if response.status_code != 200:
@@ -43,7 +44,7 @@ async def get_mcp_clients(
     async with httpx.AsyncClient() as client:
         response = await client.get(
             "http://mcp_server:8000/clients",
-            headers={"Authorization": f"Bearer {current_user.id}"},
+            headers={"X-User-ID": str(current_user.id)},
         )
 
         if response.status_code != 200:
@@ -66,7 +67,7 @@ async def delete_mcp_client(
     async with httpx.AsyncClient() as client:
         response = await client.delete(
             f"http://mcp_server:8000/clients/{client_id}",
-            headers={"Authorization": f"Bearer {current_user.id}"},
+            headers={"X-User-ID": str(current_user.id)},
         )
 
         if response.status_code != 200:

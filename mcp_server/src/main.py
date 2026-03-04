@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
 
 import httpx
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,14 +33,21 @@ mcp_server = None
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> str:
-    """Get user ID from MCP client token"""
+    """Get user ID from request header"""
+    # Check for user ID in X-User-ID header (from backend proxy)
+    user_id = request.headers.get("X-User-ID")
+    if user_id:
+        return user_id
+    
+    # Fallback to Bearer token for direct MCP client access
+    credentials = await security(request)
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No authentication token provided"
+            detail="No authentication provided"
         )
     
     # Find MCP client by token
