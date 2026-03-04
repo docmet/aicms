@@ -207,39 +207,55 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {themes.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={async () => {
-                      setSite({ ...site, theme_slug: t.slug });
-                      try {
-                        await api.patch(`/sites/${site_id}`, {
-                          name: site.name,
-                          slug: site.slug,
-                          theme_slug: t.slug,
-                        });
-                        toast({ title: 'Success', description: `Theme changed to ${t.name}.` });
-                      } catch (err: unknown) {
-                        const error = err as { response?: { data?: { detail?: string } } };
-                        toast({
-                          title: 'Error',
-                          description: error.response?.data?.detail || 'Failed to update theme.',
-                          variant: 'destructive',
-                        });
-                        // Revert on error
-                        setSite({ ...site, theme_slug: site.theme_slug });
-                      }
-                    }}
-                    className={`p-4 border-2 rounded-lg text-center transition-all ${
-                      site.theme_slug === t.slug ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="w-full aspect-video bg-gray-100 rounded mb-2 flex items-center justify-center">
-                      <Palette className={site.theme_slug === t.slug ? 'text-blue-600' : 'text-gray-400'} />
-                    </div>
-                    <span className="text-sm font-medium capitalize">{t.name}</span>
-                  </button>
-                ))}
+                {themes.map((t) => {
+                  const themeColors = {
+                    default: { bg: 'bg-blue-500', light: 'bg-blue-100', border: 'border-blue-600' },
+                    warm: { bg: 'bg-orange-500', light: 'bg-orange-100', border: 'border-orange-600' },
+                    nature: { bg: 'bg-green-500', light: 'bg-green-100', border: 'border-green-600' },
+                    dark: { bg: 'bg-slate-800', light: 'bg-slate-700', border: 'border-slate-600' },
+                    minimal: { bg: 'bg-gray-600', light: 'bg-gray-100', border: 'border-gray-600' }
+                  };
+                  const colors = themeColors[t.slug as keyof typeof themeColors] || themeColors.default;
+                  
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={async () => {
+                        setSite({ ...site, theme_slug: t.slug });
+                        try {
+                          await api.patch(`/sites/${site_id}`, {
+                            name: site.name,
+                            slug: site.slug,
+                            theme_slug: t.slug,
+                          });
+                          toast({ title: 'Success', description: `Theme changed to ${t.name}.` });
+                        } catch (err: unknown) {
+                          const error = err as { response?: { data?: { detail?: string } } };
+                          toast({
+                            title: 'Error',
+                            description: error.response?.data?.detail || 'Failed to update theme.',
+                            variant: 'destructive',
+                          });
+                          // Revert on error
+                          setSite({ ...site, theme_slug: site.theme_slug });
+                        }
+                      }}
+                      className={`p-4 border-2 rounded-lg text-center transition-all ${
+                        site.theme_slug === t.slug ? `${colors.border} ${colors.light}` : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-full aspect-video ${colors.light} rounded mb-2 flex items-center justify-center relative overflow-hidden`}>
+                        <div className={`absolute inset-0 ${colors.bg} opacity-20`}></div>
+                        <div className="relative flex gap-1">
+                          <div className={`w-4 h-4 ${colors.bg} rounded-full`}></div>
+                          <div className={`w-4 h-4 ${colors.bg} rounded-full opacity-60`}></div>
+                          <div className={`w-4 h-4 ${colors.bg} rounded-full opacity-30`}></div>
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium capitalize">{t.name}</span>
+                    </button>
+                  );
+                })}
               </div>
               <p className="text-[10px] text-gray-400 mt-4 italic">Changes auto-save on click</p>
             </CardContent>
