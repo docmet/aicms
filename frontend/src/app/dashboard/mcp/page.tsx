@@ -110,7 +110,6 @@ export default function MCPSettingsPage() {
     const baseUrl = window.location.origin;
     switch (type) {
       case 'claude':
-        const ngrokUrl = 'https://82c1-2a02-ab88-1510-ce80-4e7-66a0-7852-a87c.ngrok-free.app'; // Update with your ngrok URL
         return {
           title: 'Claude Desktop Setup',
           config: JSON.stringify(
@@ -120,7 +119,7 @@ export default function MCPSettingsPage() {
                   command: 'node',
                   args: ['/path/to/mcp_cms/mcp-proxy-server.js'],
                   env: {
-                    API_URL: `${ngrokUrl}/api`,
+                    API_URL: `${baseUrl}/api`,
                     AUTH_TOKEN: token,
                   },
                 },
@@ -164,7 +163,6 @@ Token: ${token}`,
       <ClaudeConnect
         token={clients.find((c) => c.tool_type === 'claude')?.token || ''}
         clientId={clients.find((c) => c.tool_type === 'claude')?.id || ''}
-        ngrokUrl="https://033a-45-155-40-197.ngrok-free.app"
       />
 
       <Card>

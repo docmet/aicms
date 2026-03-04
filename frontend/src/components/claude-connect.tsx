@@ -8,10 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 interface ClaudeConnectProps {
   token: string;
   clientId: string;
-  ngrokUrl: string;
 }
 
-export function ClaudeConnect({ token, clientId, ngrokUrl }: ClaudeConnectProps) {
+export function ClaudeConnect({ token, clientId }: ClaudeConnectProps) {
   const { toast } = useToast();
 
   if (!token) {
@@ -41,7 +40,7 @@ export function ClaudeConnect({ token, clientId, ngrokUrl }: ClaudeConnectProps)
 
   const connectionParams = {
     Name: 'AI CMS',
-    'Server URL': clientId ? `${ngrokUrl}/sse/${clientId}` : `${ngrokUrl}/sse`,
+    'Server URL': clientId ? `${window.location.origin}/sse/${clientId}` : `${window.location.origin}/sse`,
     'Client ID': 'aicms-client',
     'Client Secret': token,
   };
@@ -64,7 +63,7 @@ export function ClaudeConnect({ token, clientId, ngrokUrl }: ClaudeConnectProps)
           </h4>
           <p className="text-sm text-green-700 dark:text-green-300">
             Your MCP server is accessible at:{' '}
-            <code className="bg-green-100 dark:bg-green-800 px-1 rounded">{ngrokUrl}</code>
+            <code className="bg-green-100 dark:bg-green-800 px-1 rounded">{window.location.origin}</code>
           </p>
         </div>
 
