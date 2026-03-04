@@ -9,6 +9,21 @@ interface ContentSection {
   content: string;
 }
 
+interface ServiceItem {
+  name: string;
+  description: string;
+}
+
+interface HeroContent {
+  headline: string;
+  subheadline: string;
+}
+
+interface ContactContent {
+  email: string;
+  phone: string;
+}
+
 interface SiteData {
   name: string;
   theme_slug: string;
@@ -41,9 +56,9 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   if (error || !data) return <div className="min-h-screen flex items-center justify-center text-red-500 text-xl font-bold italic">Site not found.</div>;
 
   // Parse JSON content for certain sections
-  const parseContent = (content: string, sectionType: string) => {
+  const parseContent = (content: string, sectionType: string): HeroContent | ServiceItem[] | ContactContent | string => {
     try {
-      if (sectionType === 'hero' || sectionType === 'services') {
+      if (sectionType === 'hero' || sectionType === 'services' || sectionType === 'contact') {
         return JSON.parse(content);
       }
       return content;
@@ -58,14 +73,15 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
         const parsedContent = parseContent(section.content, section.section_type);
         
         if (section.section_type === 'hero') {
+          const heroContent = parsedContent as HeroContent;
           return (
             <section key={section.id} className="py-20 px-4 bg-primary-50 text-center">
               <div className="max-w-4xl mx-auto">
                 <h1 className="text-5xl font-bold mb-4 text-primary-900">
-                  {parsedContent.headline}
+                  {heroContent.headline}
                 </h1>
                 <p className="text-xl text-primary-700">
-                  {parsedContent.subheadline}
+                  {heroContent.subheadline}
                 </p>
               </div>
             </section>
@@ -73,12 +89,13 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
         }
         
         if (section.section_type === 'services') {
+          const servicesContent = parsedContent as ServiceItem[];
           return (
             <section key={section.id} className="py-20 px-4 bg-white">
               <div className="max-w-4xl mx-auto">
                 <h2 className="text-4xl font-bold text-center mb-12">Our Services</h2>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {parsedContent.services.map((service: any, index: number) => (
+                  {servicesContent.map((service, index) => (
                     <div key={index} className="p-6 border rounded-lg bg-card">
                       <h3 className="text-xl font-semibold mb-2">{service.name}</h3>
                       <p className="text-muted-foreground">{service.description}</p>
@@ -91,7 +108,7 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
         }
         
         if (section.section_type === 'contact') {
-          const contact = parseContent(section.content, section.section_type);
+          const contactContent = parsedContent as ContactContent;
           return (
             <section key={section.id} className="py-20 px-4 bg-primary-50">
               <div className="max-w-4xl mx-auto text-center">
@@ -99,14 +116,14 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
                 <div className="space-y-4">
                   <p className="text-lg">
                     <span className="font-semibold">Email:</span>{' '}
-                    <a href={`mailto:${contact.email}`} className="text-primary-600 hover:underline">
-                      {contact.email}
+                    <a href={`mailto:${contactContent.email}`} className="text-primary-600 hover:underline">
+                      {contactContent.email}
                     </a>
                   </p>
                   <p className="text-lg">
                     <span className="font-semibold">Phone:</span>{' '}
-                    <a href={`tel:${contact.phone}`} className="text-primary-600 hover:underline">
-                      {contact.phone}
+                    <a href={`tel:${contactContent.phone}`} className="text-primary-600 hover:underline">
+                      {contactContent.phone}
                     </a>
                   </p>
                 </div>
