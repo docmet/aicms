@@ -373,19 +373,12 @@ async def sse_endpoint(client_id: str, request: Request):
         """SSE event stream for MCP protocol"""
         print("Starting SSE event stream")
         
-        # Send initial server announcement
-        init_message = {
-            "jsonrpc": "2.0",
-            "method": "notification/initialized",
-            "params": {
-                "server": {
-                    "name": "aicms-mcp-server",
-                    "version": "1.0.0"
-                }
-            }
-        }
+        # According to MCP spec, first send an endpoint event
+        # This tells the client where to send messages
+        base_url = f"{request.url.scheme}://{request.headers.get('host', 'localhost:8000')}"
+        message_endpoint = f"{base_url}/{client_id}/messages"
         
-        yield f"data: {json.dumps(init_message)}\n\n"
+        yield f"event: endpoint\ndata: {message_endpoint}\n\n"
         
         try:
             while True:
@@ -442,12 +435,37 @@ async def mcp_messages(client_id: str, request: Request):
                 "result": {
                     "protocolVersion": "2024-11-05",
                     "capabilities": {
-                        "tools": {}
+                        "tools": {
+                            "listChanged": True
+                        }
                     },
                     "serverInfo": {
                         "name": "aicms-mcp-server",
                         "version": "1.0.0"
                     }
+                }
+            }
+            
+            # Send the response via SSE (we'd need to store the SSE connection)
+            # For now, just return the response
+            return response
+        
+        # Handle list tools
+        if message.get("method") == "tools/list":
+            response = {
+                "jsonrpc": "2.0",
+                "id": message.get("id"),
+                "result": {
+                    "tools": [
+                        {
+                            "name": "get_sites",
+                            "description": "Get all sites for the user",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        }
+                    ]
                 }
             }
             return response
