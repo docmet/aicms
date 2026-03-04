@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('token', token);
     setLoading(true);
     api
-      .get('/auth/me')
+      .get('/v1/auth/me')
       .then((response) => {
         setUser(response.data);
         setLoading(false);
