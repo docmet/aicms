@@ -137,6 +137,12 @@ async def oauth_protected_resource_sse(client_id: str):
     return {"endpoint": f"/mcp-sse/sse/{client_id}"}
 
 
+@app.get("/.well-known/oauth-protected-resource/mcp/{client_id}")
+async def oauth_protected_resource_mcp(client_id: str):
+    """OAuth protected resource for MCP endpoint"""
+    return {"endpoint": f"/mcp/{client_id}"}
+
+
 @app.get("/authorize")
 async def authorize(
     response_type: str = "code",
@@ -367,50 +373,20 @@ async def sse_endpoint(client_id: str, request: Request):
         """SSE event stream for MCP protocol"""
         print("Starting SSE event stream")
         
-        # Create SSE transport
-        sse_transport = SseServerTransport("/messages/")
-        
-        # Create MCP server
-        server = Server("aicms-mcp-server")
-        
-        # Add some example tools
-        @server.list_tools()
-        async def list_tools():
-            return {
-                "tools": [
-                    {
-                        "name": "get_sites",
-                        "description": "Get all sites for the user",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {}
-                        }
-                    }
-                ]
-            }
-        
-        # Handle the MCP protocol properly
-        async def handle_request(scope, receive, send):
-            # This will be called by the SSE transport
-            pass
-        
-        # For now, send initial connection event
-        yield "event: connected\ndata: MCP server connected\n\n"
-        
-        # In a real implementation, we'd use sse_transport.connect_sse()
-        # For now, we'll simulate the protocol
+        # Send initial server announcement
         init_message = {
             "jsonrpc": "2.0",
-            "id": 1,
-            "result": {
-                "capabilities": {
-                    "tools": {}
+            "method": "notification/initialized",
+            "params": {
+                "server": {
+                    "name": "aicms-mcp-server",
+                    "version": "1.0.0"
                 }
             }
         }
-        yield f"event: message\ndata: {json.dumps(init_message)}\n\n"
         
-        # Keep connection alive with periodic pings
+        yield f"data: {json.dumps(init_message)}\n\n"
+        
         try:
             while True:
                 # Check if client is still connected
@@ -418,15 +394,9 @@ async def sse_endpoint(client_id: str, request: Request):
                     print("Client disconnected")
                     break
                     
-                # Send ping and wait
-                yield "event: ping\ndata: ping\n\n"
+                # Wait for messages or send keepalive
+                await asyncio.sleep(30)
                 
-                # Use a shorter sleep with more frequent disconnection checks
-                for _ in range(6):  # 6 * 5 = 30 seconds total
-                    await asyncio.sleep(5)
-                    if await request.is_disconnected():
-                        print("Client disconnected during wait")
-                        return
         except asyncio.CancelledError:
             print("SSE connection cancelled")
         except Exception as e:
@@ -450,6 +420,44 @@ async def sse_endpoint(client_id: str, request: Request):
 async def sse_endpoint_alt(client_id: str, request: Request):
     """Alternative SSE endpoint path for Claude Desktop"""
     return await sse_endpoint(client_id, request)
+
+
+# Message endpoint for MCP protocol
+@app.post("/{client_id}/messages")
+async def mcp_messages(client_id: str, request: Request):
+    """Handle MCP protocol messages"""
+    body = await request.body()
+    print(f"Received message for {client_id}: {body}")
+    
+    # Parse the JSON-RPC message
+    try:
+        message = json.loads(body.decode())
+        print(f"Parsed message: {message}")
+        
+        # Handle initialization
+        if message.get("method") == "initialize":
+            response = {
+                "jsonrpc": "2.0",
+                "id": message.get("id"),
+                "result": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "tools": {}
+                    },
+                    "serverInfo": {
+                        "name": "aicms-mcp-server",
+                        "version": "1.0.0"
+                    }
+                }
+            }
+            return response
+        
+        # Handle other methods
+        return {"jsonrpc": "2.0", "id": message.get("id"), "result": {}}
+        
+    except Exception as e:
+        print(f"Error parsing message: {e}")
+        return {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}}
 
 
 if __name__ == "__main__":
