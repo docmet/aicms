@@ -420,11 +420,18 @@ async def sse_endpoint(client_id: str, request: Request):
         """SSE event stream for MCP protocol"""
         print("Starting SSE event stream")
         
+        # Debug: print all headers
+        print(f"All headers: {dict(request.headers)}")
+        
         # According to MCP spec, first send an endpoint event
         # This tells the client where to send messages
-        base_url = f"{request.url.scheme}://{request.headers.get('host', 'localhost:8000')}"
+        # Use X-Forwarded-Proto to detect HTTPS through nginx proxy
+        scheme = request.headers.get('x-forwarded-proto', request.url.scheme)
+        host = request.headers.get('host', 'localhost:8000')
+        base_url = f"{scheme}://{host}"
         message_endpoint = f"{base_url}/sse/{client_id}/messages"
         
+        print(f"Scheme from header: {scheme}, URL scheme: {request.url.scheme}")
         print(f"Sending endpoint event: {message_endpoint}")
         yield f"event: endpoint\ndata: {message_endpoint}\n\n"
         
