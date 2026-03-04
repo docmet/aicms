@@ -132,7 +132,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
       });
       setSections(sections.map(s => s.id === sectionId ? { ...s, content } : s));
       toast({ title: 'Saved', description: 'Content updated.' });
-    } catch (error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to save content.', variant: 'destructive' });
     }
   };
@@ -143,7 +143,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
       await api.delete(`/sites/${site_id}`);
       toast({ title: 'Site deleted' });
       router.push('/dashboard');
-    } catch (error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to delete site.', variant: 'destructive' });
     }
   };
