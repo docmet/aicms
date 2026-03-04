@@ -383,11 +383,7 @@ async def sse_endpoint(client_id: str, request: Request):
         print(f"Sending endpoint event: {message_endpoint}")
         yield f"event: endpoint\ndata: {message_endpoint}\n\n"
         
-        # Send a simple message to test
-        test_message = {"jsonrpc": "2.0", "method": "test", "params": {}}
-        print(f"Sending test message: {test_message}")
-        yield f"event: message\ndata: {json.dumps(test_message)}\n\n"
-        
+        # Keep connection alive and wait for client messages
         try:
             count = 0
             while True:
@@ -397,9 +393,8 @@ async def sse_endpoint(client_id: str, request: Request):
                     print(f"Client disconnected after {count} cycles")
                     break
                     
-                print(f"SSE connection active, cycle {count}")
-                # Wait for messages or send keepalive
-                await asyncio.sleep(5)
+                # Just keep the connection alive - client will POST to messages endpoint
+                await asyncio.sleep(10)
                 
         except asyncio.CancelledError:
             print("SSE connection cancelled")
