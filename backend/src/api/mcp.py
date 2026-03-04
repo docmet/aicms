@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,65 +15,61 @@ router = APIRouter(prefix="/mcp", tags=["mcp"])
 async def register_mcp_client(
     client_data: dict,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
     """Register a new MCP client - proxy to MCP server"""
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "http://mcp_server:8000/register",
-            json={**client_data, "user_id": str(current_user.id)}
+            json={**client_data, "user_id": str(current_user.id)},
         )
 
         if response.status_code != 200:
             raise HTTPException(
-                status_code=response.status_code,
-                detail=response.json()
+                status_code=response.status_code, detail=response.json()
             )
 
-    return response.json()
+    return response.json()  # type: ignore
 
 
 @router.get("/clients")
-async def list_mcp_clients(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
+async def get_mcp_clients(
+    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> list[dict[str, Any]]:
     """List user's MCP clients - proxy to MCP server"""
 
     async with httpx.AsyncClient() as client:
         response = await client.get(
             "http://mcp_server:8000/clients",
-            headers={"Authorization": f"Bearer {current_user.id}"}
+            headers={"Authorization": f"Bearer {current_user.id}"},
         )
 
         if response.status_code != 200:
             raise HTTPException(
-                status_code=response.status_code,
-                detail=response.json()
+                status_code=response.status_code, detail=response.json()
             )
 
-    return response.json()
+    return response.json()  # type: ignore
 
 
 @router.delete("/clients/{client_id}")
 async def delete_mcp_client(
     client_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
     """Delete MCP client - proxy to MCP server"""
 
     async with httpx.AsyncClient() as client:
         response = await client.delete(
             f"http://mcp_server:8000/clients/{client_id}",
-            headers={"Authorization": f"Bearer {current_user.id}"}
+            headers={"Authorization": f"Bearer {current_user.id}"},
         )
 
         if response.status_code != 200:
             raise HTTPException(
-                status_code=response.status_code,
-                detail=response.json()
+                status_code=response.status_code, detail=response.json()
             )
 
-    return response.json()
+    return response.json()  # type: ignore

@@ -18,7 +18,7 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      await api.post('/v1/auth/register', {
+      await api.post('/auth/register', {
         email,
         password,
       });

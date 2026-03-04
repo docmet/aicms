@@ -48,10 +48,10 @@ async def health_check() -> dict[str, str]:
 
 
 # Include routers
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(sites_router, prefix="/api/v1/sites", tags=["sites"])
-app.include_router(pages_router, prefix="/api/v1/sites", tags=["pages"])
-app.include_router(content_router, prefix="/api/v1/sites", tags=["content"])
-app.include_router(themes_router, prefix="/api/v1/themes", tags=["themes"])
-app.include_router(public_router, prefix="/api/v1/public/sites", tags=["public"])
-app.include_router(mcp_router, prefix="/api/v1", tags=["mcp"])
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(sites_router, prefix="/api/sites", tags=["sites"])
+app.include_router(pages_router, prefix="/api/sites", tags=["pages"])
+app.include_router(content_router, prefix="/api/sites", tags=["content"])
+app.include_router(themes_router, prefix="/api/themes", tags=["themes"])
+app.include_router(public_router, prefix="/api/public/sites", tags=["public"])
+app.include_router(mcp_router, prefix="/api/mcp", tags=["mcp"])
