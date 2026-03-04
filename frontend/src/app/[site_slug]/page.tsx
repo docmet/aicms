@@ -25,7 +25,7 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
     const fetchSite = async () => {
       try {
         // Public endpoint to get site by slug
-        const response = await api.get(`/api/v1/public/sites/${site_slug}`);
+        const response = await api.get(`/public/sites/${site_slug}`);
         setData(response.data);
       } catch (err) {
         console.error('Failed to fetch site', err);

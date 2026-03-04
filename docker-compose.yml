@@ -14,7 +14,7 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://backend:8000/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
       - DOMAIN=${DOMAIN:-aicms.docmet.systems}
     restart: unless-stopped
     depends_on:
@@ -34,6 +34,8 @@ services:
       dockerfile: Dockerfile
       target: production
     container_name: aicms_backend
+    ports:
+      - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql+asyncpg://aicms:${POSTGRES_PASSWORD}@postgres:5432/aicms

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { LayoutDashboard, Globe, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,7 +14,6 @@ import {
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'My Sites', href: '/dashboard/sites', icon: Globe },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 

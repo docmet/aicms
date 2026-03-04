@@ -51,7 +51,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
 
   const createInitialPage = useCallback(async () => {
     try {
-      const response = await api.post(`/api/v1/sites/${site_id}/pages`, {
+      const response = await api.post(`/sites/${site_id}/pages`, {
         title: 'Home',
         slug: 'home',
         is_published: true,
@@ -68,8 +68,8 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     try {
       const [siteRes, pagesRes, themesRes] = await Promise.all([
         api.get(`/sites/${site_id}`),
-        api.get(`/api/v1/sites/${site_id}/pages`),
-        api.get('/api/v1/themes/'),
+        api.get(`/sites/${site_id}/pages`),
+        api.get('/themes/'),
       ]);
 
       setSite(siteRes.data);
@@ -78,7 +78,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
       if (pagesRes.data.length > 0) {
         const firstPage = pagesRes.data[0];
         setCurrentPage(firstPage);
-        const sectionsRes = await api.get(`/api/v1/sites/${site_id}/pages/${firstPage.id}/content`);
+        const sectionsRes = await api.get(`/sites/${site_id}/pages/${firstPage.id}/content`);
         setSections(sectionsRes.data);
       } else {
         // Create initial landing page if none exists
@@ -127,7 +127,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
   const handleUpdateContent = async (sectionId: string, content: string) => {
     if (!currentPage) return;
     try {
-      await api.patch(`/api/v1/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
+      await api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
         content,
       });
       setSections(sections.map(s => s.id === sectionId ? { ...s, content } : s));

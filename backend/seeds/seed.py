@@ -98,7 +98,7 @@ async def seed_database() -> None:
 
         # Create demo site for client user
         result = await session.execute(
-            select(Site).where(Site.user_id == client_user.id)
+            select(Site).where(Site.user_id == client_user.id, Site.slug == "demo-site")
         )
         site_exists = result.scalar_one_or_none()
 
@@ -118,7 +118,9 @@ async def seed_database() -> None:
             print(f"✅ Demo site created: {demo_site.name}")
 
         # Create landing page for demo site
-        result = await session.execute(select(Page).where(Page.site_id == demo_site.id))
+        result = await session.execute(
+            select(Page).where(Page.site_id == demo_site.id, Page.slug == "welcome")
+        )
         page_exists = result.scalar_one_or_none()
 
         if page_exists:
