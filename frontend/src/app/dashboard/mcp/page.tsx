@@ -151,7 +151,7 @@ Token: ${token}`
       {/* Quick Connect for Claude Desktop */}
       <ClaudeConnect 
         token={clients.find(c => c.tool_type === 'claude')?.token || ''} 
-        ngrokUrl="https://82c1-2a02-ab88-1510-ce80-4e7-66a0-7852-a87c.ngrok-free.app"
+        ngrokUrl="https://033a-45-155-40-197.ngrok-free.app"
       />
 
       <Card>
