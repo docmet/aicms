@@ -525,20 +525,166 @@ async def mcp_messages(client_id: str, request: Request):
         
         # Handle list tools
         if message.get("method") == "tools/list":
+            tools = [
+                {
+                    "name": "list_sites",
+                    "description": "List all sites for the authenticated user",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {}
+                    }
+                },
+                {
+                    "name": "create_site",
+                    "description": "Create a new site with name and slug",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string", "description": "Display name for the site"},
+                            "slug": {"type": "string", "description": "Unique URL slug for the site"},
+                            "theme_slug": {"type": "string", "description": "Theme to use (default: 'default')"}
+                        },
+                        "required": ["name", "slug"]
+                    }
+                },
+                {
+                    "name": "update_site",
+                    "description": "Update site name, slug, or theme",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "site_id": {"type": "string", "description": "UUID of the site to update"},
+                            "name": {"type": "string", "description": "New display name"},
+                            "slug": {"type": "string", "description": "New URL slug"},
+                            "theme_slug": {"type": "string", "description": "Theme slug to apply"}
+                        },
+                        "required": ["site_id"]
+                    }
+                },
+                {
+                    "name": "delete_site",
+                    "description": "Delete a site and all its pages",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "site_id": {"type": "string", "description": "UUID of the site to delete"}
+                        },
+                        "required": ["site_id"]
+                    }
+                },
+                {
+                    "name": "list_pages",
+                    "description": "List all pages for a site",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "site_id": {"type": "string", "description": "UUID of the site"}
+                        },
+                        "required": ["site_id"]
+                    }
+                },
+                {
+                    "name": "create_page",
+                    "description": "Create a new page on a site",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "site_id": {"type": "string", "description": "UUID of the site"},
+                            "title": {"type": "string", "description": "Page title"},
+                            "slug": {"type": "string", "description": "URL slug for the page"},
+                            "is_published": {"type": "boolean", "description": "Whether page is published"}
+                        },
+                        "required": ["site_id", "title", "slug"]
+                    }
+                },
+                {
+                    "name": "get_page_content",
+                    "description": "Get content sections for a page",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "page_id": {"type": "string", "description": "UUID of the page"}
+                        },
+                        "required": ["page_id"]
+                    }
+                },
+                {
+                    "name": "update_page_content",
+                    "description": "Update content for a page section",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "page_id": {"type": "string", "description": "UUID of the page"},
+                            "section_type": {"type": "string", "description": "Type: hero, about, services, contact, etc."},
+                            "content": {"type": "string", "description": "HTML or text content"},
+                            "order": {"type": "integer", "description": "Display order"}
+                        },
+                        "required": ["page_id", "section_type", "content"]
+                    }
+                },
+                {
+                    "name": "update_page",
+                    "description": "Update page title, slug, or publish status",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "page_id": {"type": "string", "description": "UUID of the page"},
+                            "title": {"type": "string", "description": "New title"},
+                            "slug": {"type": "string", "description": "New slug"},
+                            "is_published": {"type": "boolean", "description": "Publish status"}
+                        },
+                        "required": ["page_id"]
+                    }
+                },
+                {
+                    "name": "delete_page",
+                    "description": "Delete a page and its content",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "page_id": {"type": "string", "description": "UUID of the page"}
+                        },
+                        "required": ["page_id"]
+                    }
+                },
+                {
+                    "name": "list_themes",
+                    "description": "List available themes",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {}
+                    }
+                },
+                {
+                    "name": "apply_theme",
+                    "description": "Apply a theme to a site",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "site_id": {"type": "string", "description": "UUID of the site"},
+                            "theme_slug": {"type": "string", "description": "Slug of the theme to apply"}
+                        },
+                        "required": ["site_id", "theme_slug"]
+                    }
+                },
+                {
+                    "name": "get_site_info",
+                    "description": "Get detailed information about a site including pages and theme",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "site_id": {"type": "string", "description": "UUID of the site"}
+                        },
+                        "required": ["site_id"]
+                    }
+                }
+            ]
+            
             response = {
                 "jsonrpc": "2.0",
                 "id": message.get("id"),
                 "result": {
-                    "tools": [
-                        {
-                            "name": "get_sites",
-                            "description": "Get all sites for the user",
-                            "inputSchema": {
-                                "type": "object",
-                                "properties": {}
-                            }
-                        }
-                    ]
+                    "tools": tools
                 }
             }
             return response

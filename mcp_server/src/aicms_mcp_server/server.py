@@ -76,71 +76,152 @@ class MCPServer:
         tools = [
             Tool(
                 name="list_sites",
-                description="List all sites you have access to",
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                },
+                description="List all sites for the authenticated user",
+                inputSchema={"type": "object", "properties": {}},
             ),
             Tool(
-                name="get_site",
-                description="Get site details including current theme",
+                name="create_site",
+                description="Create a new site with name and slug",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "site_id": {"type": "string", "description": "Site ID or slug"},
+                        "name": {"type": "string", "description": "Display name for the site"},
+                        "slug": {"type": "string", "description": "Unique URL slug for the site"},
+                        "theme_slug": {"type": "string", "description": "Theme to use (default: 'default')"},
+                    },
+                    "required": ["name", "slug"],
+                },
+            ),
+            Tool(
+                name="get_site_info",
+                description="Get detailed information about a site including pages and theme",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string", "description": "UUID of the site"},
                     },
                     "required": ["site_id"],
                 },
             ),
             Tool(
-                name="update_theme",
-                description="Change the theme for a site",
+                name="update_site",
+                description="Update site name, slug, or theme",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "site_id": {"type": "string", "description": "Site ID or slug"},
-                        "theme_slug": {
-                            "type": "string",
-                            "description": "Theme slug (default, warm, nature, dark, minimal)",
-                            "enum": ["default", "warm", "nature", "dark", "minimal"],
-                        },
-                    },
-                    "required": ["site_id", "theme_slug"],
-                },
-            ),
-            Tool(
-                name="get_content",
-                description="Get content for a specific page",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string", "description": "Site ID or slug"},
-                        "page_slug": {"type": "string", "description": "Page slug (default: 'home')"},
+                        "site_id": {"type": "string", "description": "UUID of the site to update"},
+                        "name": {"type": "string", "description": "New display name"},
+                        "slug": {"type": "string", "description": "New URL slug"},
+                        "theme_slug": {"type": "string", "description": "Theme slug to apply"},
                     },
                     "required": ["site_id"],
                 },
             ),
             Tool(
-                name="update_content",
-                description="Update content for a specific section",
+                name="delete_site",
+                description="Delete a site and all its pages",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "site_id": {"type": "string", "description": "Site ID or slug"},
-                        "page_id": {"type": "string", "description": "Page ID"},
-                        "section_id": {"type": "string", "description": "Section ID"},
-                        "content": {"type": "string", "description": "New content"},
+                        "site_id": {"type": "string", "description": "UUID of the site to delete"},
                     },
-                    "required": ["site_id", "page_id", "section_id", "content"],
+                    "required": ["site_id"],
+                },
+            ),
+            Tool(
+                name="list_pages",
+                description="List all pages for a site",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string", "description": "UUID of the site"},
+                    },
+                    "required": ["site_id"],
+                },
+            ),
+            Tool(
+                name="create_page",
+                description="Create a new page on a site",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string", "description": "UUID of the site"},
+                        "title": {"type": "string", "description": "Page title"},
+                        "slug": {"type": "string", "description": "URL slug for the page"},
+                        "is_published": {"type": "boolean", "description": "Whether page is published"},
+                    },
+                    "required": ["site_id", "title", "slug"],
+                },
+            ),
+            Tool(
+                name="get_page_content",
+                description="Get content sections for a page",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string", "description": "UUID of the site (optional)"},
+                        "page_id": {"type": "string", "description": "UUID of the page"},
+                    },
+                    "required": ["page_id"],
+                },
+            ),
+            Tool(
+                name="update_page_content",
+                description="Update content for a page section (creates if doesn't exist)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string", "description": "UUID of the site (optional)"},
+                        "page_id": {"type": "string", "description": "UUID of the page"},
+                        "section_type": {"type": "string", "description": "Type: hero, about, services, contact, etc."},
+                        "content": {"type": "string", "description": "HTML or text content"},
+                        "order": {"type": "integer", "description": "Display order"},
+                    },
+                    "required": ["page_id", "section_type", "content"],
+                },
+            ),
+            Tool(
+                name="update_page",
+                description="Update page title, slug, or publish status",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string", "description": "UUID of the site (optional)"},
+                        "page_id": {"type": "string", "description": "UUID of the page"},
+                        "title": {"type": "string", "description": "New title"},
+                        "slug": {"type": "string", "description": "New slug"},
+                        "is_published": {"type": "boolean", "description": "Publish status"},
+                    },
+                    "required": ["page_id"],
+                },
+            ),
+            Tool(
+                name="delete_page",
+                description="Delete a page and its content",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string", "description": "UUID of the site (optional)"},
+                        "page_id": {"type": "string", "description": "UUID of the page"},
+                    },
+                    "required": ["page_id"],
                 },
             ),
             Tool(
                 name="list_themes",
-                description="List all available themes",
+                description="List available themes",
+                inputSchema={"type": "object", "properties": {}},
+            ),
+            Tool(
+                name="apply_theme",
+                description="Apply a theme to a site",
                 inputSchema={
                     "type": "object",
-                    "properties": {},
+                    "properties": {
+                        "site_id": {"type": "string", "description": "UUID of the site"},
+                        "theme_slug": {"type": "string", "description": "Slug of the theme to apply"},
+                    },
+                    "required": ["site_id", "theme_slug"],
                 },
             ),
         ]
@@ -163,21 +244,233 @@ class MCPServer:
                     content=[TextContent(type="text", text=f"Your sites:\n{content}")]
                 )
 
-            elif tool_name == "get_site":
+            elif tool_name == "get_site_info":
                 site_id = args["site_id"]
                 data = await self._make_request("GET", f"/sites/{site_id}")
                 site = Site(**data)
+                
+                # Get pages for the site
+                pages_data = await self._make_request("GET", f"/sites/{site_id}/pages")
+                pages_text = "\n".join(
+                    f"  - {p['title']} (slug: {p['slug']}, published: {p['is_published']})"
+                    for p in pages_data
+                ) if pages_data else "  No pages yet"
+                
                 content = f"""Site: {site.name}
 Slug: {site.slug}
 Theme: {site.theme_slug}
-ID: {site.id}"""
+ID: {site.id}
+
+Pages:
+{pages_text}"""
                 return CallToolResult(
                     content=[TextContent(type="text", text=content)]
                 )
 
-            elif tool_name == "update_theme":
+            elif tool_name == "create_site":
+                name = args["name"]
+                slug = args["slug"]
+                theme_slug = args.get("theme_slug", "default")
+                
+                data = await self._make_request(
+                    "POST",
+                    "/sites",
+                    json={"name": name, "slug": slug, "theme_slug": theme_slug}
+                )
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Site '{name}' created successfully with slug '{slug}' and theme '{theme_slug}'"
+                        )
+                    ]
+                )
+
+            elif tool_name == "update_site":
+                site_id = args["site_id"]
+                update_data = {}
+                if "name" in args:
+                    update_data["name"] = args["name"]
+                if "slug" in args:
+                    update_data["slug"] = args["slug"]
+                if "theme_slug" in args:
+                    update_data["theme_slug"] = args["theme_slug"]
+                
+                await self._make_request(
+                    "PATCH",
+                    f"/sites/{site_id}",
+                    json=update_data
+                )
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Site {site_id} updated successfully"
+                        )
+                    ]
+                )
+
+            elif tool_name == "delete_site":
+                site_id = args["site_id"]
+                await self._make_request("DELETE", f"/sites/{site_id}")
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Site {site_id} deleted successfully"
+                        )
+                    ]
+                )
+
+            elif tool_name == "list_pages":
+                site_id = args["site_id"]
+                pages_data = await self._make_request("GET", f"/sites/{site_id}/pages")
+                
+                if not pages_data:
+                    return CallToolResult(
+                        content=[TextContent(type="text", text="No pages found for this site")]
+                    )
+                
+                content = "Pages:\n" + "\n".join(
+                    f"- {p['title']} (ID: {p['id']}, slug: {p['slug']}, published: {p['is_published']})"
+                    for p in pages_data
+                )
+                return CallToolResult(
+                    content=[TextContent(type="text", text=content)]
+                )
+
+            elif tool_name == "create_page":
+                site_id = args["site_id"]
+                title = args["title"]
+                slug = args["slug"]
+                is_published = args.get("is_published", False)
+                
+                data = await self._make_request(
+                    "POST",
+                    f"/sites/{site_id}/pages",
+                    json={"title": title, "slug": slug, "is_published": is_published}
+                )
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Page '{title}' created successfully with slug '{slug}'"
+                        )
+                    ]
+                )
+
+            elif tool_name == "update_page":
+                site_id = args.get("site_id")
+                page_id = args["page_id"]
+                update_data = {}
+                if "title" in args:
+                    update_data["title"] = args["title"]
+                if "slug" in args:
+                    update_data["slug"] = args["slug"]
+                if "is_published" in args:
+                    update_data["is_published"] = args["is_published"]
+                
+                await self._make_request(
+                    "PATCH",
+                    f"/sites/{site_id}/pages/{page_id}" if site_id else f"/pages/{page_id}",
+                    json=update_data
+                )
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Page {page_id} updated successfully"
+                        )
+                    ]
+                )
+
+            elif tool_name == "delete_page":
+                site_id = args.get("site_id")
+                page_id = args["page_id"]
+                
+                await self._make_request(
+                    "DELETE",
+                    f"/sites/{site_id}/pages/{page_id}" if site_id else f"/pages/{page_id}"
+                )
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Page {page_id} deleted successfully"
+                        )
+                    ]
+                )
+
+            elif tool_name == "get_page_content":
+                site_id = args.get("site_id")
+                page_id = args["page_id"]
+                
+                # Get page details first
+                page_data = await self._make_request(
+                    "GET",
+                    f"/sites/{site_id}/pages/{page_id}" if site_id else f"/pages/{page_id}"
+                )
+                
+                # Get content sections
+                content_data = await self._make_request(
+                    "GET",
+                    f"/sites/{site_id}/pages/{page_id}/content" if site_id else f"/pages/{page_id}/content"
+                )
+                
+                sections_text = "\n\n".join(
+                    f"## {s['section_type']} (Order: {s.get('order', 0)})\n{s['content']}"
+                    for s in content_data
+                ) if content_data else "No content sections yet"
+                
+                content_text = f"Page: {page_data['title']}\nSlug: {page_data['slug']}\nPublished: {page_data['is_published']}\n\n{sections_text}"
+                
+                return CallToolResult(
+                    content=[TextContent(type="text", text=content_text)]
+                )
+
+            elif tool_name == "update_page_content":
+                site_id = args.get("site_id")
+                page_id = args["page_id"]
+                section_type = args["section_type"]
+                content = args["content"]
+                order = args.get("order", 0)
+                
+                # First, try to find existing section
+                content_data = await self._make_request(
+                    "GET",
+                    f"/sites/{site_id}/pages/{page_id}/content" if site_id else f"/pages/{page_id}/content"
+                )
+                
+                existing = next((s for s in content_data if s["section_type"] == section_type), None)
+                
+                if existing:
+                    # Update existing
+                    await self._make_request(
+                        "PATCH",
+                        f"/sites/{site_id}/pages/{page_id}/content/{existing['id']}" if site_id else f"/pages/{page_id}/content/{existing['id']}",
+                        json={"content": content, "order": order}
+                    )
+                else:
+                    # Create new section
+                    await self._make_request(
+                        "POST",
+                        f"/sites/{site_id}/pages/{page_id}/content" if site_id else f"/pages/{page_id}/content",
+                        json={"section_type": section_type, "content": content, "order": order}
+                    )
+                
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Content updated for section '{section_type}' on page {page_id}"
+                        )
+                    ]
+                )
+
+            elif tool_name == "apply_theme":
                 site_id = args["site_id"]
                 theme_slug = args["theme_slug"]
+                
                 await self._make_request(
                     "PATCH",
                     f"/sites/{site_id}",
@@ -187,56 +480,7 @@ ID: {site.id}"""
                     content=[
                         TextContent(
                             type="text",
-                            text=f"Theme updated to {theme_slug} for site {site_id}"
-                        )
-                    ]
-                )
-
-            elif tool_name == "get_content":
-                site_id = args["site_id"]
-                page_slug = args.get("page_slug", "home")
-                
-                # Get pages
-                pages_data = await self._make_request("GET", f"/sites/{site_id}/pages")
-                if not pages_data:
-                    return CallToolResult(
-                        content=[TextContent(type="text", text="No pages found")]
-                    )
-                
-                # Find page
-                page = next((p for p in pages_data if p["slug"] == page_slug), pages_data[0])
-                
-                # Get content
-                content_data = await self._make_request(
-                    "GET",
-                    f"/sites/{site_id}/pages/{page['id']}/content"
-                )
-                
-                sections = [ContentSection(**section) for section in content_data]
-                content_text = f"Page: {page['title']}\n\n"
-                for section in sections:
-                    content_text += f"## {section.section_type}\n{section.content}\n\n"
-                
-                return CallToolResult(
-                    content=[TextContent(type="text", text=content_text)]
-                )
-
-            elif tool_name == "update_content":
-                site_id = args["site_id"]
-                page_id = args["page_id"]
-                section_id = args["section_id"]
-                content = args["content"]
-                
-                await self._make_request(
-                    "PATCH",
-                    f"/sites/{site_id}/pages/{page_id}/content/{section_id}",
-                    json={"content": content}
-                )
-                return CallToolResult(
-                    content=[
-                        TextContent(
-                            type="text",
-                            text=f"Content updated for section {section_id}"
+                            text=f"Theme '{theme_slug}' applied to site {site_id}"
                         )
                     ]
                 )
