@@ -1,6 +1,6 @@
 """OAuth endpoints for MCP server authentication"""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import RedirectResponse
 
 router = APIRouter()
@@ -39,11 +39,7 @@ async def authorize(
 
 @router.post("/token")
 async def token(
-    grant_type: str = Query(...),
-    code: str = Query(...),
-    client_id: str | None = Query(None),
-    code_verifier: str | None = Query(None),
-    redirect_uri: str | None = Query(None),
+    request: Request,
 ) -> dict[str, str | int]:
     """OAuth token endpoint - exchange auth code for access token"""
 
