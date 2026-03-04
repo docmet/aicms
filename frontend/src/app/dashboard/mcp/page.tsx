@@ -99,22 +99,30 @@ export default function MCPSettingsPage() {
     const baseUrl = window.location.origin;
     switch (type) {
       case 'claude':
+        const ngrokUrl = 'https://82c1-2a02-ab88-1510-ce80-4e7-66a0-7852-a87c.ngrok-free.app'; // Update with your ngrok URL
         return {
           title: 'Claude Desktop Setup',
-          config: JSON.stringify({
-            mcpServers: {
-              'aicms': {
-                command: 'curl',
-                args: [
-                  '-X', 'POST',
-                  '-H', 'Content-Type: application/json',
-                  '-H', `Authorization: Bearer ${token}`,
-                  '-d', '{"jsonrpc":"2.0","method":"tools/list","params":{}}',
-                  `${baseUrl}:8001/mcp/YOUR_CLIENT_ID`
-                ]
-              }
-            }
-          }, null, 2)
+          config: `Add this to your Claude Desktop configuration (~/.config/claude/claude_desktop_config.json):
+
+{
+  "mcpServers": {
+    "aicms": {
+      "command": "docker",
+      "args": [
+        "exec", "aicms_mcp_server",
+        "uv", "run", "python", "-m", "src.aicms_mcp_server.server",
+        "--api-url", "${ngrokUrl}/api",
+        "--api-token", "${token}"
+      ]
+    }
+  }
+}
+
+Note: 
+- Your ngrok URL must be accessible 
+- The Docker container must be running
+- This uses the stdio transport which Claude Desktop expects`,
+          note: `Using ngrok URL: ${ngrokUrl}. The MCP server runs via stdio in Docker.`
         };
       case 'chatgpt':
         return {
