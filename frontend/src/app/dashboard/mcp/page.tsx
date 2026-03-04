@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Plus, Trash2, Bot, Key } from 'lucide-react';
+import { Copy, Plus, Trash2, Bot, Key, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
@@ -105,17 +105,18 @@ export default function MCPSettingsPage() {
           config: JSON.stringify({
             mcpServers: {
               'aicms': {
-                command: 'docker',
+                command: 'node',
                 args: [
-                  'exec', 'aicms_mcp_server',
-                  'uv', 'run', 'python', '-m', 'src.aicms_mcp_server.server',
-                  '--api-url', `${ngrokUrl}/api`,
-                  '--api-token', token
-                ]
+                  '/path/to/mcp_cms/mcp-proxy-server.js'
+                ],
+                env: {
+                  'API_URL': `${ngrokUrl}/api`,
+                  'AUTH_TOKEN': token
+                }
               }
             }
           }, null, 2),
-          note: `1. Copy this configuration\n2. Open Claude Desktop > Settings > Developer\n3. Paste into "Edit Config"\n4. Restart Claude Desktop\n\nMake sure ngrok is running!`
+          note: `1. Download the MCP proxy file from your dashboard\n2. Save it somewhere on your computer\n3. Update the path in the config above\n4. Copy and paste this configuration into Claude Desktop\n\nNo Docker required!`
         };
       case 'chatgpt':
         return {
@@ -210,6 +211,22 @@ Token: ${token}`
                       {instructions && (
                         <div className="mt-4">
                           <h4 className="font-semibold mb-2">{instructions.title}</h4>
+                          {client.tool_type === 'claude' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mb-2"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = '/mcp-proxy-server.js';
+                                link.download = 'mcp-proxy-server.js';
+                                link.click();
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download MCP Proxy Server
+                            </Button>
+                          )}
                           <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded text-xs overflow-x-auto mb-2">
                             {instructions.config || instructions.instructions}
                           </pre>
