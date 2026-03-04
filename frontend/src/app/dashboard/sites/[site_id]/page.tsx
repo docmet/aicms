@@ -215,7 +215,29 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                 {themes.map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => setSite({ ...site, theme_slug: t.slug })}
+                    onClick={async () => {
+                      setSite({ ...site, theme_slug: t.slug });
+                      setSaving(true);
+                      try {
+                        await api.patch(`/sites/${site_id}`, {
+                          name: site.name,
+                          slug: site.slug,
+                          theme_slug: t.slug,
+                        });
+                        toast({ title: 'Success', description: `Theme changed to ${t.name}.` });
+                      } catch (err: unknown) {
+                        const error = err as { response?: { data?: { detail?: string } } };
+                        toast({
+                          title: 'Error',
+                          description: error.response?.data?.detail || 'Failed to update theme.',
+                          variant: 'destructive',
+                        });
+                        // Revert on error
+                        setSite({ ...site, theme_slug: site.theme_slug });
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
                     className={`p-4 border-2 rounded-lg text-center transition-all ${
                       site.theme_slug === t.slug ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
                     }`}

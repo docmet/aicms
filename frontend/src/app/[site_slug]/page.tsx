@@ -26,6 +26,7 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
       try {
         // Public endpoint to get site by slug
         const response = await api.get(`/public/sites/${site_slug}`);
+        console.log('Site data:', response.data);
         setData(response.data);
       } catch (err) {
         console.error('Failed to fetch site', err);
@@ -41,8 +42,13 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   if (error || !data) return <div className="min-h-screen flex items-center justify-center text-red-500 text-xl font-bold italic">Site not found.</div>;
 
   return (
-    <div className="min-h-screen" data-theme={data.theme_slug}>
-      {data.sections.map((section) => (
+    <div className="min-h-screen" data-theme={data?.theme_slug || 'default'}>
+      {data && (
+        <>
+          <div className="text-center py-4 bg-gray-100 text-sm">
+            Debug: Theme = {data.theme_slug}
+          </div>
+          {data.sections.map((section) => (
         <section
           key={section.id}
           className={`py-20 px-4 ${
@@ -60,6 +66,8 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
       <footer className="py-8 text-center text-gray-400 border-t">
         <p>Built with AI CMS - {data.name}</p>
       </footer>
+      </>
+      )}
     </div>
   );
 }
