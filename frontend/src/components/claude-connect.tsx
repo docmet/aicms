@@ -41,8 +41,7 @@ export function ClaudeConnect({ token, clientId }: ClaudeConnectProps) {
   const connectionParams = {
     Name: 'AI CMS',
     'Server URL': clientId ? `${window.location.origin}/sse/${clientId}` : `${window.location.origin}/sse`,
-    'Client ID': 'aicms-client',
-    'Client Secret': token,
+    'authorization_token': token,
   };
 
   return (
