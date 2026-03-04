@@ -347,15 +347,9 @@ async def delete_client(
 
 
 # SSE endpoint for Claude Desktop
-@app.api_route("/{client_id}", methods=["GET", "POST"])
+@app.get("/{client_id}")
 async def sse_endpoint(client_id: str, request: Request):
     """SSE endpoint for Claude Desktop MCP connections"""
-    
-    # For POST requests, we need to handle them differently
-    if request.method == "POST":
-        # Claude might be trying to POST to establish connection
-        # Return the SSE stream anyway
-        pass
     
     print(f"SSE connection requested for client: {client_id}")
     
@@ -409,7 +403,7 @@ async def sse_endpoint(client_id: str, request: Request):
 
 
 # Alternative SSE endpoint path that Claude might expect
-@app.api_route("/mcp-sse/sse/{client_id}", methods=["GET", "POST"])
+@app.get("/mcp-sse/sse/{client_id}")
 async def sse_endpoint_alt(client_id: str, request: Request):
     """Alternative SSE endpoint path for Claude Desktop"""
     return await sse_endpoint(client_id, request)
