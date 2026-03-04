@@ -8,7 +8,7 @@ from uuid import UUID
 
 import httpx
 from fastapi import FastAPI, HTTPException, Depends, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -90,17 +90,73 @@ async def startup_event():
 @app.get("/")
 async def root():
     """Root endpoint"""
-    return {
-        "service": "AI CMS MCP Server",
-        "version": "1.0.0",
-        "status": "running"
-    }
+    return {"service": "AI CMS MCP Server", "version": "1.0.0", "status": "running"}
 
 
 @app.get("/health")
 async def health():
     """Health check"""
     return {"status": "healthy"}
+
+
+@app.get("/.well-known/oauth-authorization-server")
+async def oauth_server_info():
+    """OAuth server discovery endpoint"""
+    return {
+        "issuer": "http://localhost:8000",
+        "authorization_endpoint": "http://localhost:8000/authorize",
+        "token_endpoint": "http://localhost:8000/token",
+        "response_types_supported": ["code"],
+        "grant_types_supported": ["client_credentials"],
+        "scopes_supported": ["mcp"],
+        "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"]
+    }
+
+
+@app.get("/authorize")
+async def authorize(
+    response_type: str = "code",
+    client_id: str = None,
+    redirect_uri: str = None,
+    code_challenge: str = None,
+    code_challenge_method: str = None,
+    state: str = None,
+    scope: str = None
+):
+    """OAuth authorization endpoint - for Claude Desktop"""
+    # Claude Desktop expects a redirect to complete OAuth
+    # Since we're using client credentials flow, we can redirect directly
+    if redirect_uri and redirect_uri.startswith("https://claude.ai"):
+        # Redirect back to Claude with success
+        return RedirectResponse(
+            url=f"{redirect_uri}?code=authorized&state={state}",
+            status_code=302
+        )
+    
+    # For other cases, return a simple success
+    return {"status": "authorized", "code": "authorized"}
+
+
+@app.post("/token")
+async def token(request: Request):
+    """OAuth token endpoint - returns access token for Claude Desktop"""
+    # Claude Desktop uses client credentials flow
+    body = await request.body()
+    data = json.loads(body.decode())
+    
+    client_id = data.get("client_id")
+    client_secret = data.get("client_secret")
+    
+    # For now, accept the test credentials
+    if client_id == "aicms-client" and client_secret:
+        # Return a token that Claude can use
+        return {
+            "access_token": client_secret,  # Use the secret as the token
+            "token_type": "Bearer",
+            "expires_in": 86400  # 24 hours
+        }
+    
+    raise HTTPException(status_code=401, detail="Invalid credentials")
 
 
 @app.post("/register", response_model=MCPClientResponse)
