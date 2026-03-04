@@ -433,21 +433,105 @@ async def sse_endpoint(client_id: str, request: Request):
                         
                         print(f"Tool call: {tool_name} with args: {args}")
                         
-                        # Simple tool implementations
-                        if tool_name == "list_sites":
+                        # Make actual API call to backend
+                        try:
+                            import httpx
+                            async with httpx.AsyncClient() as client:
+                                headers = {"Authorization": f"Bearer {auth_header[7:] if auth_header.startswith('Bearer ') else ''}"}
+                                base_url = "http://backend:8000/api/v1"
+                                
+                                if tool_name == "list_sites":
+                                    response = await client.get(f"{base_url}/sites", headers=headers)
+                                    if response.status_code == 200:
+                                        sites = response.json()
+                                        if sites:
+                                            content_text = "Your sites:\n" + "\n".join(
+                                                f"- {s['name']} (slug: {s['slug']}, theme: {s.get('theme_slug', 'default')})"
+                                                for s in sites
+                                            )
+                                        else:
+                                            content_text = "No sites found. Create one with create_site."
+                                    else:
+                                        content_text = f"Error: {response.status_code} - {response.text}"
+                                
+                                elif tool_name == "create_site":
+                                    response = await client.post(
+                                        f"{base_url}/sites",
+                                        headers=headers,
+                                        json={
+                                            "name": args["name"],
+                                            "slug": args["slug"],
+                                            "theme_slug": args.get("theme_slug", "default")
+                                        }
+                                    )
+                                    if response.status_code in (200, 201):
+                                        site = response.json()
+                                        content_text = f"Site '{site['name']}' created successfully with slug '{site['slug']}'"
+                                    else:
+                                        content_text = f"Error creating site: {response.status_code} - {response.text}"
+                                
+                                elif tool_name == "get_site_info":
+                                    site_id = args["site_id"]
+                                    response = await client.get(f"{base_url}/sites/{site_id}", headers=headers)
+                                    if response.status_code == 200:
+                                        site = response.json()
+                                        # Get pages
+                                        pages_resp = await client.get(f"{base_url}/sites/{site_id}/pages", headers=headers)
+                                        pages = pages_resp.json() if pages_resp.status_code == 200 else []
+                                        pages_text = "\n".join(f"  - {p['title']} (slug: {p['slug']})" for p in pages) if pages else "  No pages"
+                                        content_text = f"Site: {site['name']}\nSlug: {site['slug']}\nTheme: {site.get('theme_slug', 'default')}\n\nPages:\n{pages_text}"
+                                    else:
+                                        content_text = f"Error: {response.status_code}"
+                                
+                                elif tool_name == "list_pages":
+                                    site_id = args["site_id"]
+                                    response = await client.get(f"{base_url}/sites/{site_id}/pages", headers=headers)
+                                    if response.status_code == 200:
+                                        pages = response.json()
+                                        if pages:
+                                            content_text = "Pages:\n" + "\n".join(
+                                                f"- {p['title']} (slug: {p['slug']}, published: {p['is_published']})"
+                                                for p in pages
+                                            )
+                                        else:
+                                            content_text = "No pages found for this site."
+                                    else:
+                                        content_text = f"Error: {response.status_code}"
+                                
+                                elif tool_name == "create_page":
+                                    site_id = args["site_id"]
+                                    response = await client.post(
+                                        f"{base_url}/sites/{site_id}/pages",
+                                        headers=headers,
+                                        json={
+                                            "title": args["title"],
+                                            "slug": args["slug"],
+                                            "is_published": args.get("is_published", False)
+                                        }
+                                    )
+                                    if response.status_code in (200, 201):
+                                        page = response.json()
+                                        content_text = f"Page '{page['title']}' created successfully"
+                                    else:
+                                        content_text = f"Error: {response.status_code} - {response.text}"
+                                
+                                else:
+                                    content_text = f"Tool {tool_name} executed with args: {args}"
+                                
+                                return JSONResponse(content={
+                                    "jsonrpc": "2.0",
+                                    "id": message.get("id"),
+                                    "result": {
+                                        "content": [{"type": "text", "text": content_text}]
+                                    }
+                                })
+                        except Exception as e:
+                            print(f"Error executing tool: {e}")
                             return JSONResponse(content={
                                 "jsonrpc": "2.0",
                                 "id": message.get("id"),
                                 "result": {
-                                    "content": [{"type": "text", "text": "Sites will be listed from your AI CMS account. Please ensure you're authenticated."}]
-                                }
-                            })
-                        else:
-                            return JSONResponse(content={
-                                "jsonrpc": "2.0",
-                                "id": message.get("id"),
-                                "result": {
-                                    "content": [{"type": "text", "text": f"Tool {tool_name} executed with args: {args}"}]
+                                    "content": [{"type": "text", "text": f"Error: {str(e)}"}]
                                 }
                             })
                 except json.JSONDecodeError:
