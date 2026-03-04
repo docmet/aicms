@@ -1,0 +1,75 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: 'frontend/pnpm-lock.yaml'
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: 'backend/pyproject.toml'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          pnpm install
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install uv
+          uv sync --frozen
+
+      - name: Run linters
+        run: ./cli.sh lint
+
+      - name: Run type checks
+        run: ./cli.sh typecheck
+
+      - name: Run unit tests
+        run: ./cli.sh test
+
+      - name: Trigger Coolify deployment
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          echo "Triggering Coolify deployment..."
+          response=$(curl -s -w "\n%{http_code}" -X GET "${COOLIFY_WEBHOOK_URL}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ]; then
+            echo "✓ Deployment triggered successfully"
+            echo "Response: $body"
+          else
+            echo "✗ Deployment trigger failed with status $http_code"
+            echo "Response: $body"
+            exit 1
+          fi
