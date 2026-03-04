@@ -192,19 +192,27 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= sections.length) return;
     
-    // Swap sections
+    // Get the other section being swapped
+    const otherSectionId = sections[newIndex].id;
+    
+    // Swap sections locally
     const newSections = [...sections];
     [newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]];
     
-    // Update order values
+    // Update order values locally
     const updatedSections = newSections.map((s, i) => ({ ...s, order: i }));
     setSections(updatedSections);
     
-    // Update backend
+    // Update BOTH sections' order in backend
     try {
-      await api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
-        order: newIndex,
-      });
+      await Promise.all([
+        api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
+          order: newIndex,
+        }),
+        api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${otherSectionId}`, {
+          order: index,
+        })
+      ]);
       toast({ title: 'Success', description: `Section moved ${direction}.` });
     } catch (error) {
       console.error('Failed to move section', error);
