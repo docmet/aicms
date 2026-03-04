@@ -100,12 +100,17 @@ async def health():
 
 
 @app.get("/.well-known/oauth-authorization-server")
-async def oauth_server_info():
+async def oauth_server_info(request: Request):
     """OAuth server discovery endpoint"""
+    # Use the host from the request to support both localhost and ngrok
+    scheme = request.url.scheme
+    host = request.headers.get("host", "localhost:8000")
+    base_url = f"{scheme}://{host}"
+    
     return {
-        "issuer": "http://localhost:8000",
-        "authorization_endpoint": "http://localhost:8000/authorize",
-        "token_endpoint": "http://localhost:8000/token",
+        "issuer": base_url,
+        "authorization_endpoint": f"{base_url}/authorize",
+        "token_endpoint": f"{base_url}/token",
         "response_types_supported": ["code"],
         "grant_types_supported": ["client_credentials"],
         "scopes_supported": ["mcp"],
@@ -114,10 +119,14 @@ async def oauth_server_info():
 
 
 @app.get("/.well-known/oauth-protected-resource")
-async def oauth_protected_resource():
+async def oauth_protected_resource(request: Request):
     """OAuth protected resource endpoint"""
+    scheme = request.url.scheme
+    host = request.headers.get("host", "localhost:8000")
+    base_url = f"{scheme}://{host}"
+    
     return {
-        "resource": "http://localhost:8000",
+        "resource": base_url,
         "scopes_supported": ["mcp"]
     }
 
