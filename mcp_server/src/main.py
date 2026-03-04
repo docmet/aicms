@@ -310,11 +310,22 @@ async def sse_endpoint(client_id: str, request: Request):
                 if await request.is_disconnected():
                     print("Client disconnected")
                     break
-                await asyncio.sleep(30)
+                    
+                # Send ping and wait
                 yield "event: ping\ndata: ping\n\n"
+                
+                # Use a shorter sleep with more frequent disconnection checks
+                for _ in range(6):  # 6 * 5 = 30 seconds total
+                    await asyncio.sleep(5)
+                    if await request.is_disconnected():
+                        print("Client disconnected during wait")
+                        return
         except asyncio.CancelledError:
             print("SSE connection cancelled")
-            pass
+        except Exception as e:
+            print(f"SSE connection error: {e}")
+        finally:
+            print("Cleaning up SSE connection")
     
     return StreamingResponse(
         event_stream(),
