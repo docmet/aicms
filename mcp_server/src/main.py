@@ -347,12 +347,17 @@ async def delete_client(
     return {"message": "Client deleted successfully"}
 
 
-# SSE endpoint for Claude Desktop - supports both GET (SSE) and POST (Streamable HTTP)
-@app.api_route("/sse/{client_id}", methods=["GET", "POST"])
+# SSE endpoint for Claude Desktop - supports GET (SSE), POST (Streamable HTTP), and DELETE
+@app.api_route("/sse/{client_id}", methods=["GET", "POST", "DELETE"])
 async def sse_endpoint(client_id: str, request: Request):
     """SSE endpoint for Claude Desktop MCP connections - supports SSE and Streamable HTTP"""
     
     print(f"MCP connection requested for client: {client_id}, method: {request.method}")
+    
+    # Handle DELETE request - Claude uses this to close connections
+    if request.method == "DELETE":
+        print(f"DELETE request for client {client_id} - acknowledging")
+        return {"status": "ok"}
     
     # Check for Authorization header
     auth_header = request.headers.get("authorization", "")
@@ -377,12 +382,13 @@ async def sse_endpoint(client_id: str, request: Request):
         accept_header = request.headers.get("accept", "")
         print(f"POST request with Accept: {accept_header}")
         
-        # If client wants SSE stream, return streaming response
-        if "text/event-stream" in accept_header:
+        # If client ONLY wants SSE stream (no JSON), return streaming response
+        # Otherwise return JSON initialization (preferred when both acceptable)
+        if "text/event-stream" in accept_header and "application/json" not in accept_header:
             print("Client requesting SSE stream via POST - Streamable HTTP mode")
         else:
-            # Regular HTTP POST - handle as Streamable HTTP initialization
-            print("Regular HTTP POST - Streamable HTTP initialization")
+            # Return JSON response - this is what Claude expects for initialization
+            print("POST with JSON accepted - returning initialization response")
             body = await request.body()
             if body:
                 print(f"Received POST body: {body}")
