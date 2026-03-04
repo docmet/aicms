@@ -5,6 +5,7 @@ from src.api.auth import router as auth_router
 from src.api.content import router as content_router
 from src.api.pages import router as pages_router
 from src.api.sites import router as sites_router
+from src.api.themes import router as themes_router
 from src.config import get_settings
 
 settings = get_settings()
@@ -49,3 +50,4 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(sites_router, prefix="/api/v1/sites", tags=["sites"])
 app.include_router(pages_router, prefix="/api/v1/sites", tags=["pages"])
 app.include_router(content_router, prefix="/api/v1/sites", tags=["content"])
+app.include_router(themes_router, prefix="/api/v1/themes", tags=["themes"])
