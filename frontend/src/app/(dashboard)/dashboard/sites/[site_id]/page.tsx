@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,6 @@ interface Theme {
 export default function SiteEditorPage({ params }: { params: Promise<{ site_id: string }> }) {
   const { site_id } = use(params);
   const [site, setSite] = useState<Site | null>(null);
-  const [pages, setPages] = useState<Page[]>([]);
   const [currentPage, setCurrentPage] = useState<Page | null>(null);
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [themes, setThemes] = useState<Theme[]>([]);
@@ -50,11 +49,22 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
   const { toast } = useToast();
   const router = useRouter();
 
-  useEffect(() => {
-    fetchData();
-  }, [site_id, toast]);
+  const createInitialPage = useCallback(async () => {
+    try {
+      const response = await api.post(`/api/v1/sites/${site_id}/pages`, {
+        title: 'Home',
+        slug: 'home',
+        is_published: true,
+        order: 0,
+      });
+      setCurrentPage(response.data);
+      setSections([]);
+    } catch (error) {
+      console.error('Failed to create initial page', error);
+    }
+  }, [site_id]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [siteRes, pagesRes, themesRes] = await Promise.all([
         api.get(`/sites/${site_id}`),
@@ -63,7 +73,6 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
       ]);
 
       setSite(siteRes.data);
-      setPages(pagesRes.data);
       setThemes(themesRes.data);
 
       if (pagesRes.data.length > 0) {
@@ -85,23 +94,11 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     } finally {
       setLoading(false);
     }
-  };
+  }, [site_id, toast, createInitialPage]);
 
-  const createInitialPage = async () => {
-    try {
-      const response = await api.post(`/api/v1/sites/${site_id}/pages`, {
-        title: 'Home',
-        slug: 'home',
-        is_published: true,
-        order: 0,
-      });
-      setPages([response.data]);
-      setCurrentPage(response.data);
-      setSections([]);
-    } catch (error) {
-      console.error('Failed to create initial page', error);
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleUpdateSite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +112,8 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
         theme_slug: site.theme_slug,
       });
       toast({ title: 'Success', description: 'Site settings updated.' });
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
       toast({
         title: 'Error',
         description: error.response?.data?.detail || 'Failed to update site.',

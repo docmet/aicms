@@ -34,7 +34,8 @@ export default function NewSitePage() {
       });
 
       router.push(`/dashboard/sites/${response.data.id}`);
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
       console.error('Failed to create site', error);
       toast({
         title: 'Error',

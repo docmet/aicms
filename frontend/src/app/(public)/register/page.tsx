@@ -24,8 +24,9 @@ export default function RegisterPage() {
       });
 
       router.push('/login?registered=true');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to register');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Failed to register');
     } finally {
       setIsSubmitting(false);
     }

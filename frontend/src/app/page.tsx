@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function HomePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -8,18 +10,18 @@ export default function HomePage() {
           themes.
         </p>
         <div className="flex gap-4 justify-center">
-          <a
+          <Link
             href="/login"
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Login
-          </a>
-          <a
+          </Link>
+          <Link
             href="/register"
             className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Register
-          </a>
+          </Link>
         </div>
         <div className="mt-12 text-sm text-gray-500">
           <p>MVP Phase 1 - Foundation Setup</p>

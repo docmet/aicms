@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Globe, Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,11 +21,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchSites();
-  }, [toast]);
-
-  const fetchSites = async () => {
+  const fetchSites = useCallback(async () => {
     try {
       const response = await api.get('/sites/');
       setSites(response.data);
@@ -39,7 +35,11 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchSites();
+  }, [fetchSites]);
 
   if (loading) {
     return (

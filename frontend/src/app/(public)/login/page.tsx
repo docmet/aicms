@@ -29,8 +29,9 @@ export default function LoginPage() {
       });
 
       login(response.data.access_token);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to login');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Failed to login');
     } finally {
       setIsSubmitting(false);
     }
