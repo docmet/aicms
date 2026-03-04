@@ -101,17 +101,18 @@ This document outlines the development roadmap for AI CMS, from MVP to future en
 **Timeline**: Week 5
 
 ### Tasks
-- [x] Implement FastAPI-based MCP server
+- [x] Implement FastAPI-based hosted MCP server
 - [x] Create MCP tools for all CMS operations
-- [x] Add stdio adapter for Claude Desktop
-- [x] Create setup documentation
-- [x] Add help page to frontend
-- [x] Test with local AI tools
+- [x] Add client authentication system
+- [x] Add Docker integration for automatic startup
+- [x] Create MCP client management UI
+- [x] Add comprehensive setup documentation
 
 ### Deliverables
-- ✅ Complete MCP server
+- ✅ Complete hosted MCP server
 - ✅ AI tool integration (ChatGPT, Claude, Cursor)
-- ✅ MCP documentation
+- ✅ Client authentication and management
+- ✅ Docker-based deployment
 - ✅ Help page with setup guides
 
 ---

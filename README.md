@@ -130,19 +130,18 @@ cd aicms
 
 ### Quick Start with MCP Server
 
-1. Install MCP server:
+1. Start the stack:
 ```bash
-./cli.sh mcp:install
+./cli.sh start
 ```
 
-2. Get your JWT token from the dashboard
+2. Go to AI Tools in dashboard: http://localhost:3000/dashboard/mcp
 
-3. Run MCP server:
-```bash
-./cli.sh mcp:run http://localhost:8000/api/v1 YOUR_TOKEN
-```
+3. Register your AI tool (Claude, ChatGPT, or Cursor)
 
-4. Configure your AI tool (see `/help` for detailed guides)
+4. Copy the configuration and follow the setup instructions
+
+The MCP server runs automatically at http://localhost:8001
 
 ### Development Commands
 

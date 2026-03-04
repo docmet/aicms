@@ -111,19 +111,11 @@ export default function HelpPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <p>Run these commands in your terminal:</p>
-                      <div className="relative">
-                        <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto">
-                          <code>cd mcp_server
-pip install -e .</code>
-                        </pre>
-                        <button
-                          onClick={() => copyToClipboard('cd mcp_server\npip install -e .', 'install')}
-                          className="absolute top-2 right-2 p-2 bg-slate-700 hover:bg-slate-600 rounded"
-                        >
-                          {copied === 'install' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                        </button>
-                      </div>
+                      <p>1. Go to <Link href="/dashboard/mcp" className="text-primary hover:underline">AI Tools in dashboard</Link></p>
+                      <p>2. Click &quot;Add Client&quot; and select &quot;Claude Desktop&quot;</p>
+                      <p>3. Give it a name (e.g., &quot;My Claude&quot;)</p>
+                      <p>4. Copy the generated configuration</p>
+                      <p>5. Paste it into your Claude Desktop config file</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -160,21 +152,10 @@ pip install -e .</code>
                         </div>
                       </div>
                       
-                      <p>Add this configuration (replace YOUR_TOKEN with your actual JWT):</p>
-                      <div className="relative">
-                        <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto text-sm">
-                          <code>{claudeConfigJson}</code>
-                        </pre>
-                        <button
-                          onClick={() => copyToClipboard(claudeConfigJson, 'claude')}
-                          className="absolute top-2 right-2 p-2 bg-slate-700 hover:bg-slate-600 rounded"
-                        >
-                          {copied === 'claude' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                        </button>
-                      </div>
-
+                      <p>The configuration will be generated for you in the AI Tools dashboard.</p>
+                      
                       <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                        <p className="text-sm"><strong>Important:</strong> Replace <Code>your-jwt-token-here</Code> with your actual JWT token from step 2!</p>
+                        <p className="text-sm"><strong>Note:</strong> The MCP server runs at <Code>http://localhost:8001</Code> when using Docker.</p>
                       </div>
                     </div>
                   </CardContent>
@@ -303,22 +284,16 @@ Env: AICMS_API_TOKEN=your-jwt-token-here`}</code>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p>Start the MCP server in development mode:</p>
-                  <div className="relative">
-                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg">
-                      <code>cd mcp_server
-aicms-mcp --api-url http://localhost:8000/api/v1 --api-token YOUR_TOKEN</code>
+                  <p>The MCP server runs automatically in Docker at port 8001.</p>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <pre className="text-sm">
+                      <code>MCP Server: http://localhost:8001
+Status: Running (when Docker is started)</code>
                     </pre>
-                    <button
-                      onClick={() => copyToClipboard('cd mcp_server\naicms-mcp --api-url http://localhost:8000/api/v1 --api-token YOUR_TOKEN', 'run')}
-                      className="absolute top-2 right-2 p-2 bg-slate-700 hover:bg-slate-600 rounded"
-                    >
-                      {copied === 'run' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </button>
                   </div>
                   
                   <div className="text-sm text-muted-foreground">
-                    <p>The server will start and wait for connections from your AI tools.</p>
+                    <p>No need to run anything manually - it&apos;s all handled by Docker!</p>
                   </div>
                 </div>
               </CardContent>
