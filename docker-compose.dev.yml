@@ -80,6 +80,8 @@ services:
     volumes:
       - ./mcp_server:/app
       - /app/.venv
+    ports:
+      - "8001:8000"
     depends_on:
       backend:
         condition: service_healthy
