@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
+import api from '@/lib/api';
 
 interface ContentSection {
   id: string;
@@ -23,14 +24,9 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   useEffect(() => {
     const fetchSite = async () => {
       try {
-        // Public endpoint to get site by slug - use direct fetch to avoid auth
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/public/sites/${site_slug}`);
-        if (!response.ok) {
-          throw new Error('Site not found');
-        }
-        const data = await response.json();
-        console.log('Site data:', data);
-        setData(data);
+        // Public endpoint to get site by slug
+        const response = await api.get(`/public/sites/${site_slug}`);
+        setData(response.data);
       } catch (err) {
         console.error('Failed to fetch site', err);
         setError(true);
@@ -44,14 +40,98 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (error || !data) return <div className="min-h-screen flex items-center justify-center text-red-500 text-xl font-bold italic">Site not found.</div>;
 
+  // Parse JSON content for certain sections
+  const parseContent = (content: string, sectionType: string) => {
+    try {
+      if (sectionType === 'hero' || sectionType === 'services') {
+        return JSON.parse(content);
+      }
+      return content;
+    } catch {
+      return content;
+    }
+  };
+
   return (
     <div className="min-h-screen" data-theme={data.theme_slug || 'default'}>
-      <div className="text-center py-4 bg-gray-100 text-sm">
-        Debug: Theme = {data.theme_slug}, Site = {data.name}
-      </div>
-      <pre className="p-4 bg-gray-100 text-xs">
-        {JSON.stringify(data, null, 2)}
-      </pre>
+      {data.sections.map((section) => {
+        const parsedContent = parseContent(section.content, section.section_type);
+        
+        if (section.section_type === 'hero') {
+          return (
+            <section key={section.id} className="py-20 px-4 bg-primary-50 text-center">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-5xl font-bold mb-4 text-primary-900">
+                  {parsedContent.headline}
+                </h1>
+                <p className="text-xl text-primary-700">
+                  {parsedContent.subheadline}
+                </p>
+              </div>
+            </section>
+          );
+        }
+        
+        if (section.section_type === 'services') {
+          return (
+            <section key={section.id} className="py-20 px-4 bg-white">
+              <div className="max-w-4xl mx-auto">
+                <h2 className="text-4xl font-bold text-center mb-12">Our Services</h2>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {parsedContent.services.map((service: any, index: number) => (
+                    <div key={index} className="p-6 border rounded-lg bg-card">
+                      <h3 className="text-xl font-semibold mb-2">{service.name}</h3>
+                      <p className="text-muted-foreground">{service.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          );
+        }
+        
+        if (section.section_type === 'contact') {
+          const contact = parseContent(section.content, section.section_type);
+          return (
+            <section key={section.id} className="py-20 px-4 bg-primary-50">
+              <div className="max-w-4xl mx-auto text-center">
+                <h2 className="text-4xl font-bold mb-8">Contact Us</h2>
+                <div className="space-y-4">
+                  <p className="text-lg">
+                    <span className="font-semibold">Email:</span>{' '}
+                    <a href={`mailto:${contact.email}`} className="text-primary-600 hover:underline">
+                      {contact.email}
+                    </a>
+                  </p>
+                  <p className="text-lg">
+                    <span className="font-semibold">Phone:</span>{' '}
+                    <a href={`tel:${contact.phone}`} className="text-primary-600 hover:underline">
+                      {contact.phone}
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </section>
+          );
+        }
+        
+        // Default section rendering
+        return (
+          <section key={section.id} className="py-20 px-4 bg-white">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-4xl font-bold mb-6 capitalize text-center">{section.section_type}</h2>
+              <div className="prose prose-lg max-w-none text-center">
+                {section.content}
+              </div>
+            </div>
+          </section>
+        );
+      })}
+      <footer className="py-8 text-center border-t bg-muted">
+        <p className="text-muted-foreground">
+          Built with AI CMS - {data.name}
+        </p>
+      </footer>
     </div>
   );
 }

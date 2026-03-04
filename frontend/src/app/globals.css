@@ -43,23 +43,55 @@
 
   /* Theme variants */
   [data-theme='warm'] {
-    --primary: 25 95% 53%;
+    --primary: 18 95% 50%;
     --primary-foreground: 0 0% 98%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
   }
 
   [data-theme='nature'] {
     --primary: 142 71% 45%;
     --primary-foreground: 0 0% 98%;
+    --background: 240 10% 98%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
   }
 
   [data-theme='dark'] {
     --primary: 215 25% 27%;
     --primary-foreground: 0 0% 98%;
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
   }
 
   [data-theme='minimal'] {
     --primary: 0 0% 45%;
     --primary-foreground: 0 0% 98%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -95,5 +127,22 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Theme-specific backgrounds */
+  [data-theme='warm'] {
+    background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+  }
+  
+  [data-theme='nature'] {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  }
+  
+  [data-theme='dark'] {
+    background: #0f172a;
+  }
+  
+  [data-theme='minimal'] {
+    background: #fafafa;
   }
 }
