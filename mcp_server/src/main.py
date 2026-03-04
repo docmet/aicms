@@ -433,6 +433,8 @@ async def sse_endpoint(client_id: str, request: Request):
         
         print(f"Scheme from header: {scheme}, URL scheme: {request.url.scheme}")
         print(f"Sending endpoint event: {message_endpoint}")
+        
+        # Send endpoint event - some clients may prefer just the path
         yield f"event: endpoint\ndata: {message_endpoint}\n\n"
         
         # Keep connection alive and wait for client messages
