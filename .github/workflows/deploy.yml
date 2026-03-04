@@ -42,7 +42,7 @@ jobs:
         run: |
           cd backend
           pip install uv
-          uv sync --frozen
+          uv sync
 
       - name: Run linters
         run: ./cli.sh lint
