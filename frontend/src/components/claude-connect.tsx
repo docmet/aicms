@@ -89,6 +89,34 @@ export function ClaudeConnect({ token, clientId }: ClaudeConnectProps) {
           ))}
         </div>
 
+        <div className="space-y-3">
+          <h4 className="font-semibold">Available Tools</h4>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">Site Management:</p>
+            <ul className="list-disc list-inside pl-2 space-y-0.5">
+              <li>list_sites - List all your sites</li>
+              <li>create_site - Create a new site</li>
+              <li>get_site_info - Get site details with pages</li>
+              <li>update_site - Update site name/slug/theme</li>
+              <li>delete_site - Delete a site</li>
+            </ul>
+            <p className="font-medium text-foreground mt-2">Page Management:</p>
+            <ul className="list-disc list-inside pl-2 space-y-0.5">
+              <li>list_pages - List pages for a site</li>
+              <li>create_page - Create a new page</li>
+              <li>get_page_content - Get page content sections</li>
+              <li>update_page - Update page title/slug/status</li>
+              <li>update_page_content - Edit content sections</li>
+              <li>delete_page - Delete a page</li>
+            </ul>
+            <p className="font-medium text-foreground mt-2">Theme Management:</p>
+            <ul className="list-disc list-inside pl-2 space-y-0.5">
+              <li>list_themes - List available themes</li>
+              <li>apply_theme - Apply theme to a site</li>
+            </ul>
+          </div>
+        </div>
+
         <div className="space-y-2">
           <h4 className="font-semibold">How to connect</h4>
           <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
