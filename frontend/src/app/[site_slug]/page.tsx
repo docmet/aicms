@@ -56,10 +56,15 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   if (error || !data) return <div className="min-h-screen flex items-center justify-center text-red-500 text-xl font-bold italic">Site not found.</div>;
 
   // Parse JSON content for certain sections
-  const parseContent = (content: string, sectionType: string): HeroContent | ServiceItem[] | ContactContent | string => {
+  const parseContent = (content: string, sectionType: string) => {
     try {
       if (sectionType === 'hero' || sectionType === 'services' || sectionType === 'contact') {
-        return JSON.parse(content);
+        const parsed = JSON.parse(content);
+        // For services, the content is wrapped in a "services" object
+        if (sectionType === 'services' && parsed.services) {
+          return parsed.services;
+        }
+        return parsed;
       }
       return content;
     } catch {
@@ -90,6 +95,11 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
         
         if (section.section_type === 'services') {
           const servicesContent = parsedContent as ServiceItem[];
+          // Ensure it's an array before mapping
+          if (!Array.isArray(servicesContent)) {
+            console.error('Services content is not an array:', servicesContent);
+            return null;
+          }
           return (
             <section key={section.id} className="py-20 px-4 bg-white">
               <div className="max-w-4xl mx-auto">
@@ -143,7 +153,7 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
             </div>
           </section>
         );
-      })}
+      }).filter(Boolean)}
       <footer className="py-8 text-center border-t bg-muted">
         <p className="text-muted-foreground">
           Built with AI CMS - {data.name}
