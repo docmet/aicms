@@ -380,13 +380,38 @@ async def sse_endpoint(client_id: str, request: Request):
         if "text/event-stream" in accept_header:
             print("Client requesting SSE stream via POST - Streamable HTTP mode")
         else:
-            # Regular HTTP POST - handle as message request
-            print("Regular HTTP POST - checking for body")
+            # Regular HTTP POST - handle as Streamable HTTP initialization
+            print("Regular HTTP POST - Streamable HTTP initialization")
             body = await request.body()
             if body:
                 print(f"Received POST body: {body}")
-            # Return empty JSON-RPC response to acknowledge
-            return {"jsonrpc": "2.0", "id": None, "result": {}}
+            
+            # Generate session ID for Streamable HTTP
+            session_id = str(uuid.uuid4())
+            print(f"Generated session ID: {session_id}")
+            
+            # Return proper MCP initialization response
+            return JSONResponse(
+                content={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {
+                            "tools": {
+                                "listChanged": True
+                            }
+                        },
+                        "serverInfo": {
+                            "name": "aicms-mcp-server",
+                            "version": "1.0.0"
+                        }
+                    }
+                },
+                headers={
+                    "Mcp-Session-Id": session_id
+                }
+            )
     
     print(f"Establishing SSE connection for {client_id}")
     
