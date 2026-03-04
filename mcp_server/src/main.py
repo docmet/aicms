@@ -425,6 +425,31 @@ async def sse_endpoint(client_id: str, request: Request):
                                 "serverInfo": {"name": "aicms-mcp-server", "version": "1.0.0"}
                             }
                         })
+                    
+                    elif message.get("method") == "tools/call":
+                        params = message.get("params", {})
+                        tool_name = params.get("name")
+                        args = params.get("arguments", {})
+                        
+                        print(f"Tool call: {tool_name} with args: {args}")
+                        
+                        # Simple tool implementations
+                        if tool_name == "list_sites":
+                            return JSONResponse(content={
+                                "jsonrpc": "2.0",
+                                "id": message.get("id"),
+                                "result": {
+                                    "content": [{"type": "text", "text": "Sites will be listed from your AI CMS account. Please ensure you're authenticated."}]
+                                }
+                            })
+                        else:
+                            return JSONResponse(content={
+                                "jsonrpc": "2.0",
+                                "id": message.get("id"),
+                                "result": {
+                                    "content": [{"type": "text", "text": f"Tool {tool_name} executed with args: {args}"}]
+                                }
+                            })
                 except json.JSONDecodeError:
                     pass
             
