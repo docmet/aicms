@@ -436,7 +436,7 @@ async def sse_endpoint(client_id: str, request: Request):
                         # Make actual API call to backend
                         try:
                             import httpx
-                            async with httpx.AsyncClient() as client:
+                            async with httpx.AsyncClient(follow_redirects=True) as client:
                                 headers = {"Authorization": f"Bearer {auth_header[7:] if auth_header.startswith('Bearer ') else ''}"}
                                 base_url = "http://backend:8000/api"
                                 
