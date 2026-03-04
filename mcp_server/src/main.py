@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, insert
 import uvicorn
 
-from .database import get_db
+from .database import get_db, engine
 from .models import MCPClient
 from .schemas import MCPClientCreate, MCPClientResponse
 from .aicms_mcp_server.server import MCPServer
@@ -62,8 +62,14 @@ async def get_current_user(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize MCP server"""
+    """Initialize MCP server and create tables"""
     global mcp_server
+    
+    # Create tables
+    from .database import Base
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
     api_url = os.getenv("API_URL", "http://localhost:8000/api/v1")
     mcp_server = MCPServer(api_url, None)  # Token not needed for hosted version
 
