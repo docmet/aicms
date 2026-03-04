@@ -25,7 +25,7 @@ async def test_theme_listing_and_switching(
     await db.commit()
 
     response = await client.post(
-        "/api/v1/auth/login",
+        "/api/auth/login",
         data={"username": "themeuser@example.com", "password": password},
     )
     token = response.json()["access_token"]
@@ -39,7 +39,7 @@ async def test_theme_listing_and_switching(
     await db.commit()
 
     # 3. List themes
-    response = await client.get("/api/v1/themes/", headers=headers)
+    response = await client.get("/api/themes/", headers=headers)
     assert response.status_code == 200
     themes = response.json()
     assert len(themes) == 2
@@ -50,7 +50,7 @@ async def test_theme_listing_and_switching(
 
     # 4. Create a site with default theme
     response = await client.post(
-        "/api/v1/sites/",
+        "/api/sites/",
         headers=headers,
         json={"name": "Theme Test Site", "slug": "theme-test", "theme_slug": "theme1"},
     )
@@ -60,12 +60,12 @@ async def test_theme_listing_and_switching(
 
     # 5. Switch theme to theme2
     response = await client.patch(
-        f"/api/v1/sites/{site_id}", headers=headers, json={"theme_slug": "theme2"}
+        f"/api/sites/{site_id}", headers=headers, json={"theme_slug": "theme2"}
     )
     assert response.status_code == 200
     assert response.json()["theme_slug"] == "theme2"
 
     # 6. Verify public site reflects the new theme
-    response = await client.get("/api/v1/public/sites/theme-test")
+    response = await client.get("/api/public/sites/theme-test")
     assert response.status_code == 200
     assert response.json()["theme_slug"] == "theme2"

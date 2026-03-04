@@ -10,7 +10,7 @@ from src.services.auth import AuthService
 async def test_register_user(client: AsyncClient, db: AsyncSession) -> None:
     """Test user registration endpoint."""
     response = await client.post(
-        "/api/v1/auth/register",
+        "/api/auth/register",
         json={"email": "test@example.com", "password": "password123"},
     )
     assert response.status_code == 201
@@ -30,7 +30,7 @@ async def test_login_user(client: AsyncClient, db: AsyncSession) -> None:
     await db.commit()
 
     response = await client.post(
-        "/api/v1/auth/login",
+        "/api/auth/login",
         data={"username": "login@example.com", "password": password},
     )
     assert response.status_code == 200

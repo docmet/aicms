@@ -5,11 +5,7 @@ import { DashboardSidebar } from '@/components/admin/sidebar';
 import { redirect } from 'next/navigation';
 import { Toaster } from '@/components/ui/toaster';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -28,9 +24,7 @@ export default function DashboardLayout({
     <div className="flex min-h-screen bg-gray-50">
       <DashboardSidebar />
       <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-6xl mx-auto">
-          {children}
-        </div>
+        <div className="max-w-6xl mx-auto">{children}</div>
       </main>
       <Toaster />
     </div>

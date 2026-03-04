@@ -36,17 +36,21 @@ export default function DashboardPage() {
 
   const handleDeleteSite = async (siteId: string) => {
     if (!confirm('Are you sure you want to delete this site?')) return;
-    
+
     try {
       await api.delete(`/sites/${siteId}`);
-      setSites(sites.filter(s => s.id !== siteId));
+      setSites(sites.filter((s) => s.id !== siteId));
     } catch (error) {
       console.error('Failed to delete site', error);
     }
   };
 
   if (loading) {
-    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
@@ -89,9 +93,9 @@ export default function DashboardPage() {
                         <Edit size={16} />
                       </Button>
                     </Link>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleDeleteSite(site.id)}
                       className="text-red-600 hover:text-red-700"
                     >

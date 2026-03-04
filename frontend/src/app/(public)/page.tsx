@@ -7,17 +7,11 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            AI CMS
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            AI-powered Content Management System
-          </p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">AI CMS</h1>
+          <p className="text-xl text-gray-600 mb-8">AI-powered Content Management System</p>
           <div className="space-x-4">
             <Link href="/register">
-              <Button size="lg">
-                Get Started
-              </Button>
+              <Button size="lg">Get Started</Button>
             </Link>
             <Link href="/login">
               <Button variant="outline" size="lg">

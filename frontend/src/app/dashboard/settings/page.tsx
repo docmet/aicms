@@ -12,7 +12,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
@@ -39,7 +39,7 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       <div className="flex justify-end">
         <Button disabled>Save Changes</Button>
       </div>

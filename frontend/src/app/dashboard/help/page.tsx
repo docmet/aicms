@@ -30,10 +30,10 @@ export default function HelpPage() {
         command: 'aicms-mcp',
         args: ['--api-url', '/api'],
         env: {
-          AICMS_API_TOKEN: 'your-jwt-token-here'
-        }
-      }
-    }
+          AICMS_API_TOKEN: 'your-jwt-token-here',
+        },
+      },
+    },
   };
 
   const claudeConfigJson = JSON.stringify(claudeConfig, null, 2);
@@ -65,7 +65,8 @@ export default function HelpPage() {
                     What is the MCP Server?
                   </CardTitle>
                   <CardDescription>
-                    The Model Context Protocol (MCP) server lets AI tools manage your CMS content and themes
+                    The Model Context Protocol (MCP) server lets AI tools manage your CMS content
+                    and themes
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -111,7 +112,12 @@ export default function HelpPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <p>1. Go to <Link href="/dashboard/mcp" className="text-primary hover:underline">AI Tools in dashboard</Link></p>
+                      <p>
+                        1. Go to{' '}
+                        <Link href="/dashboard/mcp" className="text-primary hover:underline">
+                          AI Tools in dashboard
+                        </Link>
+                      </p>
                       <p>2. Click &quot;Add Client&quot; and select &quot;Claude Desktop&quot;</p>
                       <p>3. Give it a name (e.g., &quot;My Claude&quot;)</p>
                       <p>4. Copy the generated configuration</p>
@@ -126,10 +132,17 @@ export default function HelpPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <p>1. Log in to your AI CMS at <Link href="/dashboard" className="text-primary hover:underline">/dashboard</Link></p>
+                      <p>
+                        1. Log in to your AI CMS at{' '}
+                        <Link href="/dashboard" className="text-primary hover:underline">
+                          /dashboard
+                        </Link>
+                      </p>
                       <p>2. Open browser dev tools (F12)</p>
                       <p>3. Go to Application → Local Storage → Your domain</p>
-                      <p>4. Copy the <Code>token</Code> value</p>
+                      <p>
+                        4. Copy the <Code>token</Code> value
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -144,18 +157,24 @@ export default function HelpPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                           <Badge variant="outline">macOS</Badge>
-                          <pre className="mt-1 bg-muted p-2 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</pre>
+                          <pre className="mt-1 bg-muted p-2 rounded">
+                            ~/Library/Application Support/Claude/claude_desktop_config.json
+                          </pre>
                         </div>
                         <div>
                           <Badge variant="outline">Windows</Badge>
-                          <pre className="mt-1 bg-muted p-2 rounded">%APPDATA%\Claude\claude_desktop_config.json</pre>
+                          <pre className="mt-1 bg-muted p-2 rounded">
+                            %APPDATA%\Claude\claude_desktop_config.json
+                          </pre>
                         </div>
                       </div>
-                      
+
                       <p>The configuration will be generated for you in the AI Tools dashboard.</p>
-                      
+
                       <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                        <p className="text-sm"><strong>Note:</strong> The MCP server runs in the Docker stack.</p>
+                        <p className="text-sm">
+                          <strong>Note:</strong> The MCP server runs in the Docker stack.
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -166,7 +185,10 @@ export default function HelpPage() {
                     <CardTitle>Step 4: Restart Claude</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p>Restart Claude Desktop and you&apos;ll see &quot;AI CMS&quot; in the chat interface. You can now:</p>
+                    <p>
+                      Restart Claude Desktop and you&apos;ll see &quot;AI CMS&quot; in the chat
+                      interface. You can now:
+                    </p>
                     <ul className="mt-2 space-y-1 text-sm">
                       <li>• &quot;Show me my sites&quot;</li>
                       <li>• &quot;Change my demo-site theme to warm&quot;</li>
@@ -202,17 +224,26 @@ When I ask to:
 - Use JWT token: [PASTE_YOUR_TOKEN_HERE]`}</code>
                         </pre>
                         <button
-                          onClick={() => copyToClipboard(`You have access to the AI CMS MCP server for managing website content. 
+                          onClick={() =>
+                            copyToClipboard(
+                              `You have access to the AI CMS MCP server for managing website content. 
 The server is running in Docker.
 
 When I ask to:
 - View or change sites/themes: Use the list_sites, get_site, and update_theme tools
 - Update content: Use get_content and update_content tools
 - The API endpoint is: /api
-- Use JWT token: [PASTE_YOUR_TOKEN_HERE]`, 'chatgpt')}
+- Use JWT token: [PASTE_YOUR_TOKEN_HERE]`,
+                              'chatgpt'
+                            )
+                          }
                           className="absolute top-2 right-2 p-2 bg-slate-700 hover:bg-slate-600 rounded"
                         >
-                          {copied === 'chatgpt' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          {copied === 'chatgpt' ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -244,11 +275,13 @@ When I ask to:
                     <div>
                       <h3 className="font-semibold mb-2">Setup Steps:</h3>
                       <ol className="space-y-2 text-sm">
-                        <li>1. Install the MCP server: <Code>cd mcp_server && pip install -e .</Code></li>
+                        <li>
+                          1. Install the MCP server: <Code>cd mcp_server && pip install -e .</Code>
+                        </li>
                         <li>2. Open Cursor Settings → MCP</li>
                         <li>3. Add new MCP server with these settings:</li>
                       </ol>
-                      
+
                       <div className="bg-muted p-4 rounded-lg mt-2">
                         <pre className="text-sm">
                           <code>{`Name: AI CMS
@@ -261,7 +294,10 @@ Env: AICMS_API_TOKEN=your-jwt-token-here`}</code>
 
                     <div>
                       <h3 className="font-semibold mb-2">Usage in Cursor:</h3>
-                      <p>Use Cmd+Shift+P and type &quot;AI CMS&quot; to see available commands, or simply ask in chat:</p>
+                      <p>
+                        Use Cmd+Shift+P and type &quot;AI CMS&quot; to see available commands, or
+                        simply ask in chat:
+                      </p>
                       <ul className="mt-2 space-y-1 text-sm">
                         <li>• &quot;AI CMS: list my sites&quot;</li>
                         <li>• &quot;AI CMS: update theme to nature&quot;</li>
@@ -287,11 +323,12 @@ Env: AICMS_API_TOKEN=your-jwt-token-here`}</code>
                   <p>The MCP server runs automatically in Docker at port 8001.</p>
                   <div className="bg-muted p-4 rounded-lg">
                     <pre className="text-sm">
-                      <code>MCP Server: http://localhost:8001
-Status: Running (when Docker is started)</code>
+                      <code>
+                        MCP Server: http://localhost:8001 Status: Running (when Docker is started)
+                      </code>
                     </pre>
                   </div>
-                  
+
                   <div className="text-sm text-muted-foreground">
                     <p>No need to run anything manually - it&apos;s all handled by Docker!</p>
                   </div>

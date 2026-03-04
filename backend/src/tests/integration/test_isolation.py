@@ -35,28 +35,28 @@ async def test_multi_user_site_isolation(client: AsyncClient, db: AsyncSession) 
 
     # Get token for user 2
     response = await client.post(
-        "/api/v1/auth/login",
+        "/api/auth/login",
         data={"username": "user2@example.com", "password": u2_password},
     )
     u2_token = response.json()["access_token"]
     headers = {"Authorization": f"Bearer {u2_token}"}
 
     # User 2 tries to GET User 1's site
-    response = await client.get(f"/api/v1/sites/{site1.id}", headers=headers)
+    response = await client.get(f"/api/sites/{site1.id}", headers=headers)
     assert response.status_code == 404
 
     # User 2 tries to UPDATE User 1's site
     response = await client.patch(
-        f"/api/v1/sites/{site1.id}", headers=headers, json={"name": "Hacked Site"}
+        f"/api/sites/{site1.id}", headers=headers, json={"name": "Hacked Site"}
     )
     assert response.status_code == 404
 
     # User 2 tries to DELETE User 1's site
-    response = await client.delete(f"/api/v1/sites/{site1.id}", headers=headers)
+    response = await client.delete(f"/api/sites/{site1.id}", headers=headers)
     assert response.status_code == 404
 
     # User 2 lists sites (should not see site 1)
-    response = await client.get("/api/v1/sites/", headers=headers)
+    response = await client.get("/api/sites/", headers=headers)
     assert response.status_code == 200
     sites = response.json()
     assert len(sites) == 0

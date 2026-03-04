@@ -21,9 +21,7 @@ export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
             <span>🤖</span>
             Claude Desktop Connection
           </CardTitle>
-          <CardDescription>
-            Create an MCP client first to connect Claude Desktop
-          </CardDescription>
+          <CardDescription>Create an MCP client first to connect Claude Desktop</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
@@ -31,7 +29,8 @@ export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
               ⚠️ No Claude Client Found
             </h4>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              You need to create a Claude Desktop MCP client first. Click &quot;Add Client&quot; below and select &quot;Claude Desktop&quot; as the tool type.
+              You need to create a Claude Desktop MCP client first. Click &quot;Add Client&quot;
+              below and select &quot;Claude Desktop&quot; as the tool type.
             </p>
           </div>
         </CardContent>
@@ -40,10 +39,10 @@ export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
   }
 
   const connectionParams = {
-    "Name": "AI CMS",
-    "Server URL": `${ngrokUrl}/mcp`,
-    "Client ID": "aicms-client", // Optional - can be any value
-    "Client Secret": token // Using token as client secret for authentication
+    Name: 'AI CMS',
+    'Server URL': `${ngrokUrl}/mcp`,
+    'Client ID': 'aicms-client', // Optional - can be any value
+    'Client Secret': token, // Using token as client secret for authentication
   };
 
   return (
@@ -63,7 +62,8 @@ export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
             ✅ Server is ready!
           </h4>
           <p className="text-sm text-green-700 dark:text-green-300">
-            Your MCP server is accessible at: <code className="bg-green-100 dark:bg-green-800 px-1 rounded">{ngrokUrl}</code>
+            Your MCP server is accessible at:{' '}
+            <code className="bg-green-100 dark:bg-green-800 px-1 rounded">{ngrokUrl}</code>
           </p>
         </div>
 
@@ -101,11 +101,10 @@ export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-            💡 Note
-          </h4>
+          <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">💡 Note</h4>
           <p className="text-sm text-blue-700 dark:text-blue-300">
-            Make sure Docker is running and the ngrok tunnel is active. The connection uses HTTP transport with token authentication.
+            Make sure Docker is running and the ngrok tunnel is active. The connection uses HTTP
+            transport with token authentication.
           </p>
         </div>
       </CardContent>

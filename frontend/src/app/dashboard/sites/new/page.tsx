@@ -51,8 +51,20 @@ export default function NewSitePage() {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
     setName(newName);
-    if (!slug || slug === newName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '')) {
-      setSlug(newName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''));
+    if (
+      !slug ||
+      slug ===
+        newName
+          .toLowerCase()
+          .replace(/ /g, '-')
+          .replace(/[^\w-]+/g, '')
+    ) {
+      setSlug(
+        newName
+          .toLowerCase()
+          .replace(/ /g, '-')
+          .replace(/[^\w-]+/g, '')
+      );
     }
   };
 

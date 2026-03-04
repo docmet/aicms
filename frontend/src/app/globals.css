@@ -14,7 +14,7 @@
     --color-primary-600: #2563eb;
     --color-primary-700: #1d4ed8;
     --color-primary-800: #1e40af;
-    --color-primary-900: #1e3a8a;/* Default theme - make it truly blue */
+    --color-primary-900: #1e3a8a; /* Default theme - make it truly blue */
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 98%;
     --primary-50: 217 91% 98%;
@@ -181,20 +181,20 @@
   body {
     @apply bg-background text-foreground;
   }
-  
+
   /* Theme-specific backgrounds */
   [data-theme='warm'] {
     background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
   }
-  
+
   [data-theme='nature'] {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   }
-  
+
   [data-theme='dark'] {
     background: #0a0a0a;
   }
-  
+
   [data-theme='minimal'] {
     background: #fafafa;
   }

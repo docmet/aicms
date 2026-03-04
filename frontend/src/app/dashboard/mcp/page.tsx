@@ -5,7 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Plus, Trash2, Bot, Key, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +37,7 @@ export default function MCPSettingsPage() {
     tool_type: 'claude' | 'chatgpt' | 'cursor';
   }>({
     name: '',
-    tool_type: 'claude'
+    tool_type: 'claude',
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -60,7 +66,7 @@ export default function MCPSettingsPage() {
     try {
       const response = await api.post('/mcp/register', {
         ...newClient,
-        user_id: user?.id
+        user_id: user?.id,
       });
 
       setClients([response.data, ...clients]);
@@ -75,7 +81,7 @@ export default function MCPSettingsPage() {
   const deleteClient = async (clientId: string) => {
     try {
       await api.delete(`/mcp/clients/${clientId}`);
-      setClients(clients.filter(c => c.id !== clientId));
+      setClients(clients.filter((c) => c.id !== clientId));
       toast({ title: 'Client deleted successfully' });
     } catch (error) {
       toast({ title: 'Failed to delete client', variant: 'destructive' });
@@ -89,10 +95,14 @@ export default function MCPSettingsPage() {
 
   const getToolIcon = (type: string) => {
     switch (type) {
-      case 'claude': return '🤖';
-      case 'chatgpt': return '💬';
-      case 'cursor': return '👆';
-      default: return '🔌';
+      case 'claude':
+        return '🤖';
+      case 'chatgpt':
+        return '💬';
+      case 'cursor':
+        return '👆';
+      default:
+        return '🔌';
     }
   };
 
@@ -103,21 +113,23 @@ export default function MCPSettingsPage() {
         const ngrokUrl = 'https://82c1-2a02-ab88-1510-ce80-4e7-66a0-7852-a87c.ngrok-free.app'; // Update with your ngrok URL
         return {
           title: 'Claude Desktop Setup',
-          config: JSON.stringify({
-            mcpServers: {
-              'aicms': {
-                command: 'node',
-                args: [
-                  '/path/to/mcp_cms/mcp-proxy-server.js'
-                ],
-                env: {
-                  'API_URL': `${ngrokUrl}/api`,
-                  'AUTH_TOKEN': token
-                }
-              }
-            }
-          }, null, 2),
-          note: `1. Download the MCP proxy file from your dashboard\n2. Save it somewhere on your computer\n3. Update the path in the config above\n4. Copy and paste this configuration into Claude Desktop\n\nNo Docker required!`
+          config: JSON.stringify(
+            {
+              mcpServers: {
+                aicms: {
+                  command: 'node',
+                  args: ['/path/to/mcp_cms/mcp-proxy-server.js'],
+                  env: {
+                    API_URL: `${ngrokUrl}/api`,
+                    AUTH_TOKEN: token,
+                  },
+                },
+              },
+            },
+            null,
+            2
+          ),
+          note: `1. Download the MCP proxy file from your dashboard\n2. Save it somewhere on your computer\n3. Update the path in the config above\n4. Copy and paste this configuration into Claude Desktop\n\nNo Docker required!`,
         };
       case 'chatgpt':
         return {
@@ -125,14 +137,14 @@ export default function MCPSettingsPage() {
           instructions: `Add this to your ChatGPT custom instructions:
 You have access to the AI CMS MCP server at ${baseUrl}:8001
 Use this token: ${token}
-Available tools: list_sites, get_site, update_theme, get_content, update_content`
+Available tools: list_sites, get_site, update_theme, get_content, update_content`,
         };
       case 'cursor':
         return {
           title: 'Cursor Setup',
           config: `Name: AI CMS
 URL: ${baseUrl}:8001
-Token: ${token}`
+Token: ${token}`,
         };
       default:
         return null;
@@ -149,8 +161,8 @@ Token: ${token}`
       </div>
 
       {/* Quick Connect for Claude Desktop */}
-      <ClaudeConnect 
-        token={clients.find(c => c.tool_type === 'claude')?.token || ''} 
+      <ClaudeConnect
+        token={clients.find((c) => c.tool_type === 'claude')?.token || ''}
         ngrokUrl="https://033a-45-155-40-197.ngrok-free.app"
       />
 
@@ -162,9 +174,7 @@ Token: ${token}`
                 <Bot className="h-5 w-5" />
                 MCP Clients
               </CardTitle>
-              <CardDescription>
-                Registered clients for AI tool integration
-              </CardDescription>
+              <CardDescription>Registered clients for AI tool integration</CardDescription>
             </div>
             <Button onClick={() => setShowCreate(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -191,30 +201,22 @@ Token: ${token}`
                           <Badge variant="outline">{client.tool_type}</Badge>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteClient(client.id)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => deleteClient(client.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    
+
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         <Key className="h-4 w-4" />
                         <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
                           {client.token.substring(0, 20)}...
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToken(client.token)}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => copyToken(client.token)}>
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
-                      
+
                       {instructions && (
                         <div className="mt-4">
                           <h4 className="font-semibold mb-2">{instructions.title}</h4>
@@ -268,13 +270,16 @@ Token: ${token}`
                 onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="tool">AI Tool</Label>
               <Select
                 value={newClient.tool_type}
-                onValueChange={(value: string) => 
-                  setNewClient({ ...newClient, tool_type: value as 'claude' | 'chatgpt' | 'cursor' })
+                onValueChange={(value: string) =>
+                  setNewClient({
+                    ...newClient,
+                    tool_type: value as 'claude' | 'chatgpt' | 'cursor',
+                  })
                 }
               >
                 <SelectTrigger>
@@ -287,7 +292,7 @@ Token: ${token}`
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex gap-2">
               <Button onClick={createClient}>Create Client</Button>
               <Button variant="outline" onClick={() => setShowCreate(false)}>

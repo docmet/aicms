@@ -108,7 +108,10 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
         theme_slug: site.theme_slug,
       });
       setSite({ ...site, [field]: value });
-      toast({ title: 'Saved', description: `${field === 'name' ? 'Site name' : 'URL slug'} updated.` });
+      toast({
+        title: 'Saved',
+        description: `${field === 'name' ? 'Site name' : 'URL slug'} updated.`,
+      });
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } };
       toast({
@@ -125,7 +128,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
       await api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
         content,
       });
-      setSections(sections.map(s => s.id === sectionId ? { ...s, content } : s));
+      setSections(sections.map((s) => (s.id === sectionId ? { ...s, content } : s)));
       toast({ title: 'Saved', description: 'Content updated.' });
     } catch {
       toast({ title: 'Error', description: 'Failed to save content.', variant: 'destructive' });
@@ -133,7 +136,8 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
   };
 
   const handleDeleteSite = async () => {
-    if (!confirm('Are you sure you want to delete this site? This action cannot be undone.')) return;
+    if (!confirm('Are you sure you want to delete this site? This action cannot be undone.'))
+      return;
     try {
       await api.delete(`/sites/${site_id}`);
       toast({ title: 'Site deleted' });
@@ -143,14 +147,21 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     }
   };
 
-  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+  if (loading)
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   if (!site) return <div>Site not found</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>Back</Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
+            Back
+          </Button>
           <h1 className="text-3xl font-bold text-gray-900">{site.name}</h1>
         </div>
         <div className="flex gap-2">
@@ -167,9 +178,15 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
 
       <Tabs defaultValue="content" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="content" className="gap-2"><Type size={16} /> Content</TabsTrigger>
-          <TabsTrigger value="theme" className="gap-2"><Palette size={16} /> Theme</TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2"><Layout size={16} /> Settings</TabsTrigger>
+          <TabsTrigger value="content" className="gap-2">
+            <Type size={16} /> Content
+          </TabsTrigger>
+          <TabsTrigger value="theme" className="gap-2">
+            <Palette size={16} /> Theme
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2">
+            <Layout size={16} /> Settings
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="content" className="mt-6 space-y-6">
@@ -183,7 +200,9 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
               <Card key={section.id}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div className="space-y-1">
-                    <CardTitle className="text-sm font-medium capitalize">{section.section_type} Section</CardTitle>
+                    <CardTitle className="text-sm font-medium capitalize">
+                      {section.section_type} Section
+                    </CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -192,7 +211,9 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                     defaultValue={section.content}
                     onBlur={(e) => handleUpdateContent(section.id, e.target.value)}
                   />
-                  <p className="text-[10px] text-gray-400 mt-1 italic text-right">Changes auto-save on blur</p>
+                  <p className="text-[10px] text-gray-400 mt-1 italic text-right">
+                    Changes auto-save on blur
+                  </p>
                 </CardContent>
               </Card>
             ))
@@ -210,13 +231,22 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                 {themes.map((t) => {
                   const themeColors = {
                     default: { bg: 'bg-blue-500', light: 'bg-blue-100', border: 'border-blue-600' },
-                    warm: { bg: 'bg-orange-500', light: 'bg-orange-100', border: 'border-orange-600' },
-                    nature: { bg: 'bg-green-500', light: 'bg-green-100', border: 'border-green-600' },
+                    warm: {
+                      bg: 'bg-orange-500',
+                      light: 'bg-orange-100',
+                      border: 'border-orange-600',
+                    },
+                    nature: {
+                      bg: 'bg-green-500',
+                      light: 'bg-green-100',
+                      border: 'border-green-600',
+                    },
                     dark: { bg: 'bg-slate-800', light: 'bg-slate-700', border: 'border-slate-600' },
-                    minimal: { bg: 'bg-gray-600', light: 'bg-gray-100', border: 'border-gray-600' }
+                    minimal: { bg: 'bg-gray-600', light: 'bg-gray-100', border: 'border-gray-600' },
                   };
-                  const colors = themeColors[t.slug as keyof typeof themeColors] || themeColors.default;
-                  
+                  const colors =
+                    themeColors[t.slug as keyof typeof themeColors] || themeColors.default;
+
                   return (
                     <button
                       key={t.id}
@@ -241,10 +271,14 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                         }
                       }}
                       className={`p-4 border-2 rounded-lg text-center transition-all ${
-                        site.theme_slug === t.slug ? `${colors.border} ${colors.light}` : 'border-gray-200 hover:border-gray-300'
+                        site.theme_slug === t.slug
+                          ? `${colors.border} ${colors.light}`
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <div className={`w-full aspect-video ${colors.light} rounded mb-2 flex items-center justify-center relative overflow-hidden`}>
+                      <div
+                        className={`w-full aspect-video ${colors.light} rounded mb-2 flex items-center justify-center relative overflow-hidden`}
+                      >
                         <div className={`absolute inset-0 ${colors.bg} opacity-20`}></div>
                         <div className="relative flex gap-1">
                           <div className={`w-4 h-4 ${colors.bg} rounded-full`}></div>
@@ -285,7 +319,9 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                     <Input
                       id="slug"
                       defaultValue={site.slug}
-                      onBlur={(e) => handleUpdateField('slug', e.target.value.toLowerCase().replace(/ /g, '-'))}
+                      onBlur={(e) =>
+                        handleUpdateField('slug', e.target.value.toLowerCase().replace(/ /g, '-'))
+                      }
                       required
                     />
                     <span className="text-sm text-gray-500">.aicms.docmet.systems</span>
