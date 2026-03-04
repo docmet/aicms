@@ -16,7 +16,7 @@ const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AI Tools', href: '/dashboard/mcp', icon: Bot },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-  { name: 'Help', href: '/help', icon: HelpCircle },
+  { name: 'Help', href: '/dashboard/help', icon: HelpCircle },
 ];
 
 export function DashboardSidebar() {

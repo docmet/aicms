@@ -126,7 +126,7 @@ cd aicms
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
 - Admin Dashboard: http://localhost:3000/dashboard
-- Help/Setup: http://localhost:3000/help
+- Help/Setup: http://localhost:3000/dashboard/help
 
 ### Quick Start with MCP Server
 

@@ -70,5 +70,5 @@ You have 1 site:
 ## 📚 More Info
 
 - AI CMS Documentation: https://github.com/docmet/aicms
-- Help Page: http://localhost:3000/help
+- Help Page: http://localhost:3000/dashboard/help
 - MCP Specification: https://modelcontextprotocol.io
