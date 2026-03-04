@@ -113,6 +113,21 @@ async def oauth_server_info():
     }
 
 
+@app.get("/.well-known/oauth-protected-resource")
+async def oauth_protected_resource():
+    """OAuth protected resource endpoint"""
+    return {
+        "resource": "http://localhost:8000",
+        "scopes_supported": ["mcp"]
+    }
+
+
+@app.get("/.well-known/oauth-protected-resource/mcp-sse/sse/{client_id}")
+async def oauth_protected_resource_sse(client_id: str):
+    """OAuth protected resource for SSE endpoint"""
+    return {"endpoint": f"/mcp-sse/sse/{client_id}"}
+
+
 @app.get("/authorize")
 async def authorize(
     response_type: str = "code",
@@ -141,8 +156,16 @@ async def authorize(
 async def token(request: Request):
     """OAuth token endpoint - returns access token for Claude Desktop"""
     # Claude Desktop uses client credentials flow
-    body = await request.body()
-    data = json.loads(body.decode())
+    try:
+        body = await request.body()
+        if body:
+            data = json.loads(body.decode())
+        else:
+            # Handle form-encoded data
+            form = await request.form()
+            data = dict(form)
+    except:
+        data = {}
     
     client_id = data.get("client_id")
     client_secret = data.get("client_secret")
@@ -392,6 +415,13 @@ async def sse_endpoint(client_id: str, request: Request):
             "X-Accel-Buffering": "no",
         }
     )
+
+
+# Alternative SSE endpoint path that Claude might expect
+@app.get("/mcp-sse/sse/{client_id}")
+async def sse_endpoint_alt(client_id: str, request: Request):
+    """Alternative SSE endpoint path for Claude Desktop"""
+    return await sse_endpoint(client_id, request)
 
 
 if __name__ == "__main__":
