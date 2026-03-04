@@ -1,4 +1,7 @@
+# Import models and database configuration
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -6,18 +9,13 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# Import models and database configuration
-import sys
-from pathlib import Path
-
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.database import Base
 from src.config import get_settings
+from src.database import Base
 
 # Import all models to ensure they're registered with SQLAlchemy
-from src.models import User, Site, Page, ContentSection, Theme
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

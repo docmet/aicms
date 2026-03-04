@@ -1,8 +1,9 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey
+import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-import uuid
 
 from src.database import Base
 
@@ -23,7 +24,9 @@ class Site(Base):
     name = Column(String(255), nullable=False)
     domain = Column(String(255), nullable=True)  # For custom domains (future)
     theme_slug = Column(String(50), default="default", nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

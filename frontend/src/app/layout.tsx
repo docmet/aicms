@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "AI CMS - Modern Website Engine",
-  description: "AI-powered Content Management System for modern websites",
+  title: 'AI CMS - Modern Website Engine',
+  description: 'AI-powered Content Management System for modern websites',
 };
 
 export default function RootLayout({

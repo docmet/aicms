@@ -1,8 +1,9 @@
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey
+import uuid
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-import uuid
 
 from src.database import Base
 
@@ -23,7 +24,9 @@ class Page(Base):
     slug = Column(String(255), nullable=False)
     is_published = Column(Boolean, default=False, nullable=False)
     order = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

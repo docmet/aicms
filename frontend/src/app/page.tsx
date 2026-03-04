@@ -2,11 +2,10 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-4xl mx-auto px-4 text-center">
-        <h1 className="text-6xl font-bold text-gray-900 mb-6">
-          Welcome to AI CMS
-        </h1>
+        <h1 className="text-6xl font-bold text-gray-900 mb-6">Welcome to AI CMS</h1>
         <p className="text-xl text-gray-600 mb-8">
-          A modern website engine with user registration, simple landing pages, and switchable themes.
+          A modern website engine with user registration, simple landing pages, and switchable
+          themes.
         </p>
         <div className="flex gap-4 justify-center">
           <a

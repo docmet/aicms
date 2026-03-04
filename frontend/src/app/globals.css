@@ -17,7 +17,7 @@
   }
 
   /* Theme variants */
-  [data-theme="warm"] {
+  [data-theme='warm'] {
     --color-primary-50: #fff7ed;
     --color-primary-100: #ffedd5;
     --color-primary-200: #fed7aa;
@@ -30,7 +30,7 @@
     --color-primary-900: #7c2d12;
   }
 
-  [data-theme="nature"] {
+  [data-theme='nature'] {
     --color-primary-50: #f0fdf4;
     --color-primary-100: #dcfce7;
     --color-primary-200: #bbf7d0;
@@ -43,7 +43,7 @@
     --color-primary-900: #14532d;
   }
 
-  [data-theme="dark"] {
+  [data-theme='dark'] {
     --color-primary-50: #1e293b;
     --color-primary-100: #334155;
     --color-primary-200: #475569;
@@ -56,7 +56,7 @@
     --color-primary-900: #ffffff;
   }
 
-  [data-theme="minimal"] {
+  [data-theme='minimal'] {
     --color-primary-50: #fafafa;
     --color-primary-100: #f4f4f5;
     --color-primary-200: #e4e4e7;
