@@ -11,6 +11,7 @@ import { Copy, Plus, Trash2, Bot, Key, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
+import { ClaudeConnect } from '@/components/claude-connect';
 
 interface MCPClient {
   id: string;
@@ -146,6 +147,12 @@ Token: ${token}`
           Manage MCP clients for AI tools like Claude, ChatGPT, and Cursor
         </p>
       </div>
+
+      {/* Quick Connect for Claude Desktop */}
+      <ClaudeConnect 
+        token={clients.find(c => c.tool_type === 'claude')?.token || ''} 
+        ngrokUrl="https://82c1-2a02-ab88-1510-ce80-4e7-66a0-7852-a87c.ngrok-free.app"
+      />
 
       <Card>
         <CardHeader>
