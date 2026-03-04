@@ -11,14 +11,15 @@ AI CMS is a multi-tenant content management system that allows users to create a
 - ✅ User registration and authentication (JWT)
 - ✅ Multi-tenant architecture (each user manages their own sites)
 - ✅ Simple landing page with predefined sections
-- ✅ 5 switchable TailwindCSS themes
+- ✅ 5 switchable TailwindCSS themes (default, warm, nature, dark, minimal)
 - ✅ Plain text content editing with HTML stripping
 - ✅ Web admin dashboard for content management
 - ✅ Public site rendering with theme support
+- ✅ MCP server for AI tool integration (ChatGPT, Claude, Cursor)
+- ✅ Instant save (Mac-style) across all fields
 
 ### Future Features
 
-- 🔄 MCP server integration for AI tools
 - 🔄 Blog system with rich text editor
 - 🔄 Multilanguage support with AI translation
 - 🔄 AI image generation
@@ -79,6 +80,12 @@ mcp_cms/
 │   │   └── tests/         # Tests
 │   ├── pyproject.toml
 │   └── Dockerfile
+├── mcp_server/              # MCP server for AI tools
+│   ├── src/aicms_mcp_server/
+│   │   ├── __init__.py
+│   │   └── server.py      # MCP implementation
+│   ├── pyproject.toml
+│   └── README.md
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml     # CI/CD + Coolify webhook
@@ -119,6 +126,23 @@ cd aicms
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
 - Admin Dashboard: http://localhost:3000/dashboard
+- Help/Setup: http://localhost:3000/help
+
+### Quick Start with MCP Server
+
+1. Install MCP server:
+```bash
+./cli.sh mcp:install
+```
+
+2. Get your JWT token from the dashboard
+
+3. Run MCP server:
+```bash
+./cli.sh mcp:run http://localhost:8000/api/v1 YOUR_TOKEN
+```
+
+4. Configure your AI tool (see `/help` for detailed guides)
 
 ### Development Commands
 
@@ -136,6 +160,8 @@ cd aicms
 ./cli.sh db:reset      # Reset database
 ./cli.sh verify        # Verify tools installed
 ./cli.sh clean         # Clean everything
+./cli.sh mcp:install   # Install MCP server
+./cli.sh mcp:run       # Run MCP server (requires token)
 ```
 
 ## 📚 Documentation
@@ -144,6 +170,7 @@ cd aicms
 - [Roadmap](ROADMAP.md) - Future features and timeline
 - [Development Guide](docs/development.md) - Development setup and workflows
 - [API Documentation](docs/api.md) - Backend API reference
+- [MCP Server Guide](mcp_server/README.md) - MCP server setup and usage
 - [Deployment Guide](docs/deployment.md) - Deployment instructions
 
 ## 🔐 Seed Data
