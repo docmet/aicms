@@ -24,10 +24,14 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   useEffect(() => {
     const fetchSite = async () => {
       try {
-        // Public endpoint to get site by slug
-        const response = await api.get(`/public/sites/${site_slug}`);
-        console.log('Site data:', response.data);
-        setData(response.data);
+        // Public endpoint to get site by slug - use direct fetch to avoid auth
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/public/sites/${site_slug}`);
+        if (!response.ok) {
+          throw new Error('Site not found');
+        }
+        const data = await response.json();
+        console.log('Site data:', data);
+        setData(data);
       } catch (err) {
         console.error('Failed to fetch site', err);
         setError(true);
@@ -42,32 +46,13 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   if (error || !data) return <div className="min-h-screen flex items-center justify-center text-red-500 text-xl font-bold italic">Site not found.</div>;
 
   return (
-    <div className="min-h-screen" data-theme={data?.theme_slug || 'default'}>
-      {data && (
-        <>
-          <div className="text-center py-4 bg-gray-100 text-sm">
-            Debug: Theme = {data.theme_slug}
-          </div>
-          {data.sections.map((section) => (
-        <section
-          key={section.id}
-          className={`py-20 px-4 ${
-            section.section_type === 'hero' ? 'bg-primary-50 text-center' : 'bg-white'
-          }`}
-        >
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-4xl font-bold mb-6 capitalize">{section.section_type}</h2>
-            <div className="prose prose-lg max-w-none whitespace-pre-wrap">
-              {section.content}
-            </div>
-          </div>
-        </section>
-      ))}
-      <footer className="py-8 text-center text-gray-400 border-t">
-        <p>Built with AI CMS - {data.name}</p>
-      </footer>
-      </>
-      )}
+    <div className="min-h-screen" data-theme={data.theme_slug || 'default'}>
+      <div className="text-center py-4 bg-gray-100 text-sm">
+        Debug: Theme = {data.theme_slug}, Site = {data.name}
+      </div>
+      <pre className="p-4 bg-gray-100 text-xs">
+        {JSON.stringify(data, null, 2)}
+      </pre>
     </div>
   );
 }
