@@ -281,7 +281,7 @@ test_frontend_command() {
 test_backend_command() {
   if [[ -d "${BACKEND_DIR}" ]] && command -v uv >/dev/null 2>&1; then
     log_info "Running backend tests..."
-    (cd "${BACKEND_DIR}" && uv run pytest tests/ -v)
+    (cd "${BACKEND_DIR}" && uv run pytest src/tests/ -v)
   else
     log_warn "Backend tests skipped (missing directory or uv)"
   fi
@@ -290,7 +290,7 @@ test_backend_command() {
 test_integration_command() {
   if [[ -d "${BACKEND_DIR}" ]] && command -v uv >/dev/null 2>&1; then
     log_info "Running backend integration tests..."
-    (cd "${BACKEND_DIR}" && uv run pytest tests/integration -v)
+    (cd "${BACKEND_DIR}" && uv run pytest src/tests/integration -v)
   else
     log_warn "Backend integration tests skipped (missing directory or uv)"
   fi

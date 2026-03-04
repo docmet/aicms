@@ -50,7 +50,7 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501", "UP036"]
+ignore = ["E501", "UP036", "UP035"]
 
 [tool.mypy]
 python_version = "3.13"
@@ -70,5 +70,8 @@ dev = [
     "black>=26.1.0",
     "isort>=8.0.1",
     "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
     "ruff>=0.15.4",
 ]
