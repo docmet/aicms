@@ -387,37 +387,60 @@ async def sse_endpoint(client_id: str, request: Request):
         if "text/event-stream" in accept_header and "application/json" not in accept_header:
             print("Client requesting SSE stream via POST - Streamable HTTP mode")
         else:
-            # Return JSON response - this is what Claude expects for initialization
-            print("POST with JSON accepted - returning initialization response")
+            # Return JSON response - check if it's an MCP message first
+            print("POST with JSON accepted - checking for MCP message")
             body = await request.body()
             if body:
                 print(f"Received POST body: {body}")
+                try:
+                    message = json.loads(body.decode())
+                    print(f"Parsed message: {message}")
+                    
+                    # Handle actual MCP messages
+                    if message.get("method") == "tools/list":
+                        tools = [
+                            {"name": "list_sites", "description": "List all sites", "inputSchema": {"type": "object", "properties": {}}},
+                            {"name": "create_site", "description": "Create a new site", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["name", "slug"]}},
+                            {"name": "get_site_info", "description": "Get site details", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+                            {"name": "update_site", "description": "Update site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id"]}},
+                            {"name": "delete_site", "description": "Delete site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+                            {"name": "list_pages", "description": "List pages", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+                            {"name": "create_page", "description": "Create page", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "title", "slug"]}},
+                            {"name": "get_page_content", "description": "Get page content", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
+                            {"name": "update_page_content", "description": "Update content", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_type": {"type": "string"}, "content": {"type": "string"}}, "required": ["page_id", "section_type", "content"]}},
+                            {"name": "update_page", "description": "Update page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["page_id"]}},
+                            {"name": "delete_page", "description": "Delete page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
+                            {"name": "list_themes", "description": "List themes", "inputSchema": {"type": "object", "properties": {}}},
+                            {"name": "apply_theme", "description": "Apply theme", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}},
+                        ]
+                        return JSONResponse(content={"jsonrpc": "2.0", "id": message.get("id"), "result": {"tools": tools}})
+                    
+                    elif message.get("method") == "initialize":
+                        return JSONResponse(content={
+                            "jsonrpc": "2.0",
+                            "id": message.get("id"),
+                            "result": {
+                                "protocolVersion": "2024-11-05",
+                                "capabilities": {"tools": {"listChanged": True}},
+                                "serverInfo": {"name": "aicms-mcp-server", "version": "1.0.0"}
+                            }
+                        })
+                except json.JSONDecodeError:
+                    pass
             
-            # Generate session ID for Streamable HTTP
+            # Default initialization response
             session_id = str(uuid.uuid4())
-            print(f"Generated session ID: {session_id}")
-            
-            # Return proper MCP initialization response
             return JSONResponse(
                 content={
                     "jsonrpc": "2.0",
                     "id": 1,
                     "result": {
                         "protocolVersion": "2024-11-05",
-                        "capabilities": {
-                            "tools": {
-                                "listChanged": True
-                            }
-                        },
-                        "serverInfo": {
-                            "name": "aicms-mcp-server",
-                            "version": "1.0.0"
-                        }
+                        "capabilities": {"tools": {"listChanged": True}},
+                        "serverInfo": {"name": "aicms-mcp-server", "version": "1.0.0"}
                     }
                 },
-                headers={
-                    "Mcp-Session-Id": session_id
-                }
+                headers={"Mcp-Session-Id": session_id}
             )
     
     print(f"Establishing SSE connection for {client_id}")
