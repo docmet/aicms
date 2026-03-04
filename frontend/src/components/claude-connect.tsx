@@ -42,8 +42,8 @@ export function ClaudeConnect({ token, clientId, ngrokUrl }: ClaudeConnectProps)
   const connectionParams = {
     Name: 'AI CMS',
     'Server URL': clientId ? `${ngrokUrl}/mcp/${clientId}` : `${ngrokUrl}/mcp`,
-    'Client ID': 'aicms-client', // Optional - can be any value
-    'Client Secret': token, // Using token as client secret for authentication
+    'Client ID': 'aicms-client',
+    'Client Secret': token,
   };
 
   return (

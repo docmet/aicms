@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
@@ -13,6 +14,16 @@ class Base(DeclarativeBase):
 
 
 async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+
+@asynccontextmanager
+async def get_db_session():
+    """Get a database session for use in async context managers"""
     async with AsyncSessionLocal() as session:
         try:
             yield session

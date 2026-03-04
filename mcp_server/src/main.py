@@ -7,14 +7,19 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 import httpx
-from fastapi import FastAPI, HTTPException, Depends, status, Request
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, insert
 import uvicorn
+from mcp.server.sse import SseServerTransport
+from mcp.server import Server
+from mcp.server.models import InitializationOptions
+from starlette.responses import Response
 
-from .database import get_db, engine
+from .database import get_db, engine, get_db_session
 from .models import MCPClient
 from .schemas import MCPClientCreate, MCPClientResponse
 from .aicms_mcp_server.server import MCPServer
@@ -232,6 +237,94 @@ async def delete_client(
     await db.commit()
     
     return {"message": "Client deleted successfully"}
+
+
+# SSE endpoint for Claude Desktop
+@app.get("/{client_id}")
+async def sse_endpoint(client_id: str, request: Request):
+    """SSE endpoint for Claude Desktop MCP connections"""
+    
+    print(f"SSE connection requested for client: {client_id}")
+    
+    # Verify client exists
+    async with get_db_session() as db:
+        result = await db.execute(select(MCPClient).where(MCPClient.id == client_id))
+        client = result.scalar_one_or_none()
+        if not client:
+            print(f"Client {client_id} not found")
+            raise HTTPException(status_code=404, detail="Client not found")
+    
+    print(f"Client {client_id} verified, establishing SSE connection")
+    
+    async def event_stream():
+        """SSE event stream for MCP protocol"""
+        print("Starting SSE event stream")
+        
+        # Create SSE transport
+        sse_transport = SseServerTransport("/messages/")
+        
+        # Create MCP server
+        server = Server("aicms-mcp-server")
+        
+        # Add some example tools
+        @server.list_tools()
+        async def list_tools():
+            return {
+                "tools": [
+                    {
+                        "name": "get_sites",
+                        "description": "Get all sites for the user",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    }
+                ]
+            }
+        
+        # Handle the MCP protocol properly
+        async def handle_request(scope, receive, send):
+            # This will be called by the SSE transport
+            pass
+        
+        # For now, send initial connection event
+        yield "event: connected\ndata: MCP server connected\n\n"
+        
+        # In a real implementation, we'd use sse_transport.connect_sse()
+        # For now, we'll simulate the protocol
+        init_message = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "capabilities": {
+                    "tools": {}
+                }
+            }
+        }
+        yield f"event: message\ndata: {json.dumps(init_message)}\n\n"
+        
+        # Keep connection alive with periodic pings
+        try:
+            while True:
+                # Check if client is still connected
+                if await request.is_disconnected():
+                    print("Client disconnected")
+                    break
+                await asyncio.sleep(30)
+                yield "event: ping\ndata: ping\n\n"
+        except asyncio.CancelledError:
+            print("SSE connection cancelled")
+            pass
+    
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 if __name__ == "__main__":
