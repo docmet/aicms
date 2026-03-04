@@ -4,6 +4,7 @@ import os
 import uuid
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
+from uuid import UUID
 
 import httpx
 from fastapi import FastAPI, HTTPException, Depends, status, Request
