@@ -1,4 +1,5 @@
 import { AuthProviderWrapper } from '@/components/auth-provider-wrapper';
+import './globals.css';
 
 export const metadata = {
   title: 'AI CMS',
