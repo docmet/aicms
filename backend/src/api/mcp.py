@@ -27,7 +27,8 @@ async def register_mcp_client(
 
         if response.status_code != 200:
             raise HTTPException(
-                status_code=response.status_code, detail=response.json()
+                status_code=response.status_code,
+                detail=response.json() if response.content else "MCP server error",
             )
 
     return response.json()  # type: ignore
@@ -47,7 +48,8 @@ async def get_mcp_clients(
 
         if response.status_code != 200:
             raise HTTPException(
-                status_code=response.status_code, detail=response.json()
+                status_code=response.status_code,
+                detail=response.json() if response.content else "MCP server error",
             )
 
     return response.json()  # type: ignore
@@ -69,7 +71,8 @@ async def delete_mcp_client(
 
         if response.status_code != 200:
             raise HTTPException(
-                status_code=response.status_code, detail=response.json()
+                status_code=response.status_code,
+                detail=response.json() if response.content else "MCP server error",
             )
 
     return response.json()  # type: ignore
