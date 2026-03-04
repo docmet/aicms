@@ -35,7 +35,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="api-url">API Base URL</Label>
-            <Input id="api-url" value={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'} disabled />
+            <Input id="api-url" value="/api" disabled />
           </div>
         </CardContent>
       </Card>

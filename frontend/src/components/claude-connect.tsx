@@ -13,10 +13,37 @@ interface ClaudeConnectProps {
 export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
   const { toast } = useToast();
 
+  if (!token) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span>🤖</span>
+            Claude Desktop Connection
+          </CardTitle>
+          <CardDescription>
+            Create an MCP client first to connect Claude Desktop
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+            <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">
+              ⚠️ No Claude Client Found
+            </h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              You need to create a Claude Desktop MCP client first. Click &quot;Add Client&quot; below and select &quot;Claude Desktop&quot; as the tool type.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const connectionParams = {
+    "Name": "AI CMS",
     "Server URL": `${ngrokUrl}/mcp`,
-    "Authentication Token": token,
-    "Transport": "HTTP"
+    "Client ID": "aicms-client", // Optional - can be any value
+    "Client Secret": token // Using token as client secret for authentication
   };
 
   return (
@@ -27,7 +54,7 @@ export function ClaudeConnect({ token, ngrokUrl }: ClaudeConnectProps) {
           Claude Desktop Connection
         </CardTitle>
         <CardDescription>
-          Enter these parameters in Claude Desktop&apos;s MCP Server configuration
+          Enter these parameters in Claude Desktop&apos;s MCP Server configuration form
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

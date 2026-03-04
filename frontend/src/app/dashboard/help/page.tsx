@@ -28,7 +28,7 @@ export default function HelpPage() {
     mcpServers: {
       aicms: {
         command: 'aicms-mcp',
-        args: ['--api-url', 'http://localhost:8000/api/v1'],
+        args: ['--api-url', '/api'],
         env: {
           AICMS_API_TOKEN: 'your-jwt-token-here'
         }
@@ -94,7 +94,7 @@ export default function HelpPage() {
                   <div className="bg-muted p-4 rounded-lg">
                     <h4 className="font-semibold mb-2">Prerequisites:</h4>
                     <ul className="space-y-1 text-sm">
-                      <li>• AI CMS backend running (http://localhost:8000)</li>
+                      <li>• AI CMS backend running</li>
                       <li>• Python 3.13+ installed</li>
                       <li>• Your JWT authentication token</li>
                     </ul>
@@ -128,7 +128,7 @@ export default function HelpPage() {
                     <div className="space-y-2">
                       <p>1. Log in to your AI CMS at <Link href="/dashboard" className="text-primary hover:underline">/dashboard</Link></p>
                       <p>2. Open browser dev tools (F12)</p>
-                      <p>3. Go to Application → Local Storage → http://localhost:3000</p>
+                      <p>3. Go to Application → Local Storage → Your domain</p>
                       <p>4. Copy the <Code>token</Code> value</p>
                     </div>
                   </CardContent>
@@ -155,7 +155,7 @@ export default function HelpPage() {
                       <p>The configuration will be generated for you in the AI Tools dashboard.</p>
                       
                       <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                        <p className="text-sm"><strong>Note:</strong> The MCP server runs at <Code>http://localhost:8001</Code> when using Docker.</p>
+                        <p className="text-sm"><strong>Note:</strong> The MCP server runs in the Docker stack.</p>
                       </div>
                     </div>
                   </CardContent>
@@ -193,22 +193,22 @@ export default function HelpPage() {
                       <div className="relative">
                         <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-sm">
                           <code>{`You have access to the AI CMS MCP server for managing website content. 
-The server is running locally at http://localhost:8001.
+The server is running in Docker.
 
 When I ask to:
 - View or change sites/themes: Use the list_sites, get_site, and update_theme tools
 - Update content: Use get_content and update_content tools
-- The API URL is: http://localhost:8000/api/v1
+- The API endpoint is: /api
 - Use JWT token: [PASTE_YOUR_TOKEN_HERE]`}</code>
                         </pre>
                         <button
                           onClick={() => copyToClipboard(`You have access to the AI CMS MCP server for managing website content. 
-The server is running locally at http://localhost:8001.
+The server is running in Docker.
 
 When I ask to:
 - View or change sites/themes: Use the list_sites, get_site, and update_theme tools
 - Update content: Use get_content and update_content tools
-- The API URL is: http://localhost:8000/api/v1
+- The API endpoint is: /api
 - Use JWT token: [PASTE_YOUR_TOKEN_HERE]`, 'chatgpt')}
                           className="absolute top-2 right-2 p-2 bg-slate-700 hover:bg-slate-600 rounded"
                         >
@@ -253,7 +253,7 @@ When I ask to:
                         <pre className="text-sm">
                           <code>{`Name: AI CMS
 Command: aicms-mcp
-Args: --api-url http://localhost:8000/api/v1
+Args: --api-url /api
 Env: AICMS_API_TOKEN=your-jwt-token-here`}</code>
                         </pre>
                       </div>
