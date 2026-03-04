@@ -1,4 +1,21 @@
 services:
+  # Nginx Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: aicms_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+      mcp_server:
+        condition: service_started
+    restart: unless-stopped
+
   # Frontend - Next.js
   frontend:
     build:
@@ -8,13 +25,11 @@ services:
     container_name: aicms_frontend
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost/api
     volumes:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
-    ports:
-      - "3000:3000"
     depends_on:
       backend:
         condition: service_healthy
@@ -34,14 +49,12 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_EXPIRATION_MINUTES=${JWT_EXPIRATION_MINUTES:-30}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
       - BACKEND_URL=${BACKEND_URL:-http://localhost:8000}
       - DOMAIN=${DOMAIN:-aicms.docmet.systems}
     volumes:
       - ./backend:/app
       - /app/.venv
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,8 +80,6 @@ services:
     volumes:
       - ./mcp_server:/app
       - /app/.venv
-    ports:
-      - "8001:8000"
     depends_on:
       backend:
         condition: service_healthy
