@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Globe, Save, Trash2, Layout, Type, Palette } from 'lucide-react';
+import { Globe, Layout, Palette, Trash2, Type } from 'lucide-react';
 
 interface Site {
   id: string;
@@ -45,7 +45,6 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -100,27 +99,23 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     fetchData();
   }, [fetchData]);
 
-  const handleUpdateSite = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateField = async (field: 'name' | 'slug', value: string) => {
     if (!site) return;
-    setSaving(true);
-
     try {
       await api.patch(`/sites/${site_id}`, {
-        name: site.name,
-        slug: site.slug,
+        name: field === 'name' ? value : site.name,
+        slug: field === 'slug' ? value : site.slug,
         theme_slug: site.theme_slug,
       });
-      toast({ title: 'Success', description: 'Site settings updated.' });
+      setSite({ ...site, [field]: value });
+      toast({ title: 'Saved', description: `${field === 'name' ? 'Site name' : 'URL slug'} updated.` });
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } };
       toast({
         title: 'Error',
-        description: error.response?.data?.detail || 'Failed to update site.',
+        description: error.response?.data?.detail || `Failed to update ${field}.`,
         variant: 'destructive',
       });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -217,7 +212,6 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                     key={t.id}
                     onClick={async () => {
                       setSite({ ...site, theme_slug: t.slug });
-                      setSaving(true);
                       try {
                         await api.patch(`/sites/${site_id}`, {
                           name: site.name,
@@ -234,8 +228,6 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                         });
                         // Revert on error
                         setSite({ ...site, theme_slug: site.theme_slug });
-                      } finally {
-                        setSaving(false);
                       }
                     }}
                     className={`p-4 border-2 rounded-lg text-center transition-all ${
@@ -249,11 +241,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                   </button>
                 ))}
               </div>
-              <div className="mt-6 flex justify-end">
-                <Button onClick={handleUpdateSite} disabled={saving} className="gap-2">
-                  <Save size={18} /> {saving ? 'Saving...' : 'Save Theme'}
-                </Button>
-              </div>
+              <p className="text-[10px] text-gray-400 mt-4 italic">Changes auto-save on click</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -265,13 +253,13 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
               <CardDescription>Update your site name and public URL slug.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpdateSite} className="space-y-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Site Name</Label>
                   <Input
                     id="name"
-                    value={site.name}
-                    onChange={(e) => setSite({ ...site, name: e.target.value })}
+                    defaultValue={site.name}
+                    onBlur={(e) => handleUpdateField('name', e.target.value)}
                     required
                   />
                 </div>
@@ -280,19 +268,15 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                   <div className="flex items-center gap-2">
                     <Input
                       id="slug"
-                      value={site.slug}
-                      onChange={(e) => setSite({ ...site, slug: e.target.value.toLowerCase().replace(/ /g, '-') })}
+                      defaultValue={site.slug}
+                      onBlur={(e) => handleUpdateField('slug', e.target.value.toLowerCase().replace(/ /g, '-'))}
                       required
                     />
                     <span className="text-sm text-gray-500">.aicms.docmet.systems</span>
                   </div>
                 </div>
-                <div className="pt-4 flex justify-end">
-                  <Button type="submit" disabled={saving} className="gap-2">
-                    <Save size={18} /> {saving ? 'Saving...' : 'Save Settings'}
-                  </Button>
-                </div>
-              </form>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-4 italic">Changes auto-save on blur</p>
             </CardContent>
           </Card>
         </TabsContent>
