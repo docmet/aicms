@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import api from '@/lib/api';
 
 interface ContentSection {
   id: string;
