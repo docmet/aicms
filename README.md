@@ -1,22 +1,46 @@
 # AI CMS
 
-A modern website engine with user registration, simple landing pages with switchable themes, and content editing available through a web admin UI. Future versions will include MCP server integration for AI tools like ChatGPT, Claude, and Cursor.
+A modern website engine with user registration, landing pages with switchable themes, content editing through web admin UI, and full MCP (Model Context Protocol) server integration for AI tools like Claude, ChatGPT, and Cursor.
 
 ## 🎯 Project Overview
 
-AI CMS is a multi-tenant content management system that allows users to create and manage their own websites. The MVP focuses on simplicity with a single landing page per site, plain text content editing, and switchable TailwindCSS themes.
+AI CMS is a multi-tenant content management system that allows users to create and manage their own websites through both a web interface and AI assistants via MCP. Features include multiple pages per site, theme switching, content section management, and complete AI tool integration.
 
-### Key Features (MVP)
+### Key Features
 
 - ✅ User registration and authentication (JWT)
 - ✅ Multi-tenant architecture (each user manages their own sites)
-- ✅ Simple landing page with predefined sections
+- ✅ Multiple pages per site with content sections
 - ✅ 5 switchable TailwindCSS themes (default, warm, nature, dark, minimal)
-- ✅ Plain text content editing with HTML stripping
-- ✅ Web admin dashboard for content management
+- ✅ Content editing with section templates (hero, body, features, cta, footer)
+- ✅ Web admin dashboard for site/page/content management
 - ✅ Public site rendering with theme support
-- ✅ MCP server for AI tool integration (ChatGPT, Claude, Cursor)
+- ✅ **Full MCP server for AI tool integration** (Claude, ChatGPT, Cursor)
+- ✅ **13 MCP tools for complete CMS control via AI**
 - ✅ Instant save (Mac-style) across all fields
+
+### MCP Tools Available
+
+The MCP server exposes these tools to AI assistants:
+
+**Site Management:**
+- `list_sites` - List all your sites with UUIDs
+- `create_site` - Create new site (name, slug, theme)
+- `get_site_info` - Get site details including pages
+- `update_site` - Update site name/slug/theme
+- `delete_site` - Delete a site
+
+**Page Management:**
+- `list_pages` - List pages for a site
+- `create_page` - Create new page (title, slug, published)
+- `get_page_content` - Get content sections
+- `update_page` - Update page metadata
+- `delete_page` - Delete a page
+
+**Content & Themes:**
+- `update_page_content` - Add/update content sections (hero, body, features, cta, footer)
+- `list_themes` - List available themes
+- `apply_theme` - Change site theme
 
 ### Future Features
 
@@ -81,11 +105,14 @@ mcp_cms/
 │   ├── pyproject.toml
 │   └── Dockerfile
 ├── mcp_server/              # MCP server for AI tools
-│   ├── src/aicms_mcp_server/
-│   │   ├── __init__.py
-│   │   └── server.py      # MCP implementation
+│   ├── src/
+│   │   ├── main.py         # FastAPI with SSE transport
+│   │   ├── aicms_mcp_server/
+│   │   │   └── server.py   # MCP server implementation
+│   │   └── models.py       # MCP client model
 │   ├── pyproject.toml
-│   └── README.md
+│   └── Dockerfile
+├── nginx/                   # Nginx reverse proxy config
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml     # CI/CD + Coolify webhook

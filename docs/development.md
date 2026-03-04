@@ -360,6 +360,89 @@ cd backend
 uv run pytest tests/integration -v
 ```
 
+## 🤖 MCP Development
+
+### MCP Server Architecture
+
+The MCP server provides AI tool integration via HTTP+SSE transport:
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│   Claude    │──────▶│   MCP Proxy │──────▶│   MCP Server│
+│   Desktop   │  OAuth│   (Nginx)   │  HTTP │   (FastAPI) │
+└─────────────┘      └─────────────┘      └──────┬──────┘
+                                                  │
+                                                  ▼
+                                            ┌─────────────┐
+                                            │   Backend   │
+                                            └─────────────┘
+```
+
+### Testing MCP Tools Locally
+
+1. Start all services:
+   ```bash
+   ./cli.sh start
+   ```
+
+2. Get your JWT token by logging in:
+   ```bash
+   curl -X POST http://localhost/api/auth/login \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "username=your@email.com&password=yourpassword"
+   ```
+
+3. Register an MCP client:
+   ```bash
+   curl -X POST http://localhost/api/mcp/register \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Claude Test", "tool_type": "claude"}'
+   ```
+   Response: `{"id": "uuid", "token": "mcp-token"}`
+
+4. Test tools/list via curl:
+   ```bash
+   curl -X POST http://localhost/sse/YOUR-CLIENT-ID \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer MCP-TOKEN" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+   ```
+
+5. Test creating a site:
+   ```bash
+   curl -X POST http://localhost/sse/YOUR-CLIENT-ID \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer MCP-TOKEN" \
+     -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"create_site","arguments":{"name":"Test Site","slug":"test"}}}'
+   ```
+
+### MCP Server Logs
+
+```bash
+# View MCP server logs
+./cli.sh logs:mcp-server
+
+# Or via docker
+docker-compose -f docker-compose.dev.yml logs mcp_server -f
+```
+
+### Adding New MCP Tools
+
+1. Add tool definition in `mcp_server/src/main.py`:
+   ```python
+   {"name": "my_tool", "description": "...", "inputSchema": {...}}
+   ```
+
+2. Add handler in tools/call section:
+   ```python
+   elif tool_name == "my_tool":
+       response = await client.get(...)
+       content_text = process_response(response)
+   ```
+
+3. Test via curl before testing with Claude
+
 ## 📝 Commit Convention
 
 We use conventional commits with scopes:
