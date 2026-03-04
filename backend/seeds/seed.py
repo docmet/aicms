@@ -1,6 +1,7 @@
 """Database seed script."""
 
 import asyncio
+import os
 
 # Import after database setup
 import sys
@@ -9,7 +10,7 @@ from uuid import uuid4
 from passlib.context import CryptContext
 from sqlalchemy import select
 
-sys.path.insert(0, "/app")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.database import AsyncSessionLocal
 from src.models import ContentSection, Page, Site, Theme, User
@@ -23,7 +24,7 @@ async def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
-async def seed_database():
+async def seed_database() -> None:
     """Seed the database with initial data."""
     print("🌱 Starting database seeding...")
 
@@ -36,6 +37,7 @@ async def seed_database():
 
         if admin_exists:
             print("✅ Admin user already exists, skipping...")
+            admin_user = admin_exists
         else:
             # Create admin user
             admin_user = User(
@@ -70,50 +72,29 @@ async def seed_database():
             print(f"✅ Client user created: {client_user.email}")
 
         # Create themes
-        themes = [
-            Theme(
-                id=uuid4(),
-                name="Default Blue",
-                slug="default",
-                config={"primary": "#3b82f6"},
-            ),
-            Theme(
-                id=uuid4(),
-                name="Warm Orange",
-                slug="warm",
-                config={"primary": "#f97316"},
-            ),
-            Theme(
-                id=uuid4(),
-                name="Nature Green",
-                slug="nature",
-                config={"primary": "#22c55e"},
-            ),
-            Theme(
-                id=uuid4(),
-                name="Dark Mode",
-                slug="dark",
-                config={"primary": "#cbd5e1"},
-            ),
-            Theme(
-                id=uuid4(),
-                name="Minimal Black",
-                slug="minimal",
-                config={"primary": "#71717a"},
-            ),
+        themes_data = [
+            ("Default Blue", "default", {"primary": "#3b82f6"}),
+            ("Warm Orange", "warm", {"primary": "#f97316"}),
+            ("Nature Green", "nature", {"primary": "#22c55e"}),
+            ("Dark Mode", "dark", {"primary": "#cbd5e1"}),
+            ("Minimal Black", "minimal", {"primary": "#71717a"}),
         ]
 
-        for theme in themes:
-            result = await session.execute(
-                select(Theme).where(Theme.slug == theme.slug)
-            )
+        for name, slug, config in themes_data:
+            result = await session.execute(select(Theme).where(Theme.slug == slug))
             theme_exists = result.scalar_one_or_none()
 
             if not theme_exists:
+                theme = Theme(
+                    id=uuid4(),
+                    name=name,
+                    slug=slug,
+                    config=config,
+                )
                 session.add(theme)
-                print(f"✅ Theme created: {theme.name} ({theme.slug})")
+                print(f"✅ Theme created: {name} ({slug})")
             else:
-                print(f"✅ Theme already exists: {theme.name} ({theme.slug})")
+                print(f"✅ Theme already exists: {name} ({slug})")
 
         # Create demo site for client user
         result = await session.execute(
@@ -157,51 +138,46 @@ async def seed_database():
             print(f"✅ Landing page created: {landing_page.title}")
 
         # Create content sections for landing page
-        content_sections = [
-            ContentSection(
-                id=uuid4(),
-                page_id=landing_page.id,
-                section_type="hero",
-                content='{"headline": "Welcome to My Site", "subheadline": "A beautiful landing page"}',
-                order=0,
+        content_sections_data = [
+            (
+                "hero",
+                '{"headline": "Welcome to My Site", "subheadline": "A beautiful landing page"}',
+                0,
             ),
-            ContentSection(
-                id=uuid4(),
-                page_id=landing_page.id,
-                section_type="about",
-                content="This is a demo site showcasing the AI CMS platform.",
-                order=1,
+            ("about", "This is a demo site showcasing the AI CMS platform.", 1),
+            (
+                "services",
+                '{"services": [{"name": "Web Design", "description": "Beautiful designs"}, {"name": "Development", "description": "Modern technologies"}]}',
+                2,
             ),
-            ContentSection(
-                id=uuid4(),
-                page_id=landing_page.id,
-                section_type="services",
-                content='{"services": [{"name": "Web Design", "description": "Beautiful designs"}, {"name": "Development", "description": "Modern technologies"}]}',
-                order=2,
-            ),
-            ContentSection(
-                id=uuid4(),
-                page_id=landing_page.id,
-                section_type="contact",
-                content='{"email": "contact@example.com", "phone": "+1 234 567 890"}',
-                order=3,
+            (
+                "contact",
+                '{"email": "contact@example.com", "phone": "+1 234 567 890"}',
+                3,
             ),
         ]
 
-        for section in content_sections:
+        for section_type, content, order in content_sections_data:
             result = await session.execute(
                 select(ContentSection).where(
-                    ContentSection.page_id == section.page_id,
-                    ContentSection.section_type == section.section_type,
+                    ContentSection.page_id == landing_page.id,
+                    ContentSection.section_type == section_type,
                 )
             )
             section_exists = result.scalar_one_or_none()
 
             if not section_exists:
+                section = ContentSection(
+                    id=uuid4(),
+                    page_id=landing_page.id,
+                    section_type=section_type,
+                    content=content,
+                    order=order,
+                )
                 session.add(section)
-                print(f"✅ Content section created: {section.section_type}")
+                print(f"✅ Content section created: {section_type}")
             else:
-                print(f"✅ Content section already exists: {section.section_type}")
+                print(f"✅ Content section already exists: {section_type}")
 
         await session.commit()
         print("✅ Database seeding completed!")
