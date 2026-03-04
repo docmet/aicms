@@ -89,4 +89,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
-.gitignorefrontend/tsconfig.tsbuildinfo
+
+# TypeScript
+*.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
