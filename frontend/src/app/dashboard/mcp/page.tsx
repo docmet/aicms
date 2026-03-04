@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, Plus, Trash2, Bot, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
+import api from '@/lib/api';
 
 interface MCPClient {
   id: string;
@@ -40,15 +41,8 @@ export default function MCPSettingsPage() {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('/api/mcp/clients', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setClients(data);
-      }
+      const response = await api.get('/mcp/clients');
+      setClients(response.data);
     } catch (error) {
       toast({ title: 'Failed to fetch clients', variant: 'destructive' });
     } finally {
@@ -63,45 +57,25 @@ export default function MCPSettingsPage() {
     }
 
     try {
-      const response = await fetch('/api/mcp/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          ...newClient,
-          user_id: user?.id
-        })
+      const response = await api.post('/mcp/register', {
+        ...newClient,
+        user_id: user?.id
       });
 
-      if (response.ok) {
-        const client = await response.json();
-        setClients([client, ...clients]);
-        setNewClient({ name: '', tool_type: 'claude' });
-        setShowCreate(false);
-        toast({ title: 'Client created successfully' });
-      } else {
-        throw new Error('Failed to create client');
-      }
-    } catch (error) {
+      setClients([response.data, ...clients]);
+      setNewClient({ name: '', tool_type: 'claude' });
+      setShowCreate(false);
+      toast({ title: 'Client created successfully' });
+    } catch (error: any) {
       toast({ title: 'Failed to create client', variant: 'destructive' });
     }
   };
 
   const deleteClient = async (clientId: string) => {
     try {
-      const response = await fetch(`/api/mcp/clients/${clientId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        setClients(clients.filter(c => c.id !== clientId));
-        toast({ title: 'Client deleted successfully' });
-      }
+      await api.delete(`/mcp/clients/${clientId}`);
+      setClients(clients.filter(c => c.id !== clientId));
+      toast({ title: 'Client deleted successfully' });
     } catch (error) {
       toast({ title: 'Failed to delete client', variant: 'destructive' });
     }
