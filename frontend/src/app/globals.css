@@ -1,3 +1,4 @@
+/* Tailwind CSS directives - @tailwind imports base styles, components, and utilities */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
