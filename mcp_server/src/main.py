@@ -438,7 +438,7 @@ async def sse_endpoint(client_id: str, request: Request):
                             import httpx
                             async with httpx.AsyncClient() as client:
                                 headers = {"Authorization": f"Bearer {auth_header[7:] if auth_header.startswith('Bearer ') else ''}"}
-                                base_url = "http://backend:8000/api/v1"
+                                base_url = "http://backend:8000/api"
                                 
                                 if tool_name == "list_sites":
                                     response = await client.get(f"{base_url}/sites", headers=headers)
