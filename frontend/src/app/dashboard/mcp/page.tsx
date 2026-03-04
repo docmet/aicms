@@ -210,9 +210,14 @@ Token: ${token}`
                       {instructions && (
                         <div className="mt-4">
                           <h4 className="font-semibold mb-2">{instructions.title}</h4>
-                          <pre className="bg-slate-100 p-2 rounded text-xs overflow-x-auto">
+                          <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded text-xs overflow-x-auto mb-2">
                             {instructions.config || instructions.instructions}
                           </pre>
+                          {instructions.note && (
+                            <p className="text-xs text-muted-foreground whitespace-pre-line">
+                              {instructions.note}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
