@@ -8,7 +8,7 @@ from src.api.auth import get_current_user
 from src.database import get_db
 from src.models import User
 
-router = APIRouter(prefix="/mcp", tags=["mcp"])
+router = APIRouter(tags=["mcp"])
 
 
 @router.post("/register")
