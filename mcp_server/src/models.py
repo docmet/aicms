@@ -22,7 +22,7 @@ class MCPClient(Base):
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_used = Column(DateTime, nullable=True)
-    metadata = Column(JSON, nullable=True)  # Additional tool-specific data
+    extra_data = Column(JSON, nullable=True)  # Additional tool-specific data
     
     # Relationships
     user = relationship("User", back_populates="mcp_clients")

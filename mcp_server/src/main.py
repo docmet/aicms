@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import uuid
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
 
@@ -13,9 +14,9 @@ from sqlalchemy import select, update, insert
 import uvicorn
 
 from .database import get_db
-from .models import MCPClient, User, Site
+from .models import MCPClient
 from .schemas import MCPClientCreate, MCPClientResponse
-from .server import MCPServer
+from .aicms_mcp_server.server import MCPServer
 
 # FastAPI app
 app = FastAPI(
@@ -34,8 +35,8 @@ mcp_server = None
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: AsyncSession = Depends(get_db)
-) -> User:
-    """Get current user from MCP client token"""
+) -> str:
+    """Get user ID from MCP client token"""
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -44,21 +45,19 @@ async def get_current_user(
     
     # Find MCP client by token
     result = await db.execute(
-        select(MCPClient, User)
-        .join(User, MCPClient.user_id == User.id)
+        select(MCPClient)
         .where(MCPClient.token == credentials.credentials)
         .where(MCPClient.expires_at > datetime.utcnow())
     )
-    row = result.first()
+    client = result.scalar_one_or_none()
     
-    if not row:
+    if not client:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
     
-    _, user = row
-    return user
+    return str(client.user_id)
 
 
 @app.on_event("startup")
@@ -105,7 +104,7 @@ async def register_mcp_client(
         tool_type=client_data.tool_type,  # claude, chatgpt, cursor
         token=token,
         expires_at=expires_at,
-        metadata=client_data.metadata or {}
+        extra_data=client_data.extra_data or {}
     )
     
     db.add(db_client)
@@ -126,14 +125,14 @@ async def register_mcp_client(
 async def mcp_endpoint(
     client_id: str,
     request: Dict[str, Any],
-    user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """MCP protocol endpoint"""
     
     # Verify client belongs to user
     client = await db.get(MCPClient, client_id)
-    if not client or client.user_id != user.id:
+    if not client or client.user_id != UUID(user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
@@ -175,14 +174,14 @@ async def mcp_endpoint(
 
 @app.get("/clients", response_model=List[MCPClientResponse])
 async def list_clients(
-    user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """List user's MCP clients"""
     
     result = await db.execute(
         select(MCPClient)
-        .where(MCPClient.user_id == user.id)
+        .where(MCPClient.user_id == UUID(user_id))
         .order_by(MCPClient.created_at.desc())
     )
     clients = result.scalars().all()
@@ -203,13 +202,13 @@ async def list_clients(
 @app.delete("/clients/{client_id}")
 async def delete_client(
     client_id: str,
-    user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Delete an MCP client"""
     
     client = await db.get(MCPClient, client_id)
-    if not client or client.user_id != user.id:
+    if not client or client.user_id != UUID(user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"

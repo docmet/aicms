@@ -9,8 +9,8 @@ class MCPClientCreate(BaseModel):
     """Create a new MCP client"""
     name: str = Field(..., min_length=1, max_length=255)
     user_id: UUID
-    tool_type: str = Field(..., regex="^(claude|chatgpt|cursor)$")
-    metadata: Optional[Dict[str, Any]] = None
+    tool_type: str = Field(..., pattern="^(claude|chatgpt|cursor)$")
+    extra_data: Optional[Dict[str, Any]] = None
 
 
 class MCPClientResponse(BaseModel):
