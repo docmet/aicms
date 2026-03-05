@@ -60,9 +60,9 @@ Development roadmap: from MVP proof-of-concept to a production-ready freemium Sa
 ## Phase 7: Growth (Post-Launch)
 
 ### Core Experience
-- [ ] Onboarding wizard: industry picker → starter site generated → connect AI
+- [x] Onboarding wizard: industry picker → starter site generated → connect AI
 - [ ] Industry-specific templates: Restaurant, Portfolio, Agency/SaaS, Services
-- [ ] Site navigation (multi-page sites with proper nav bar)
+- [x] Site navigation (multi-page sites with proper nav bar)
 - [ ] Mobile-responsive admin dashboard
 
 ### Content
@@ -73,8 +73,8 @@ Development roadmap: from MVP proof-of-concept to a production-ready freemium Sa
 
 ### Distribution
 - [ ] Custom domain support (CNAME + SSL via Let's Encrypt)
-- [ ] Sitemap.xml per site
-- [ ] robots.txt per site
+- [x] Sitemap.xml per site
+- [x] robots.txt per site
 - [ ] Site analytics: pageviews, referrers, top pages
 
 ---
