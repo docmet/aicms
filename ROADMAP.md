@@ -46,12 +46,12 @@ Development roadmap: from MVP proof-of-concept to a production-ready freemium Sa
 
 **Goal: Staging deployment live at aicms.docmet.systems by end of day**
 
-- [ ] **0a: Documentation overhaul** — all docs updated to reflect vision and new architecture
-- [ ] **0b: Claude Code skills** — 6 project slash commands in `.claude/commands/`
-- [ ] **1: Content model** — structured JSON schemas per section type, draft/publish split, versioning, SSE preview
-- [ ] **2: Framer-level renderer** — section components (Hero, Features, Testimonials, etc.), SEO, animations
-- [ ] **3: Admin editor** — structured field inputs + live SSE preview pane + publish/rollback UI
-- [ ] **4: Smarter MCP tools** — describe_site, generate_section, smart_find, publish_page, versioning tools
+- [x] **0a: Documentation overhaul** — all docs updated to reflect vision and new architecture
+- [x] **0b: Claude Code skills** — 6 project slash commands in `.claude/commands/`
+- [x] **1: Content model** — structured JSON schemas per section type, draft/publish split, versioning, SSE preview
+- [x] **2: Framer-level renderer** — section components (Hero, Features, Testimonials, etc.), SEO, animations
+- [x] **3: Admin editor** — structured field inputs + live SSE preview pane + publish/rollback UI
+- [x] **4: Smarter MCP tools** — describe_site, generate_section, smart_find, publish_page, versioning tools
 - [ ] **5: Admin panel** — user management, impersonation, platform stats
 - [ ] **6: Staging deploy** — Coolify config, wildcard DNS, security headers, landing page
 

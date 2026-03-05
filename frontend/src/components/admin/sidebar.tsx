@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { LayoutDashboard, Settings, HelpCircle, Bot, LogOut } from 'lucide-react';
+import { LayoutDashboard, Settings, HelpCircle, Bot, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,15 +13,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'AI Tools', href: '/dashboard/mcp', icon: Bot },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-  { name: 'Help', href: '/dashboard/help', icon: HelpCircle },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: false },
+  { name: 'AI Tools', href: '/dashboard/mcp', icon: Bot, adminOnly: false },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings, adminOnly: false },
+  { name: 'Help', href: '/dashboard/help', icon: HelpCircle, adminOnly: false },
+  { name: 'Admin', href: '/dashboard/admin', icon: Shield, adminOnly: true },
 ];
 
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+
+  const visibleItems = navItems.filter((item) => !item.adminOnly || user?.is_admin);
 
   return (
     <aside className="w-64 bg-white border-r min-h-screen flex flex-col">
@@ -31,7 +34,7 @@ export function DashboardSidebar() {
         </Link>
       </div>
       <nav className="flex-1 p-4 space-y-2">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}

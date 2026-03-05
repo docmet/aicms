@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.admin import router as admin_router
 from src.api.auth import router as auth_router
 from src.api.content import router as content_router
 from src.api.mcp import router as mcp_router
@@ -50,6 +51,7 @@ async def health_check() -> dict[str, str]:
 
 
 # Include routers
+app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(sites_router, prefix="/api/sites", tags=["sites"])
 app.include_router(pages_router, prefix="/api/sites", tags=["pages"])
