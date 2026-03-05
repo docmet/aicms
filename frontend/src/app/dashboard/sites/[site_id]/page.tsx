@@ -157,10 +157,20 @@ function SectionEditorDispatch({
   );
   const [saving, setSaving] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDirty = useRef(false);
+
+  // Sync data when section.content_draft changes externally (SSE, revert, publish)
+  // Only applies when there's no in-progress local edit.
+  useEffect(() => {
+    if (!isDirty.current) {
+      setData(parseContent(section.content_draft));
+    }
+  }, [section.content_draft]);
 
   // Debounced auto-save on every data change
   const handleChange = useCallback(
     (next: Record<string, unknown>) => {
+      isDirty.current = true;
       setData(next);
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
@@ -175,6 +185,7 @@ function SectionEditorDispatch({
           toast({ title: "Save failed", variant: "destructive" });
         } finally {
           setSaving(false);
+          isDirty.current = false;
         }
       }, 800);
     },
@@ -294,12 +305,12 @@ export default function SiteEditorPage({
     setSections((prev) => {
       const prevMap = new Map(prev.map((s) => [s.id, s]));
       return updated.map((s) => ({
-        // SSE fields
         ...s,
         // preserve content_published (not in SSE payload)
         content_published: prevMap.get(s.id)?.content_published ?? null,
-        // preserve content_draft for already-mounted editors (in-progress typing)
-        content_draft: prevMap.has(s.id) ? prevMap.get(s.id)!.content_draft : s.content_draft,
+        // pass SSE content_draft through — SectionEditorDispatch will ignore it
+        // if the user is actively typing (isDirty guard in the component)
+        content_draft: s.content_draft,
       }));
     });
   }, []);
@@ -319,9 +330,13 @@ export default function SiteEditorPage({
         `/sites/${site_id}/pages/${currentPage.id}/publish`
       );
       setCurrentPage(res.data as Page);
-      // Refresh sections to clear has_unpublished_changes
-      await fetchSections(currentPage.id);
-      await fetchVersions(currentPage.id);
+      // Refresh sections, versions, and site (publish clears theme_slug_draft)
+      const [, , siteRes] = await Promise.all([
+        fetchSections(currentPage.id),
+        fetchVersions(currentPage.id),
+        api.get(`/sites/${site_id}`),
+      ]);
+      setSite(siteRes.data as Site);
       toast({ title: "Published!", description: "All changes are now live." });
     } catch {
       toast({ title: "Publish failed", variant: "destructive" });

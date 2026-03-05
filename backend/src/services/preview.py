@@ -44,10 +44,18 @@ class PreviewSSEManager:
     async def stream(
         self, page_id: UUID, queue: "asyncio.Queue[str | None]"
     ) -> AsyncGenerator[str]:
-        """Yield SSE-formatted event strings until the client disconnects."""
+        """Yield SSE-formatted event strings until the client disconnects.
+
+        Sends a keepalive comment every 15 s so proxies (nginx, ngrok, etc.)
+        don't close idle long-lived connections.
+        """
         try:
             while True:
-                message = await queue.get()
+                try:
+                    message = await asyncio.wait_for(queue.get(), timeout=15)
+                except TimeoutError:
+                    yield ": keepalive\n\n"
+                    continue
                 if message is None:
                     break
                 yield f"data: {message}\n\n"
