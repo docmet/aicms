@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const http = require('http');
-const { spawn } = require('child_process');
 
 // Configuration from environment
 const API_URL = process.env.API_URL || 'http://localhost/api';
@@ -106,7 +105,7 @@ class MCPServer {
             } else {
               reject(new Error(json.detail || `HTTP ${res.statusCode}`));
             }
-          } catch (e) {
+          } catch {
             reject(new Error(`Invalid response: ${body}`));
           }
         });

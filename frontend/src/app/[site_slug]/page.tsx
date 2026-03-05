@@ -14,11 +14,6 @@ interface ServiceItem {
   description: string;
 }
 
-interface HeroContent {
-  headline: string;
-  subheadline: string;
-}
-
 interface ContactContent {
   email: string;
   phone: string;

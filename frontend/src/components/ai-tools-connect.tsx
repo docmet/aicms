@@ -97,7 +97,7 @@ export function AIToolsConnect({ clients, onCreateClient }: AIToolsConnectProps)
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const getConnectionParams = (platform: AIPlatform, client?: any) => {
+  const getConnectionParams = (platform: AIPlatform, client?: { id: string; token: string }) => {
     if (!client) return {};
 
     const baseUrl = window.location.origin;

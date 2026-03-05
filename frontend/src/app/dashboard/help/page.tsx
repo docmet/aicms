@@ -24,20 +24,6 @@ export default function HelpPage() {
     }
   };
 
-  const claudeConfig = {
-    mcpServers: {
-      aicms: {
-        command: 'aicms-mcp',
-        args: ['--api-url', '/api'],
-        env: {
-          AICMS_API_TOKEN: 'your-jwt-token-here',
-        },
-      },
-    },
-  };
-
-  const claudeConfigJson = JSON.stringify(claudeConfig, null, 2);
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">

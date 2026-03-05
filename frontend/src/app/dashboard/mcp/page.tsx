@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,10 +14,9 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Plus, Trash2, Bot, Key, Download } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/lib/auth-context';
-import api from '@/lib/api';
 import { AIToolsConnect } from '@/components/ai-tools-connect';
+import { useToast } from '@/hooks/use-toast';
+import api from '@/lib/api';
 
 interface MCPClient {
   id: string;
@@ -39,23 +38,23 @@ export default function MCPSettingsPage() {
     name: '',
     tool_type: 'claude',
   });
-  const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       const response = await api.get('/mcp/clients');
       setClients(response.data);
     } catch (error) {
+      console.error('Failed to fetch clients:', error);
       toast({ title: 'Failed to fetch clients', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
 
   const createClient = async () => {
     if (!newClient.name) {
@@ -64,27 +63,28 @@ export default function MCPSettingsPage() {
     }
 
     try {
-      const response = await api.post('/mcp/register', {
-        ...newClient,
-        user_id: user?.id,
+      const response = await api.post('/mcp/clients', {
+        name: newClient.name || `${newClient.tool_type} Client`,
+        tool_type: newClient.tool_type,
       });
-
-      setClients([response.data, ...clients]);
-      setNewClient({ name: '', tool_type: 'claude' });
+      setClients([...clients, response.data]);
       setShowCreate(false);
-      toast({ title: 'Client created successfully' });
-    } catch (error: any) {
-      toast({ title: 'Failed to create client', variant: 'destructive' });
+      setNewClient({ name: '', tool_type: 'claude' });
+      toast({ title: 'Success', description: 'Client created successfully' });
+    } catch (error) {
+      console.error('Failed to create client:', error);
+      toast({ title: 'Error', description: 'Failed to create client', variant: 'destructive' });
     }
   };
 
-  const deleteClient = async (clientId: string) => {
+  const deleteClient = async (id: string) => {
     try {
-      await api.delete(`/mcp/clients/${clientId}`);
-      setClients(clients.filter((c) => c.id !== clientId));
-      toast({ title: 'Client deleted successfully' });
+      await api.delete(`/mcp/clients/${id}`);
+      setClients(clients.filter((c) => c.id !== id));
+      toast({ title: 'Success', description: 'Client deleted successfully' });
     } catch (error) {
-      toast({ title: 'Failed to delete client', variant: 'destructive' });
+      console.error('Failed to delete client:', error);
+      toast({ title: 'Error', description: 'Failed to delete client', variant: 'destructive' });
     }
   };
 
@@ -167,7 +167,7 @@ Token: ${token}`,
       <AIToolsConnect 
         clients={clients}
         onCreateClient={(toolType) => {
-          setNewClient({ name: '', tool_type: toolType as any });
+          setNewClient({ name: '', tool_type: toolType as 'claude' | 'chatgpt' | 'cursor' | 'perplexity' | 'custom' });
           setShowCreate(true);
         }}
       />

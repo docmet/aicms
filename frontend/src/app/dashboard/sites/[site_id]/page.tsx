@@ -76,7 +76,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDeletedSections, setShowDeletedSections] = useState(false);
+  const [showDeletedSections] = useState(false);
   const [newSectionType, setNewSectionType] = useState('body');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAddPageDialogOpen, setIsAddPageDialogOpen] = useState(false);
@@ -92,13 +92,16 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
         slug: 'home',
         is_published: true,
         order: 0,
-      });
+      } as { title: string; slug: string; is_published: boolean; order: number } | Record<string, unknown>);
       setCurrentPage(response.data);
-      setSections([]);
+      setPages([response.data]);
+      const sectionsRes = await api.get(`/sites/${site_id}/pages/${response.data.id}/content?include_deleted=false`);
+      setSections(sectionsRes.data);
     } catch (error) {
-      console.error('Failed to create initial page', error);
+      console.error('Failed to create initial page:', error);
+      toast({ title: 'Error', description: 'Failed to create initial page.', variant: 'destructive' });
     }
-  }, [site_id]);
+  }, [site_id, toast]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -130,7 +133,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     } finally {
       setLoading(false);
     }
-  }, [site_id, toast, createInitialPage]);
+  }, [site_id, toast, createInitialPage, showDeletedSections]);
 
   useEffect(() => {
     fetchData();
@@ -143,7 +146,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
         name: field === 'name' ? value : site.name,
         slug: field === 'slug' ? value : site.slug,
         theme_slug: site.theme_slug,
-      });
+      } as Record<string, unknown>);
       setSite({ ...site, [field]: value });
       toast({
         title: 'Saved',
@@ -175,24 +178,6 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     } catch (error) {
       console.error('Failed to add section', error);
       toast({ title: 'Error', description: 'Failed to add section.', variant: 'destructive' });
-    }
-  };
-
-  const handleRestoreSection = async (sectionId: string) => {
-    if (!currentPage) return;
-    try {
-      await api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
-        is_deleted: false,
-        deleted_at: null,
-      });
-      
-      // Refresh sections to show restored section
-      const sectionsRes = await api.get(`/sites/${site_id}/pages/${currentPage.id}/content?include_deleted=${showDeletedSections}`);
-      setSections(sectionsRes.data);
-      toast({ title: 'Restored', description: 'Section restored successfully.' });
-    } catch (error) {
-      console.error('Failed to restore section', error);
-      toast({ title: 'Error', description: 'Failed to restore section.', variant: 'destructive' });
     }
   };
 
@@ -600,7 +585,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                             name: site.name,
                             slug: site.slug,
                             theme_slug: t.slug,
-                          });
+                          } as Record<string, unknown>);
                           toast({ title: 'Success', description: `Theme changed to ${t.name}.` });
                         } catch (err: unknown) {
                           const error = err as { response?: { data?: { detail?: string } } };
