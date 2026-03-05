@@ -238,6 +238,30 @@ export default function SiteEditorPage({
   const { toast } = useToast();
   const router = useRouter();
 
+  // ── BroadcastChannel: push updates to preview tab ────────────────────────
+  // Refs always hold the latest values — no stale-closure issues.
+  const sectionsRef = useRef<ContentSection[]>(sections);
+  sectionsRef.current = sections;
+  const siteRef = useRef<Site | null>(site);
+  siteRef.current = site;
+  const currentPageRef = useRef<Page | null>(currentPage);
+  currentPageRef.current = currentPage;
+
+  const broadcastToPreview = useCallback((
+    overrideSections?: ContentSection[],
+    overrideTheme?: string,
+  ) => {
+    const page = currentPageRef.current;
+    if (!page) return;
+    const ch = new BroadcastChannel(`preview-${page.id}`);
+    ch.postMessage({
+      type: 'preview_updated',
+      sections: overrideSections ?? sectionsRef.current,
+      theme: overrideTheme ?? (siteRef.current?.theme_slug_draft ?? siteRef.current?.theme_slug ?? 'default'),
+    });
+    ch.close();
+  }, []); // stable — reads from refs at call time
+
   // ── Data fetching ────────────────────────────────────────────────────────
 
   const fetchSections = useCallback(
@@ -245,9 +269,11 @@ export default function SiteEditorPage({
       const res = await api.get(
         `/sites/${site_id}/pages/${pageId}/content?include_deleted=false`
       );
-      setSections(res.data as ContentSection[]);
+      const data = res.data as ContentSection[];
+      setSections(data);
+      broadcastToPreview(data);
     },
-    [site_id]
+    [site_id, broadcastToPreview]
   );
 
   const fetchVersions = useCallback(
@@ -297,35 +323,17 @@ export default function SiteEditorPage({
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── BroadcastChannel: push section updates to preview tab in real-time ────
-  // SSE works on localhost but can be buffered by ngrok/proxies.
-  // BroadcastChannel is instant for same-origin tabs on the same device.
-  const initialLoadDone = useRef(false);
-  useEffect(() => { if (!loading) initialLoadDone.current = true; }, [loading]);
-
-  // Broadcast sections + theme to preview tab on every change
-  useEffect(() => {
-    if (!initialLoadDone.current || !currentPage || !site) return;
-    const ch = new BroadcastChannel(`preview-${currentPage.id}`);
-    ch.postMessage({
-      type: 'preview_updated',
-      sections,
-      theme: site.theme_slug_draft ?? site.theme_slug,
-    });
-    ch.close();
-  }, [sections, currentPage, site]);
-
   // ── SSE: pick up MCP edits in real-time ──────────────────────────────────
   const handleSSESections = useCallback((updated: SSESection[]) => {
-    setSections((prev) => {
-      const prevMap = new Map(prev.map((s) => [s.id, s]));
-      return updated.map((s) => ({
-        ...s,
-        content_published: prevMap.get(s.id)?.content_published ?? null,
-        content_draft: s.content_draft,
-      }));
-    });
-  }, []);
+    const prevMap = new Map(sectionsRef.current.map((s) => [s.id, s]));
+    const next: ContentSection[] = updated.map((s) => ({
+      ...s,
+      content_published: prevMap.get(s.id)?.content_published ?? null,
+      content_draft: s.content_draft,
+    }));
+    setSections(next);
+    broadcastToPreview(next);
+  }, [broadcastToPreview]);
 
   usePreviewSSE({
     pageId: currentPage?.id,
@@ -495,6 +503,7 @@ export default function SiteEditorPage({
     // Clicking the already-published theme restores (clears the draft)
     const newDraft = slug === site.theme_slug ? null : slug;
     setSite({ ...site, theme_slug_draft: newDraft });
+    broadcastToPreview(undefined, newDraft ?? site.theme_slug);
     try {
       await api.patch(`/sites/${site_id}`, { theme_slug_draft: newDraft });
       toast({
@@ -503,18 +512,22 @@ export default function SiteEditorPage({
       });
     } catch {
       setSite(site);
+      broadcastToPreview(undefined, site.theme_slug_draft ?? site.theme_slug);
       toast({ title: "Error", description: "Failed to update theme.", variant: "destructive" });
     }
   };
 
   const handleDiscardThemeDraft = async () => {
     if (!site?.theme_slug_draft) return;
+    const publishedTheme = site.theme_slug;
     setSite({ ...site, theme_slug_draft: null });
+    broadcastToPreview(undefined, publishedTheme);
     try {
       await api.patch(`/sites/${site_id}`, { theme_slug_draft: null });
       toast({ title: "Theme restored", description: "Draft cleared — back to published theme." });
     } catch {
       setSite(site);
+      broadcastToPreview(undefined, site.theme_slug_draft ?? site.theme_slug);
       toast({ title: "Error", variant: "destructive" });
     }
   };
@@ -775,11 +788,11 @@ export default function SiteEditorPage({
                     section={section}
                     siteId={site_id}
                     pageId={currentPage!.id}
-                    onSaved={(updated) =>
-                      setSections((prev) =>
-                        prev.map((s) => (s.id === updated.id ? updated : s))
-                      )
-                    }
+                    onSaved={(updated) => {
+                      const next = sectionsRef.current.map((s) => (s.id === updated.id ? updated : s));
+                      setSections(next);
+                      broadcastToPreview(next);
+                    }}
                   />
                 </CardContent>
               </Card>
