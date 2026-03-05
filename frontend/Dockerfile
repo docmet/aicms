@@ -52,15 +52,11 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy dependency files
-COPY package.json pnpm-lock.yaml* ./
-
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
-
-# Copy built application from builder
+# Copy everything from builder (includes node_modules with TypeScript)
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./
 COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/tailwind.config.ts ./
 COPY --from=builder /app/postcss.config.mjs ./
@@ -69,6 +65,10 @@ COPY --from=builder /app/postcss.config.mjs ./
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
 RUN chown -R nextjs:nodejs /app
+
+# Fix pnpm store path for nextjs user
+RUN mkdir -p /home/nextjs/.local/share/pnpm && \
+    chown -R nextjs:nodejs /home/nextjs/.local
 USER nextjs
 
 # Expose port
