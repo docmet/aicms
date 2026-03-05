@@ -37,6 +37,12 @@ security = HTTPBearer(auto_error=False)
 # MCP server instance
 mcp_server = None
 
+# Per-client SSE queues: client_id → asyncio.Queue of JSON-RPC response dicts
+_sse_queues: dict[str, asyncio.Queue] = {}
+
+# RFC 7591 dynamically registered OAuth clients: client_id → client_secret
+_registered_oauth_clients: dict[str, str] = {}
+
 
 async def get_current_user(
     request: Request,
@@ -111,24 +117,26 @@ async def oauth_server_info(request: Request):
         "issuer": base_url,
         "authorization_endpoint": f"{base_url}/authorize",
         "token_endpoint": f"{base_url}/token",
+        "registration_endpoint": f"{base_url}/oauth/register",
         "response_types_supported": ["code"],
-        "grant_types_supported": ["client_credentials"],
+        "grant_types_supported": ["authorization_code"],
         "scopes_supported": ["mcp"],
-        "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
-        "client_id": "aicms-client"
+        "code_challenge_methods_supported": ["S256", "plain"],
+        "token_endpoint_auth_methods_supported": ["none", "client_secret_post", "client_secret_basic"],
     }
 
 
 @app.get("/.well-known/oauth-protected-resource")
 async def oauth_protected_resource(request: Request):
     """OAuth protected resource endpoint"""
-    scheme = request.url.scheme
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
     host = request.headers.get("host", "localhost:8000")
     base_url = f"{scheme}://{host}"
-    
+
     return {
         "resource": base_url,
-        "scopes_supported": ["mcp"]
+        "authorization_servers": [base_url],
+        "scopes_supported": ["mcp"],
     }
 
 
@@ -156,7 +164,7 @@ async def authorize(
     request: Request = None,
 ):
     """OAuth authorization endpoint — redirect to the frontend consent page."""
-    # Derive frontend base from request host (works through ngrok/proxies)
+    print(f"[authorize] client_id={client_id} redirect_uri={redirect_uri} state={state} code_challenge={code_challenge}")
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
     host = request.headers.get("host", "localhost")
     frontend_url = f"{scheme}://{host}"
@@ -165,8 +173,14 @@ async def authorize(
         params.append(f"redirect_uri={redirect_uri}")
     if state:
         params.append(f"state={state}")
+    if code_challenge:
+        params.append(f"code_challenge={code_challenge}")
+    if code_challenge_method:
+        params.append(f"code_challenge_method={code_challenge_method}")
     qs = "&".join(params)
-    return RedirectResponse(url=f"{frontend_url}/connect?{qs}", status_code=302)
+    url = f"{frontend_url}/connect?{qs}"
+    print(f"[authorize] redirecting to {url}")
+    return RedirectResponse(url=url, status_code=302)
 
 
 @app.post("/token")
@@ -199,6 +213,8 @@ async def token(request: Request):
     
     code = data.get("code", "")
     client_secret = data.get("client_secret", "")
+    grant_type = data.get("grant_type", "")
+    print(f"[token] grant_type={grant_type} code={'present' if code else 'absent'} client_secret={'present' if client_secret else 'absent'}")
 
     # Authorization code flow: exchange code via backend
     if code:
@@ -266,30 +282,77 @@ async def register_mcp_client(
     )
 
 
+@app.post("/oauth/register")
+async def register_oauth_client(request: Request):
+    """RFC 7591 Dynamic Client Registration — called by Claude.ai before starting OAuth."""
+    import secrets as _secrets
+    client_id = str(uuid.uuid4())
+    client_secret = _secrets.token_urlsafe(32)
+    _registered_oauth_clients[client_id] = client_secret
+    print(f"[DCR] Registered OAuth client: {client_id}")
+    return JSONResponse(
+        status_code=201,
+        content={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "client_id_issued_at": int(datetime.utcnow().timestamp()),
+            "client_secret_expires_at": 0,
+            "grant_types": ["authorization_code"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "client_secret_post",
+        },
+    )
+
+
 @app.post("/mcp/{client_id}")
 async def mcp_endpoint(
     client_id: str,
-    request: Dict[str, Any],
-    user_id: str = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    body: Dict[str, Any],
+    http_req: Request,
+    db: AsyncSession = Depends(get_db),
 ):
-    """MCP protocol endpoint"""
-    
-    # Verify client belongs to user
-    try:
-        client = await db.get(MCPClient, UUID(client_id))
-        valid = client and str(client.user_id) == user_id
-    except (ValueError, Exception):
-        valid = False
-    if not valid:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    
-    # Build a per-request MCPServer using the client's token (backend validates it)
-    api_url = os.getenv("API_URL", "http://backend:8000/api")
-    per_request_server = MCPServer(api_url, client.token)
+    """MCP Streamable HTTP endpoint — requires OAuth Bearer token."""
+    scheme = http_req.headers.get("x-forwarded-proto", http_req.url.scheme)
+    host = http_req.headers.get("host", "localhost")
+    resource_metadata = f"{scheme}://{host}/.well-known/oauth-protected-resource"
 
-    method = request.get("method", "")
-    req_id = request.get("id")
+    # Extract and validate Bearer token
+    auth_header = http_req.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"error": "unauthorized", "error_description": "Bearer token required"},
+            headers={"WWW-Authenticate": f'Bearer resource_metadata="{resource_metadata}"'},
+        )
+
+    token = auth_header[7:]
+    result = await db.execute(
+        select(MCPClient)
+        .where(MCPClient.token == token)
+        .where(MCPClient.expires_at > datetime.utcnow())
+    )
+    authed_client = result.scalar_one_or_none()
+    if not authed_client:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "invalid_token"},
+            headers={"WWW-Authenticate": f'Bearer error="invalid_token", resource_metadata="{resource_metadata}"'},
+        )
+
+    # Verify the URL client_id belongs to the same user as the token
+    try:
+        url_client = await db.get(MCPClient, UUID(client_id))
+    except ValueError:
+        return JSONResponse(status_code=404, content={"error": "not_found"})
+
+    if not url_client or url_client.user_id != authed_client.user_id:
+        return JSONResponse(status_code=403, content={"error": "forbidden"})
+
+    api_url = os.getenv("API_URL", "http://backend:8000/api")
+    per_request_server = MCPServer(api_url, url_client.token)
+
+    method = body.get("method", "")
+    req_id = body.get("id")
 
     def ok(result):
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
@@ -301,11 +364,11 @@ async def mcp_endpoint(
             "serverInfo": {"name": "aicms-mcp-server", "version": "1.0.0"},
         })
     elif method == "notifications/initialized":
-        return {}  # acknowledge, no response needed
+        return {}
     elif method == "tools/list":
         return ok({"tools": _make_tool_list()})
     elif method == "tools/call":
-        params = request.get("params", {})
+        params = body.get("params", {})
         result = await per_request_server._dispatch(params.get("name", ""), params.get("arguments", {}))
         return ok({"content": [{"type": c.type, "text": c.text} for c in result.content], "isError": result.isError})
     elif method == "ping":
@@ -1111,47 +1174,46 @@ async def sse_endpoint(client_id: str, request: Request):
             )
     
     print(f"Establishing SSE connection for {client_id}")
-    
+
+    # Create a per-client queue for pushing responses back via SSE
+    queue: asyncio.Queue = asyncio.Queue()
+    _sse_queues[client_id] = queue
+
     async def event_stream():
         """SSE event stream for MCP protocol"""
         print("Starting SSE event stream")
-        
-        # Debug: print all headers
         print(f"All headers: {dict(request.headers)}")
-        
-        # According to MCP spec, first send an endpoint event
-        # This tells the client where to send messages
-        # Use X-Forwarded-Proto to detect HTTPS through nginx proxy
+
         scheme = request.headers.get('x-forwarded-proto', request.url.scheme)
         host = request.headers.get('host', 'localhost:8000')
         base_url = f"{scheme}://{host}"
         message_endpoint = f"{base_url}/sse/{client_id}/messages"
-        
+
         print(f"Scheme from header: {scheme}, URL scheme: {request.url.scheme}")
         print(f"Sending endpoint event: {message_endpoint}")
-        
-        # Send endpoint event - some clients may prefer just the path
+
+        # Tell the client where to POST messages
         yield f"event: endpoint\ndata: {message_endpoint}\n\n"
-        
-        # Keep connection alive and wait for client messages
+
+        # Relay responses from the queue back to the client as SSE message events
         try:
-            count = 0
             while True:
-                count += 1
-                # Check if client is still connected
                 if await request.is_disconnected():
-                    print(f"Client disconnected after {count} cycles")
+                    print("Client disconnected")
                     break
-                    
-                # Just keep the connection alive - client will POST to messages endpoint
-                await asyncio.sleep(10)
-                
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield f"event: message\ndata: {json.dumps(msg)}\n\n"
+                except asyncio.TimeoutError:
+                    # Keep-alive ping
+                    yield ": keepalive\n\n"
         except asyncio.CancelledError:
             print("SSE connection cancelled")
         except Exception as e:
             print(f"SSE connection error: {e}")
         finally:
             print("Cleaning up SSE connection")
+            _sse_queues.pop(client_id, None)
     
     return StreamingResponse(
         event_stream(),
@@ -1215,246 +1277,67 @@ async def _get_mcp_server_for_client(client_id: str) -> MCPServer:
 
 @app.post("/sse/{client_id}/messages")
 async def mcp_messages(client_id: str, request: Request):
-    """Handle MCP protocol messages"""
+    """Handle MCP protocol messages — process and push response via SSE stream."""
     body = await request.body()
     print(f"Received message for {client_id}: {body}")
 
-    # Parse the JSON-RPC message
     try:
         message = json.loads(body.decode())
         print(f"Parsed message: {message}")
-
-        # Handle initialization
-        if message.get("method") == "initialize":
-            response = {
-                "jsonrpc": "2.0",
-                "id": message.get("id"),
-                "result": {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {
-                        "tools": {
-                            "listChanged": True
-                        }
-                    },
-                    "serverInfo": {
-                        "name": "aicms-mcp-server",
-                        "version": "1.0.0"
-                    }
-                }
-            }
-            
-            # Send the response via SSE (we'd need to store the SSE connection)
-            # For now, just return the response
-            return response
-        
-        # Handle list tools
-        if message.get("method") == "tools/list":
-            tools = _make_tool_list()
-            return {
-                "jsonrpc": "2.0",
-                "id": message.get("id"),
-                "result": {"tools": tools},
-            }
-
-        # Handle tool calls — delegate to MCPServer._dispatch
-        if message.get("method") == "tools/call":
-            params = message.get("params", {})
-            tool_name = params.get("name", "")
-            tool_args = params.get("arguments", {})
-            try:
-                server = await _get_mcp_server_for_client(client_id)
-                result = await server._dispatch(tool_name, tool_args)
-                content = [{"type": c.type, "text": c.text} for c in result.content]
-                return {
-                    "jsonrpc": "2.0",
-                    "id": message.get("id"),
-                    "result": {"content": content, "isError": result.isError},
-                }
-            except HTTPException as e:
-                return {
-                    "jsonrpc": "2.0",
-                    "id": message.get("id"),
-                    "error": {"code": -32000, "message": e.detail},
-                }
-            except Exception as e:
-                return {
-                    "jsonrpc": "2.0",
-                    "id": message.get("id"),
-                    "error": {"code": -32000, "message": str(e)},
-                }
-
-        # DEAD CODE BELOW — replaced by _make_tool_list() above
-        if False and message.get("method") == "tools/list_DEAD":
-            tools = [
-                {
-                    "name": "list_sites",
-                    "description": "List all sites for the authenticated user",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                },
-                {
-                    "name": "create_site",
-                    "description": "Create a new site with name and slug",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string", "description": "Display name for the site"},
-                            "slug": {"type": "string", "description": "Unique URL slug for the site"},
-                            "theme_slug": {"type": "string", "description": "Theme to use (default: 'default')"}
-                        },
-                        "required": ["name", "slug"]
-                    }
-                },
-                {
-                    "name": "update_site",
-                    "description": "Update site name, slug, or theme",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "site_id": {"type": "string", "description": "UUID of the site to update"},
-                            "name": {"type": "string", "description": "New display name"},
-                            "slug": {"type": "string", "description": "New URL slug"},
-                            "theme_slug": {"type": "string", "description": "Theme slug to apply"}
-                        },
-                        "required": ["site_id"]
-                    }
-                },
-                {
-                    "name": "delete_site",
-                    "description": "Delete a site and all its pages",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "site_id": {"type": "string", "description": "UUID of the site to delete"}
-                        },
-                        "required": ["site_id"]
-                    }
-                },
-                {
-                    "name": "list_pages",
-                    "description": "List all pages for a site",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "site_id": {"type": "string", "description": "UUID of the site"}
-                        },
-                        "required": ["site_id"]
-                    }
-                },
-                {
-                    "name": "create_page",
-                    "description": "Create a new page on a site",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "site_id": {"type": "string", "description": "UUID of the site"},
-                            "title": {"type": "string", "description": "Page title"},
-                            "slug": {"type": "string", "description": "URL slug for the page"},
-                            "is_published": {"type": "boolean", "description": "Whether page is published"}
-                        },
-                        "required": ["site_id", "title", "slug"]
-                    }
-                },
-                {
-                    "name": "get_page_content",
-                    "description": "Get content sections for a page",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "page_id": {"type": "string", "description": "UUID of the page"}
-                        },
-                        "required": ["page_id"]
-                    }
-                },
-                {
-                    "name": "update_page_content",
-                    "description": "Update content for a page section",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "page_id": {"type": "string", "description": "UUID of the page"},
-                            "section_type": {"type": "string", "description": "Type: hero, about, services, contact, etc."},
-                            "content": {"type": "string", "description": "HTML or text content"},
-                            "order": {"type": "integer", "description": "Display order"}
-                        },
-                        "required": ["page_id", "section_type", "content"]
-                    }
-                },
-                {
-                    "name": "update_page",
-                    "description": "Update page title, slug, or publish status",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "page_id": {"type": "string", "description": "UUID of the page"},
-                            "title": {"type": "string", "description": "New title"},
-                            "slug": {"type": "string", "description": "New slug"},
-                            "is_published": {"type": "boolean", "description": "Publish status"}
-                        },
-                        "required": ["page_id"]
-                    }
-                },
-                {
-                    "name": "delete_page",
-                    "description": "Delete a page and its content",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "page_id": {"type": "string", "description": "UUID of the page"}
-                        },
-                        "required": ["page_id"]
-                    }
-                },
-                {
-                    "name": "list_themes",
-                    "description": "List available themes",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                },
-                {
-                    "name": "apply_theme",
-                    "description": "Apply a theme to a site",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "site_id": {"type": "string", "description": "UUID of the site"},
-                            "theme_slug": {"type": "string", "description": "Slug of the theme to apply"}
-                        },
-                        "required": ["site_id", "theme_slug"]
-                    }
-                },
-                {
-                    "name": "get_site_info",
-                    "description": "Get detailed information about a site including pages and theme",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "site_id": {"type": "string", "description": "UUID of the site"}
-                        },
-                        "required": ["site_id"]
-                    }
-                }
-            ]
-            
-            response = {
-                "jsonrpc": "2.0",
-                "id": message.get("id"),
-                "result": {
-                    "tools": tools
-                }
-            }
-            return response
-        
-        # Default: empty result for unknown methods
-        return {"jsonrpc": "2.0", "id": message.get("id"), "result": {}}
-        
     except Exception as e:
         print(f"Error parsing message: {e}")
-        return {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}}
+        return Response(status_code=400)
+
+    method = message.get("method", "")
+    req_id = message.get("id")
+
+    response = None
+    try:
+        if method == "initialize":
+            response = {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {"tools": {"listChanged": True}},
+                    "serverInfo": {"name": "aicms-mcp-server", "version": "1.0.0"},
+                },
+            }
+        elif method == "notifications/initialized":
+            pass  # No response needed
+        elif method == "ping":
+            response = {"jsonrpc": "2.0", "id": req_id, "result": {}}
+        elif method == "tools/list":
+            response = {"jsonrpc": "2.0", "id": req_id, "result": {"tools": _make_tool_list()}}
+        elif method == "tools/call":
+            params = message.get("params", {})
+            server = await _get_mcp_server_for_client(client_id)
+            result = await server._dispatch(params.get("name", ""), params.get("arguments", {}))
+            response = {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": c.type, "text": c.text} for c in result.content],
+                    "isError": result.isError,
+                },
+            }
+        else:
+            response = {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
+    except Exception as e:
+        print(f"Error handling method {method}: {e}")
+        response = {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32000, "message": str(e)}}
+
+    # Push response via SSE queue (MCP SSE transport requires this)
+    if response is not None:
+        queue = _sse_queues.get(client_id)
+        if queue:
+            await queue.put(response)
+            print(f"Pushed response via SSE queue for {client_id}: method={method}")
+        else:
+            print(f"No SSE queue for {client_id} — client may have disconnected")
+
+    # 202 Accepted is the correct SSE transport response (response goes via SSE stream)
+    return Response(status_code=202)
 
 
 if __name__ == "__main__":
