@@ -52,8 +52,8 @@ Development roadmap: from MVP proof-of-concept to a production-ready freemium Sa
 - [x] **2: Framer-level renderer** — section components (Hero, Features, Testimonials, etc.), SEO, animations
 - [x] **3: Admin editor** — structured field inputs + live SSE preview pane + publish/rollback UI
 - [x] **4: Smarter MCP tools** — describe_site, generate_section, smart_find, publish_page, versioning tools
-- [ ] **5: Admin panel** — user management, impersonation, platform stats
-- [ ] **6: Staging deploy** — Coolify config, wildcard DNS, security headers, landing page
+- [x] **5: Admin panel** — user management, impersonation, platform stats
+- [x] **6: Staging deploy** — Coolify config, wildcard DNS, security headers, landing page
 
 ---
 
