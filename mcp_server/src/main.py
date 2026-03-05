@@ -411,6 +411,7 @@ async def sse_endpoint(client_id: str, request: Request):
                             {"name": "update_page", "description": "Update page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["page_id"]}},
                             {"name": "delete_page", "description": "Soft delete a page (can be restored later)", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
                             {"name": "reorder_sections", "description": "Reorder content sections by swapping two sections", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_id_1": {"type": "string", "description": "First section ID to swap"}, "section_id_2": {"type": "string", "description": "Second section ID to swap"}}, "required": ["site_id", "page_id", "section_id_1", "section_id_2"]}},
+                            {"name": "set_section_order", "description": "Set absolute order of all sections in one operation", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_order": {"type": "array", "items": {"type": "string"}, "description": "Array of section types in desired order (e.g., ['hero', 'body', 'oasis', 'cta'])"}}, "required": ["site_id", "page_id", "section_order"]}},
                             {"name": "delete_section", "description": "Soft delete a content section by section type (can be restored later)", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_type": {"type": "string", "description": "Section type to delete (e.g., hero, body, cta)"}}, "required": ["site_id", "page_id", "section_type"]}},
                             {"name": "restore_site", "description": "Restore a soft-deleted site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
                             {"name": "restore_page", "description": "Restore a soft-deleted page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
@@ -785,6 +786,63 @@ async def sse_endpoint(client_id: str, request: Request):
                                                             content_text = f"Error reordering sections: {resp1.status_code}, {resp2.status_code}"
                                                     else:
                                                         content_text = f"Error: One or both sections not found"
+                                                else:
+                                                    content_text = f"Error fetching content: {content_resp.status_code}"
+                                                page_found = True
+                                                break
+                                        if not page_found:
+                                            content_text = f"Page not found: {page_id}"
+                                    else:
+                                        content_text = f"Error: Could not find site {site_id}"
+                                
+                                elif tool_name == "set_section_order":
+                                    site_id = args["site_id"]
+                                    page_id = args["page_id"]
+                                    section_order = args["section_order"]
+                                    
+                                    # Convert site slug to UUID if needed
+                                    if len(site_id) < 36 or "-" not in site_id:
+                                        sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                        if sites_resp.status_code == 200:
+                                            sites = sites_resp.json()
+                                            for s in sites:
+                                                if s["slug"] == site_id:
+                                                    site_id = s["id"]
+                                                    break
+                                    
+                                    # Get pages for this specific site
+                                    pages_resp = await client.get(f"{base_url}/sites/{site_id}/pages", headers=headers)
+                                    if pages_resp.status_code == 200:
+                                        pages = pages_resp.json()
+                                        page_found = False
+                                        for page in pages:
+                                            if page['id'] == page_id or page['slug'] == page_id:
+                                                # Get current content sections
+                                                content_resp = await client.get(f"{base_url}/sites/{site_id}/pages/{page['id']}/content", headers=headers)
+                                                if content_resp.status_code == 200:
+                                                    sections = content_resp.json()
+                                                    
+                                                    # Create a map of section_type to section_id
+                                                    section_map = {s['section_type']: s['id'] for s in sections}
+                                                    
+                                                    # Update each section's order based on the desired order
+                                                    all_updated = True
+                                                    for idx, section_type in enumerate(section_order):
+                                                        if section_type in section_map:
+                                                            section_id = section_map[section_type]
+                                                            resp = await client.patch(
+                                                                f"{base_url}/sites/{site_id}/pages/{page['id']}/content/{section_id}",
+                                                                headers=headers,
+                                                                json={"order": idx}
+                                                            )
+                                                            if resp.status_code != 200:
+                                                                all_updated = False
+                                                                break
+                                                    
+                                                    if all_updated:
+                                                        content_text = f"Sections reordered successfully: {' → '.join(section_order)}"
+                                                    else:
+                                                        content_text = "Error: Failed to update some sections"
                                                 else:
                                                     content_text = f"Error fetching content: {content_resp.status_code}"
                                                 page_found = True
