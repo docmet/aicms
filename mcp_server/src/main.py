@@ -1,9 +1,11 @@
 import asyncio
 import json
 import os
+import secrets as _secrets
 import uuid
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 from uuid import UUID
 
 import httpx
@@ -164,20 +166,23 @@ async def authorize(
     request: Request = None,
 ):
     """OAuth authorization endpoint — redirect to the frontend consent page."""
-    print(f"[authorize] client_id={client_id} redirect_uri={redirect_uri} state={state} code_challenge={code_challenge}")
+    print(f"[authorize] client_id={client_id} redirect_uri={redirect_uri} state={state} code_challenge={'present' if code_challenge else 'absent'}")
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
     host = request.headers.get("host", "localhost")
     frontend_url = f"{scheme}://{host}"
-    params = []
+    # Build params dict and URL-encode properly so redirect_uri with ://?& is not misinterpreted
+    params: dict = {}
     if redirect_uri:
-        params.append(f"redirect_uri={redirect_uri}")
+        params["redirect_uri"] = redirect_uri
     if state:
-        params.append(f"state={state}")
+        params["state"] = state
     if code_challenge:
-        params.append(f"code_challenge={code_challenge}")
+        params["code_challenge"] = code_challenge
     if code_challenge_method:
-        params.append(f"code_challenge_method={code_challenge_method}")
-    qs = "&".join(params)
+        params["code_challenge_method"] = code_challenge_method
+    if client_id:
+        params["client_id"] = client_id
+    qs = urlencode(params)
     url = f"{frontend_url}/connect?{qs}"
     print(f"[authorize] redirecting to {url}")
     return RedirectResponse(url=url, status_code=302)
@@ -214,33 +219,25 @@ async def token(request: Request):
     code = data.get("code", "")
     client_secret = data.get("client_secret", "")
     grant_type = data.get("grant_type", "")
-    print(f"[token] grant_type={grant_type} code={'present' if code else 'absent'} client_secret={'present' if client_secret else 'absent'}")
+    client_id_param = data.get("client_id", "")
+    redirect_uri_param = data.get("redirect_uri", "")
+    print(f"[token] grant_type={grant_type} code={'present' if code else 'absent'} client_id={client_id_param} redirect_uri={redirect_uri_param} client_secret={'present' if client_secret else 'absent'}")
 
     # Authorization code flow: exchange code via backend
     if code:
         api_url = os.getenv("API_URL", "http://backend:8000/api")
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{api_url}/mcp/exchange-code", params={"code": code})
+            print(f"[token] exchange-code response: status={resp.status_code} body={resp.text[:200]}")
             if resp.status_code == 200:
+                mcp_token = resp.json()["token"]
+                print(f"[token] success — issued access_token (truncated): {mcp_token[:8]}...")
                 return {
-                    "access_token": resp.json()["token"],
+                    "access_token": mcp_token,
                     "token_type": "Bearer",
                     "expires_in": 86400,
                 }
-
-    # Fallback: client_secret = MCP token (for manual Advanced settings setup)
-    if client_secret:
-        async with get_db_session() as db:
-            result = await db.execute(
-                select(MCPClient).where(MCPClient.token == client_secret)
-            )
-            mcp_client = result.scalar_one_or_none()
-            if mcp_client:
-                return {
-                    "access_token": client_secret,
-                    "token_type": "Bearer",
-                    "expires_in": 86400,
-                }
+        print(f"[token] code exchange FAILED — returning 401")
 
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -285,11 +282,18 @@ async def register_mcp_client(
 @app.post("/oauth/register")
 async def register_oauth_client(request: Request):
     """RFC 7591 Dynamic Client Registration — called by Claude.ai before starting OAuth."""
-    import secrets as _secrets
+    body: dict = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
     client_id = str(uuid.uuid4())
     client_secret = _secrets.token_urlsafe(32)
-    _registered_oauth_clients[client_id] = client_secret
-    print(f"[DCR] Registered OAuth client: {client_id}")
+    # Echo back redirect_uris from the request (RFC 7591 requirement)
+    redirect_uris = body.get("redirect_uris", ["https://claude.ai/api/mcp/auth_callback"])
+    _registered_oauth_clients[client_id] = {"secret": client_secret, "redirect_uris": redirect_uris}
+    print(f"[DCR] Registered OAuth client: {client_id}, redirect_uris={redirect_uris}, request_body_keys={list(body.keys())}")
     return JSONResponse(
         status_code=201,
         content={
@@ -297,11 +301,79 @@ async def register_oauth_client(request: Request):
             "client_secret": client_secret,
             "client_id_issued_at": int(datetime.utcnow().timestamp()),
             "client_secret_expires_at": 0,
+            "redirect_uris": redirect_uris,
             "grant_types": ["authorization_code"],
             "response_types": ["code"],
             "token_endpoint_auth_method": "client_secret_post",
+            "scope": "mcp",
         },
     )
+
+
+@app.post("/mcp")
+async def mcp_generic_endpoint(
+    body: Dict[str, Any],
+    http_req: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Generic MCP Streamable HTTP endpoint — URL has no user identifier.
+    The Bearer token (= MCP token) identifies the user.
+    This is the preferred URL to share with Claude.ai / Claude Desktop.
+    """
+    scheme = http_req.headers.get("x-forwarded-proto", http_req.url.scheme)
+    host = http_req.headers.get("host", "localhost")
+    resource_metadata = f"{scheme}://{host}/.well-known/oauth-protected-resource"
+
+    auth_header = http_req.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"error": "unauthorized", "error_description": "Bearer token required"},
+            headers={"WWW-Authenticate": f'Bearer resource_metadata="{resource_metadata}"'},
+        )
+
+    token = auth_header[7:]
+    result = await db.execute(
+        select(MCPClient)
+        .where(MCPClient.token == token)
+        .where(MCPClient.expires_at > datetime.utcnow())
+    )
+    authed_client = result.scalar_one_or_none()
+    if not authed_client:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "invalid_token"},
+            headers={"WWW-Authenticate": f'Bearer error="invalid_token", resource_metadata="{resource_metadata}"'},
+        )
+
+    method = body.get("method", "")
+    req_id = body.get("id")
+    print(f"[/mcp] method={method} user={authed_client.user_id}")
+
+    def ok(result):
+        return {"jsonrpc": "2.0", "id": req_id, "result": result}
+
+    api_url = os.getenv("API_URL", "http://backend:8000/api")
+    per_request_server = MCPServer(api_url, authed_client.token)
+
+    if method == "initialize":
+        return ok({
+            "protocolVersion": "2024-11-05",
+            "capabilities": {"tools": {"listChanged": True}},
+            "serverInfo": {"name": "aicms-mcp-server", "version": "1.0.0"},
+        })
+    elif method == "notifications/initialized":
+        return {}
+    elif method == "tools/list":
+        return ok({"tools": _make_tool_list()})
+    elif method == "tools/call":
+        params = body.get("params", {})
+        result = await per_request_server._dispatch(params.get("name", ""), params.get("arguments", {}))
+        return ok({"content": [{"type": c.type, "text": c.text} for c in result.content], "isError": result.isError})
+    elif method == "ping":
+        return ok({})
+    else:
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
 
 
 @app.post("/mcp/{client_id}")

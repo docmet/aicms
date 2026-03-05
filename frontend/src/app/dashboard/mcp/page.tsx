@@ -100,10 +100,10 @@ export default function AIToolsPage() {
 
   if (!cred) return null;
 
-  // Claude sends POST/GET to this URL for all MCP messages.
-  // /mcp/{id} is proxied by nginx keeping the prefix so mcp_server routes match.
+  // Generic MCP endpoint — no client_id in URL.
+  // Authentication is entirely via OAuth Bearer token (obtained when you add the connector).
   const mcpUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/mcp/${cred.id}`
+    ? `${window.location.origin}/mcp`
     : '';
 
   return (
@@ -187,15 +187,14 @@ export default function AIToolsPage() {
       {showManual && (
         <Card className="border-dashed">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Advanced — manual credentials</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Advanced — manual setup</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              If the automatic sign-in redirect doesn&apos;t work, enter these in your tool&apos;s <strong>Advanced settings</strong>:
+              Paste the URL below into your tool&apos;s MCP server field. You&apos;ll be redirected to sign in
+              and approve the connection — no extra credentials needed.
             </p>
             <CopyField label="MCP Server URL" value={mcpUrl} />
-            <CopyField label="OAuth Client ID" value={cred.id} />
-            <CopyField label="OAuth Client Secret" value={cred.token} secret />
           </CardContent>
         </Card>
       )}
