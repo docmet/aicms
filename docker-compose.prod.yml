@@ -1,12 +1,12 @@
 services:
   # Nginx reverse proxy (handles SSL termination via Coolify/Traefik in front)
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     container_name: aicms_nginx
     expose:
       - "80"
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       frontend:
         condition: service_started
