@@ -152,20 +152,18 @@ async def authorize(
     code_challenge: str = None,
     code_challenge_method: str = None,
     state: str = None,
-    scope: str = None
+    scope: str = None,
+    request: Request = None,
 ):
-    """OAuth authorization endpoint - for Claude Desktop"""
-    # Claude Desktop expects a redirect to complete OAuth
-    # Since we're using client credentials flow, we can redirect directly
-    if redirect_uri and redirect_uri.startswith("https://claude.ai"):
-        # Redirect back to Claude with success
-        return RedirectResponse(
-            url=f"{redirect_uri}?code=authorized&state={state}",
-            status_code=302
-        )
-    
-    # For other cases, return a simple success
-    return {"status": "authorized", "code": "authorized"}
+    """OAuth authorization endpoint — redirect to the frontend consent page."""
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost")
+    params = []
+    if redirect_uri:
+        params.append(f"redirect_uri={redirect_uri}")
+    if state:
+        params.append(f"state={state}")
+    qs = "&".join(params)
+    return RedirectResponse(url=f"{frontend_url}/connect?{qs}", status_code=302)
 
 
 @app.post("/token")
@@ -196,9 +194,22 @@ async def token(request: Request):
     except Exception as e:
         data = {}
     
+    code = data.get("code", "")
     client_secret = data.get("client_secret", "")
 
-    # Validate the client_secret as an MCP client token
+    # Authorization code flow: exchange code via backend
+    if code:
+        api_url = os.getenv("API_URL", "http://backend:8000/api")
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{api_url}/mcp/exchange-code", params={"code": code})
+            if resp.status_code == 200:
+                return {
+                    "access_token": resp.json()["token"],
+                    "token_type": "Bearer",
+                    "expires_in": 86400,
+                }
+
+    # Fallback: client_secret = MCP token (for manual Advanced settings setup)
     if client_secret:
         async with get_db_session() as db:
             result = await db.execute(

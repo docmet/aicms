@@ -1,7 +1,9 @@
+import secrets
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.auth import get_current_user
@@ -9,6 +11,17 @@ from src.database import get_db
 from src.models import User
 
 router = APIRouter(tags=["mcp"])
+
+# Short-lived OAuth authorization codes: code -> (mcp_token, expires_at)
+# Single-use; expires in 5 minutes. Fine for single-instance deployments.
+_oauth_codes: dict[str, tuple[str, datetime]] = {}
+
+
+def _clean_expired_codes() -> None:
+    now = datetime.now(UTC)
+    expired = [k for k, (_, exp) in _oauth_codes.items() if now > exp]
+    for k in expired:
+        del _oauth_codes[k]
 
 
 @router.post("/register")
@@ -54,6 +67,61 @@ async def get_mcp_clients(
             )
 
     return response.json()  # type: ignore
+
+
+@router.post("/oauth-authorize")
+async def oauth_authorize(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Issue a short-lived OAuth code tied to the user's MCP credential.
+
+    Called by the /connect frontend page after the user logs in and clicks
+    'Allow'. Returns a single-use code that the MCP server exchanges for
+    the user's MCP token at /token.
+    """
+    _clean_expired_codes()
+
+    # Get or create the user's MCP credential via the MCP server
+    async with httpx.AsyncClient() as client:
+        list_resp = await client.get(
+            "http://mcp_server:8000/clients",
+            headers={"X-User-ID": str(current_user.id)},
+        )
+        clients = list_resp.json() if list_resp.status_code == 200 else []
+
+        if clients:
+            mcp_token: str = clients[0]["token"]
+        else:
+            reg_resp = await client.post(
+                "http://mcp_server:8000/register",
+                json={"name": "My AI Connection", "tool_type": "claude", "user_id": str(current_user.id)},
+                headers={"X-User-ID": str(current_user.id)},
+            )
+            if reg_resp.status_code != 200:
+                raise HTTPException(status_code=500, detail="Failed to create MCP credential")
+            mcp_token = reg_resp.json()["token"]
+
+    code = secrets.token_urlsafe(32)
+    _oauth_codes[code] = (mcp_token, datetime.now(UTC) + timedelta(minutes=5))
+    return {"code": code}
+
+
+@router.get("/exchange-code")
+async def exchange_code(code: str = Query(...)) -> dict[str, str]:
+    """Exchange a short-lived OAuth code for an MCP token.
+
+    Called internally by the MCP server's /token endpoint. No user auth
+    required — the code itself is the credential (single-use, 5 min TTL).
+    """
+    _clean_expired_codes()
+    entry = _oauth_codes.pop(code, None)
+    if not entry:
+        raise HTTPException(status_code=401, detail="Invalid or expired code")
+    mcp_token, expires_at = entry
+    if datetime.now(UTC) > expires_at:
+        raise HTTPException(status_code=401, detail="Code expired")
+    return {"token": mcp_token}
 
 
 @router.delete("/clients/{client_id}")
