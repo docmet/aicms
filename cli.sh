@@ -186,7 +186,9 @@ restart_frontend_command() {
   compose_cmd="$(compose_cmd)"
 
   log_info "Restarting frontend..."
-  ${compose_cmd} -f "${COMPOSE_DEV}" restart frontend
+  ${compose_cmd} -f "${COMPOSE_DEV}" up -d --build frontend
+  # Restart nginx so it re-resolves the new frontend container IP
+  ${compose_cmd} -f "${COMPOSE_DEV}" restart nginx
   log_success "Frontend restarted"
 }
 
@@ -195,7 +197,7 @@ restart_backend_command() {
   compose_cmd="$(compose_cmd)"
 
   log_info "Restarting backend..."
-  ${compose_cmd} -f "${COMPOSE_DEV}" restart backend
+  ${compose_cmd} -f "${COMPOSE_DEV}" up -d --build backend
   log_success "Backend restarted"
 }
 
