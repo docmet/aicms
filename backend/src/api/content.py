@@ -1,7 +1,6 @@
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
-
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -40,7 +39,7 @@ async def get_page_owned_by_user(
         )
     )
     if not include_deleted:
-        query = query.where(Page.is_deleted == False)
+        query = query.where(Page.is_deleted.is_(False))
     result = await db.execute(query)
     page = result.scalar_one_or_none()
     if not page:
@@ -94,7 +93,7 @@ async def list_content_sections(
         .order_by(ContentSection.order)
     )
     if not include_deleted:
-        query = query.where(ContentSection.is_deleted == False)
+        query = query.where(ContentSection.is_deleted.is_(False))
     result = await db.execute(query)
     return list(result.scalars().all())
 
@@ -117,7 +116,7 @@ async def get_content_section(
         ContentSection.id == content_id, ContentSection.page_id == page_id
     )
     if not include_deleted:
-        query = query.where(ContentSection.is_deleted == False)
+        query = query.where(ContentSection.is_deleted.is_(False))
     result = await db.execute(query)
     content = result.scalar_one_or_none()
     if not content:
@@ -181,7 +180,7 @@ async def delete_content_section(
         select(ContentSection).where(
             ContentSection.id == content_id,
             ContentSection.page_id == page_id,
-            ContentSection.is_deleted == False,
+            ContentSection.is_deleted.is_(False),
         )
     )
     content = result.scalar_one_or_none()
@@ -192,7 +191,7 @@ async def delete_content_section(
         )
 
     # Soft delete
-    content.is_deleted = True
-    content.deleted_at = datetime.now(UTC)
+    content.is_deleted = True  # type: ignore
+    content.deleted_at = datetime.now(UTC)  # type: ignore
     db.add(content)
     await db.commit()

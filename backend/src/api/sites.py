@@ -1,7 +1,6 @@
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
-
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -50,7 +49,7 @@ async def list_sites(
     """List all sites belonging to the current user."""
     query = select(Site).where(Site.user_id == current_user.id)
     if not include_deleted:
-        query = query.where(Site.is_deleted == False)
+        query = query.where(Site.is_deleted.is_(False))
     result = await db.execute(query)
     return list(result.scalars().all())
 
@@ -65,7 +64,7 @@ async def get_site(
     """Get a specific site by ID, if it belongs to the current user."""
     query = select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
     if not include_deleted:
-        query = query.where(Site.is_deleted == False)
+        query = query.where(Site.is_deleted.is_(False))
     result = await db.execute(query)
     site = result.scalar_one_or_none()
     if not site:
@@ -86,7 +85,7 @@ async def update_site(
     """Update a site belonging to the current user."""
     result = await db.execute(
         select(Site).where(
-            Site.id == site_id, Site.user_id == current_user.id, Site.is_deleted == False
+            Site.id == site_id, Site.user_id == current_user.id, Site.is_deleted.is_(False),
         )
     )
     db_site = result.scalar_one_or_none()
@@ -101,7 +100,7 @@ async def update_site(
     # If slug is being updated, check if it's already taken
     if "slug" in update_data and update_data["slug"] != db_site.slug:
         slug_result = await db.execute(
-            select(Site).where(Site.slug == update_data["slug"], Site.is_deleted == False)
+            select(Site).where(Site.slug == update_data["slug"], Site.is_deleted.is_(False),)
         )
         if slug_result.scalar_one_or_none():
             raise HTTPException(
@@ -127,7 +126,7 @@ async def delete_site(
     """Soft delete a site belonging to the current user."""
     result = await db.execute(
         select(Site).where(
-            Site.id == site_id, Site.user_id == current_user.id, Site.is_deleted == False
+            Site.id == site_id, Site.user_id == current_user.id, Site.is_deleted.is_(False),
         )
     )
     site = result.scalar_one_or_none()
@@ -138,7 +137,7 @@ async def delete_site(
         )
 
     # Soft delete
-    site.is_deleted = True
-    site.deleted_at = datetime.now(UTC)
+    site.is_deleted = True  # type: ignore
+    site.deleted_at = datetime.now(UTC)  # type: ignore
     db.add(site)
     await db.commit()

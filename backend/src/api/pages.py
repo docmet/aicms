@@ -1,7 +1,6 @@
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
-
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -26,7 +25,7 @@ async def get_site_owned_by_user(
     """Helper to verify site ownership."""
     query = select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
     if not include_deleted:
-        query = query.where(Site.is_deleted == False)
+        query = query.where(Site.is_deleted.is_(False))
     result = await db.execute(query)
     site = result.scalar_one_or_none()
     if not site:
@@ -80,7 +79,7 @@ async def list_pages(
     await get_site_owned_by_user(site_id, current_user, db, include_deleted)
     query = select(Page).where(Page.site_id == site_id).order_by(Page.order)
     if not include_deleted:
-        query = query.where(Page.is_deleted == False)
+        query = query.where(Page.is_deleted.is_(False))
     result = await db.execute(query)
     return list(result.scalars().all())
 
@@ -97,7 +96,7 @@ async def get_page(
     await get_site_owned_by_user(site_id, current_user, db, include_deleted)
     query = select(Page).where(Page.id == page_id, Page.site_id == site_id)
     if not include_deleted:
-        query = query.where(Page.is_deleted == False)
+        query = query.where(Page.is_deleted.is_(False))
     result = await db.execute(query)
     page = result.scalar_one_or_none()
     if not page:
@@ -163,7 +162,7 @@ async def delete_page(
     await get_site_owned_by_user(site_id, current_user, db)
     result = await db.execute(
         select(Page).where(
-            Page.id == page_id, Page.site_id == site_id, Page.is_deleted == False
+            Page.id == page_id, Page.site_id == site_id, Page.is_deleted.is_(False),
         )
     )
     page = result.scalar_one_or_none()
@@ -174,7 +173,7 @@ async def delete_page(
         )
 
     # Soft delete
-    page.is_deleted = True
-    page.deleted_at = datetime.now(UTC)
+    page.is_deleted = True  # type: ignore
+    page.deleted_at = datetime.now(UTC)  # type: ignore
     db.add(page)
     await db.commit()

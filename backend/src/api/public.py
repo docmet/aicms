@@ -20,7 +20,7 @@ async def get_public_site(
     """Get public site data by slug."""
     # Find site by slug (only non-deleted)
     result = await db.execute(
-        select(Site).where(Site.slug == site_slug, Site.is_deleted == False)
+        select(Site).where(Site.slug == site_slug, Site.is_deleted.is_(False))
     )
     site = result.scalar_one_or_none()
     if not site:
@@ -32,7 +32,7 @@ async def get_public_site(
     # Get the first published page (landing page, only non-deleted)
     page_result = await db.execute(
         select(Page)
-        .where(Page.site_id == site.id, Page.is_published, Page.is_deleted == False)
+        .where(Page.site_id == site.id, Page.is_published, Page.is_deleted.is_(False))
         .order_by(Page.order)
         .limit(1)
     )
@@ -47,7 +47,7 @@ async def get_public_site(
     # Get sections for this page (only non-deleted)
     sections_result = await db.execute(
         select(ContentSection)
-        .where(ContentSection.page_id == page.id, ContentSection.is_deleted == False)
+        .where(ContentSection.page_id == page.id, ContentSection.is_deleted.is_(False))
         .order_by(ContentSection.order)
     )
     sections = sections_result.scalars().all()

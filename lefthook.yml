@@ -1,21 +1,9 @@
 pre-commit:
   parallel: true
   commands:
-    frontend-lint:
-      root: frontend/
-      run: pnpm run lint
-    frontend-typecheck:
-      root: frontend/
-      run: pnpm run typecheck
-    backend-lint:
-      root: backend/
-      run: uv run ruff check .
-    backend-format:
-      root: backend/
-      run: uv run black . --check
-    backend-typecheck:
-      root: backend/
-      run: uv run mypy src/
-    backend-test:
-      root: backend/
-      run: uv run pytest src/tests/unit
+    lint:
+      run: ./cli.sh lint
+    typecheck:
+      run: ./cli.sh typecheck
+    test:
+      run: ./cli.sh test
