@@ -9,7 +9,12 @@ from src.database import Base
 
 
 class ContentSection(Base):
-    """Content section model for page content."""
+    """Content section within a page.
+
+    Each section has a type (hero, features, etc.) and separate draft/published
+    content stored as JSON strings. The public site always renders content_published.
+    Edits (by user or AI) go to content_draft until the page is published.
+    """
 
     __tablename__ = "content_sections"
 
@@ -20,8 +25,9 @@ class ContentSection(Base):
         nullable=False,
         index=True,
     )
-    section_type = Column(String(50), nullable=False)  # hero, about, services, contact
-    content = Column(Text, nullable=True)  # Plain text, HTML stripped
+    section_type = Column(String(50), nullable=False)  # hero, features, testimonials, about, contact, cta, pricing, custom
+    content_draft = Column(Text, nullable=True)     # JSON string being edited (not yet public)
+    content_published = Column(Text, nullable=True) # JSON string visible to public (set on publish)
     order = Column(Integer, default=0, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False, index=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
@@ -37,6 +43,11 @@ class ContentSection(Base):
 
     # Relationships
     page = relationship("Page", back_populates="content_sections")
+
+    @property
+    def has_unpublished_changes(self) -> bool:
+        """True if draft differs from published (unpublished edits exist)."""
+        return self.content_draft != self.content_published  # type: ignore[return-value]
 
     def __repr__(self) -> str:
         return f"<ContentSection(id={self.id}, type={self.section_type})>"

@@ -9,7 +9,12 @@ from src.database import Base
 
 
 class Page(Base):
-    """Page model for site pages."""
+    """Page within a site.
+
+    Pages hold ordered ContentSections. Publishing a page snapshots all section
+    content_draft values into content_published and creates a PageVersion record.
+    The public site renders content_published; drafts are only visible to the owner.
+    """
 
     __tablename__ = "pages"
 
@@ -23,6 +28,7 @@ class Page(Base):
     title = Column(String(255), nullable=False)
     slug = Column(String(255), nullable=False)
     is_published = Column(Boolean, default=False, nullable=False)
+    last_published_at = Column(DateTime(timezone=True), nullable=True)  # set on each publish
     order = Column(Integer, default=0, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False, index=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
@@ -40,6 +46,12 @@ class Page(Base):
     site = relationship("Site", back_populates="pages")
     content_sections = relationship(
         "ContentSection", back_populates="page", cascade="all, delete-orphan"
+    )
+    versions = relationship(
+        "PageVersion",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        order_by="PageVersion.version_number.desc()",
     )
 
     def __repr__(self) -> str:

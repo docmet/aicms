@@ -1,3 +1,11 @@
+"""Public site API — no authentication required.
+
+GET /api/public/sites/{site_slug}
+  Returns the published content for the site's landing page.
+  Only content_published is served here; drafts are never exposed publicly.
+  Returns 404 if site not found; returns empty sections array if no published page exists.
+"""
+
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,19 +25,15 @@ async def get_public_site(
     site_slug: str,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    """Get public site data by slug."""
-    # Find site by slug (only non-deleted)
+    """Get published site data by slug. Serves content_published only."""
     result = await db.execute(
         select(Site).where(Site.slug == site_slug, Site.is_deleted.is_(False))
     )
     site = result.scalar_one_or_none()
     if not site:
-        raise HTTPException(
-            status_code=404,
-            detail="Site not found",
-        )
+        raise HTTPException(status_code=404, detail="Site not found")
 
-    # Get the first published page (landing page, only non-deleted)
+    # Get the first published page (lowest order)
     page_result = await db.execute(
         select(Page)
         .where(Page.site_id == site.id, Page.is_published, Page.is_deleted.is_(False))
@@ -44,10 +48,14 @@ async def get_public_site(
             "sections": [],
         }
 
-    # Get sections for this page (only non-deleted)
+    # Serve only non-deleted sections that have published content
     sections_result = await db.execute(
         select(ContentSection)
-        .where(ContentSection.page_id == page.id, ContentSection.is_deleted.is_(False))
+        .where(
+            ContentSection.page_id == page.id,
+            ContentSection.is_deleted.is_(False),
+            ContentSection.content_published.isnot(None),
+        )
         .order_by(ContentSection.order)
     )
     sections = sections_result.scalars().all()
@@ -55,11 +63,12 @@ async def get_public_site(
     return {
         "name": site.name,
         "theme_slug": site.theme_slug,
+        "page_title": page.title,
         "sections": [
             {
                 "id": str(s.id),
                 "section_type": s.section_type,
-                "content": s.content,
+                "content": s.content_published,  # Always serve published content
             }
             for s in sections
         ],

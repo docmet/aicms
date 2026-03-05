@@ -1,9 +1,19 @@
-"""Database seed script."""
+"""Database seed script.
+
+Creates demo data for development:
+  - norbi@docmet.com (admin)
+  - client@docmet.com (standard user)
+  - 5 themes (modern, warm, startup, minimal, dark)
+  - Demo site "Brew & Bean Coffee" with a full landing page
+    Sections: hero, features, testimonials, about, cta, pricing, contact
+
+All section content is set in both content_draft and content_published
+(simulating a page that has been published once already).
+"""
 
 import asyncio
+import json
 import os
-
-# Import after database setup
 import sys
 from uuid import uuid4
 
@@ -24,22 +34,176 @@ async def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
+# ── Demo content ──────────────────────────────────────────────────────────────
+
+DEMO_SECTIONS = [
+    (
+        "hero",
+        json.dumps({
+            "headline": "Coffee That Wakes Your Soul",
+            "subheadline": "Specialty beans, expert roasting, and baristas who care. Visit us at the heart of downtown.",
+            "badge": "Now open 7 days a week",
+            "cta_primary": {"label": "See Our Menu", "href": "#menu"},
+            "cta_secondary": {"label": "Our Story", "href": "#about"},
+        }),
+        0,
+    ),
+    (
+        "features",
+        json.dumps({
+            "headline": "Why Coffee Lovers Choose Us",
+            "subheadline": "From farm to cup, we obsess over every detail.",
+            "items": [
+                {
+                    "icon": "☕",
+                    "title": "Single-Origin Beans",
+                    "description": "Sourced directly from small farms in Ethiopia, Colombia, and Guatemala.",
+                },
+                {
+                    "icon": "🔥",
+                    "title": "Fresh-Roasted Daily",
+                    "description": "We roast every morning. What you drink was roasted hours ago, not months.",
+                },
+                {
+                    "icon": "🌱",
+                    "title": "Sustainably Sourced",
+                    "description": "Fair trade certified. We pay farmers above-market prices and visit our partners.",
+                },
+                {
+                    "icon": "🎓",
+                    "title": "Expert Baristas",
+                    "description": "Our team trains 40+ hours before their first shift. Coffee is a craft.",
+                },
+            ],
+        }),
+        1,
+    ),
+    (
+        "testimonials",
+        json.dumps({
+            "headline": "What Our Regulars Say",
+            "items": [
+                {
+                    "quote": "Best flat white in the city. I come here every single morning before work. The staff knows my order by heart.",
+                    "name": "Sarah M.",
+                    "role": "Product Designer",
+                    "company": "Acme Corp",
+                },
+                {
+                    "quote": "I've been a coffee snob for 15 years. Brew & Bean is one of the few places that actually impresses me.",
+                    "name": "James T.",
+                    "role": "Coffee Enthusiast",
+                },
+                {
+                    "quote": "We hold all our team meetings here. The atmosphere is perfect and the pastries are incredible.",
+                    "name": "Priya K.",
+                    "role": "Startup Founder",
+                    "company": "LaunchPad",
+                },
+            ],
+        }),
+        2,
+    ),
+    (
+        "about",
+        json.dumps({
+            "headline": "Started With a Dream and a French Press",
+            "body": "Brew & Bean was founded in 2019 by Marco and Elena, two coffee obsessives who left their corporate jobs to do something they actually loved. We started at the local farmers market with a cart, a grinder, and an embarrassing amount of passion. Three years later we opened our first shop — and we haven't looked back.",
+            "stats": [
+                {"number": "5+", "label": "Years in business"},
+                {"number": "12,000+", "label": "Happy regulars"},
+                {"number": "8", "label": "Origin countries"},
+            ],
+        }),
+        3,
+    ),
+    (
+        "pricing",
+        json.dumps({
+            "headline": "Simple, Honest Pricing",
+            "subheadline": "No subscriptions. No hidden fees. Just great coffee.",
+            "plans": [
+                {
+                    "name": "Espresso Bar",
+                    "price": "$4–6",
+                    "period": " per drink",
+                    "features": [
+                        "Single & double espresso",
+                        "Flat white & cortado",
+                        "Cappuccino & latte",
+                        "Seasonal specials",
+                    ],
+                    "cta_label": "View Menu",
+                    "highlighted": False,
+                },
+                {
+                    "name": "Monthly Subscription",
+                    "price": "$59",
+                    "period": "/month",
+                    "features": [
+                        "250g freshly-roasted beans",
+                        "Choose your roast level",
+                        "Free shipping",
+                        "Subscriber-only blends",
+                        "10% off in-store",
+                    ],
+                    "cta_label": "Subscribe",
+                    "highlighted": True,
+                },
+                {
+                    "name": "Wholesale",
+                    "price": "Custom",
+                    "period": "",
+                    "features": [
+                        "Minimum 5kg/month",
+                        "Custom label available",
+                        "Dedicated account manager",
+                        "Tasting sessions included",
+                    ],
+                    "cta_label": "Get in Touch",
+                    "highlighted": False,
+                },
+            ],
+        }),
+        4,
+    ),
+    (
+        "cta",
+        json.dumps({
+            "headline": "Ready for the Best Coffee of Your Day?",
+            "subheadline": "Walk in or order online. We're open 7am–7pm every day.",
+            "button_label": "Get Directions",
+            "button_href": "https://maps.google.com",
+        }),
+        5,
+    ),
+    (
+        "contact",
+        json.dumps({
+            "headline": "Find Us",
+            "email": "hello@brewandbean.co",
+            "phone": "+1 (555) 234-5678",
+            "address": "42 Maple Street, Downtown, CA 94103",
+            "hours": "Mon–Fri 7am–7pm · Sat–Sun 8am–6pm",
+        }),
+        6,
+    ),
+]
+
+
 async def seed_database() -> None:
     """Seed the database with initial data."""
-    print("🌱 Starting database seeding...")
+    print("Starting database seeding...")
 
     async with AsyncSessionLocal() as session:
-        # Check if admin user already exists
+        # ── Users ──────────────────────────────────────────────────────────────
         result = await session.execute(
             select(User).where(User.email == "norbi@docmet.com")
         )
-        admin_exists = result.scalar_one_or_none()
-
-        if admin_exists:
-            print("✅ Admin user already exists, skipping...")
-            admin_user = admin_exists
+        admin_user = result.scalar_one_or_none()
+        if admin_user:
+            print("Admin user already exists, skipping...")
         else:
-            # Create admin user
             admin_user = User(
                 id=uuid4(),
                 email="norbi@docmet.com",
@@ -48,19 +212,15 @@ async def seed_database() -> None:
             )
             session.add(admin_user)
             await session.flush()
-            print(f"✅ Admin user created: {admin_user.email}")
+            print(f"Admin user created: {admin_user.email}")
 
-        # Check if client user already exists
         result = await session.execute(
             select(User).where(User.email == "client@docmet.com")
         )
-        client_exists = result.scalar_one_or_none()
-
-        if client_exists:
-            print("✅ Client user already exists, skipping...")
-            client_user = client_exists
+        client_user = result.scalar_one_or_none()
+        if client_user:
+            print("Client user already exists, skipping...")
         else:
-            # Create client user
             client_user = User(
                 id=uuid4(),
                 email="client@docmet.com",
@@ -69,120 +229,91 @@ async def seed_database() -> None:
             )
             session.add(client_user)
             await session.flush()
-            print(f"✅ Client user created: {client_user.email}")
+            print(f"Client user created: {client_user.email}")
 
-        # Create themes
+        # ── Themes ─────────────────────────────────────────────────────────────
         themes_data = [
-            ("Default Blue", "default", {"primary": "#3b82f6"}),
-            ("Warm Orange", "warm", {"primary": "#f97316"}),
-            ("Nature Green", "nature", {"primary": "#22c55e"}),
-            ("Dark Mode", "dark", {"primary": "#cbd5e1"}),
-            ("Minimal Black", "minimal", {"primary": "#71717a"}),
+            ("Modern Blue", "modern", {"primary": "#3b82f6", "accent": "#1d4ed8"}),
+            ("Warm Amber", "warm", {"primary": "#f97316", "accent": "#c2410c"}),
+            ("Startup Green", "startup", {"primary": "#10b981", "accent": "#065f46"}),
+            ("Minimal Zinc", "minimal", {"primary": "#71717a", "accent": "#27272a"}),
+            ("Dark Mode", "dark", {"primary": "#a78bfa", "accent": "#7c3aed"}),
         ]
 
         for name, slug, config in themes_data:
             result = await session.execute(select(Theme).where(Theme.slug == slug))
-            theme_exists = result.scalar_one_or_none()
-
-            if not theme_exists:
-                theme = Theme(
-                    id=uuid4(),
-                    name=name,
-                    slug=slug,
-                    config=config,
-                )
-                session.add(theme)
-                print(f"✅ Theme created: {name} ({slug})")
+            if not result.scalar_one_or_none():
+                session.add(Theme(id=uuid4(), name=name, slug=slug, config=config))
+                print(f"Theme created: {name} ({slug})")
             else:
-                print(f"✅ Theme already exists: {name} ({slug})")
+                print(f"Theme already exists: {name} ({slug})")
 
-        # Create demo site for client user
+        # ── Demo site ──────────────────────────────────────────────────────────
         result = await session.execute(
             select(Site).where(Site.user_id == client_user.id, Site.slug == "demo-site")
         )
-        site_exists = result.scalar_one_or_none()
-
-        if site_exists:
-            print("✅ Demo site already exists, skipping...")
-            demo_site = site_exists
+        demo_site = result.scalar_one_or_none()
+        if demo_site:
+            print("Demo site already exists, skipping...")
         else:
             demo_site = Site(
                 id=uuid4(),
                 user_id=client_user.id,
                 slug="demo-site",
-                name="Demo Site",
-                theme_slug="default",
+                name="Brew & Bean Coffee",
+                theme_slug="warm",
             )
             session.add(demo_site)
             await session.flush()
-            print(f"✅ Demo site created: {demo_site.name}")
+            print(f"Demo site created: {demo_site.name}")
 
-        # Create landing page for demo site
+        # ── Landing page ───────────────────────────────────────────────────────
         result = await session.execute(
-            select(Page).where(Page.site_id == demo_site.id, Page.slug == "welcome")
+            select(Page).where(Page.site_id == demo_site.id, Page.slug == "home")
         )
-        page_exists = result.scalar_one_or_none()
-
-        if page_exists:
-            print("✅ Landing page already exists, skipping...")
-            landing_page = page_exists
+        landing_page = result.scalar_one_or_none()
+        if landing_page:
+            print("Landing page already exists, skipping...")
         else:
             landing_page = Page(
                 id=uuid4(),
                 site_id=demo_site.id,
-                title="Welcome",
-                slug="welcome",
+                title="Home",
+                slug="home",
                 is_published=True,
                 order=0,
             )
             session.add(landing_page)
             await session.flush()
-            print(f"✅ Landing page created: {landing_page.title}")
+            print(f"Landing page created: {landing_page.title}")
 
-        # Create content sections for landing page
-        content_sections_data = [
-            (
-                "hero",
-                '{"headline": "Welcome to My Site", "subheadline": "A beautiful landing page"}',
-                0,
-            ),
-            ("about", "This is a demo site showcasing the AI CMS platform.", 1),
-            (
-                "services",
-                '{"services": [{"name": "Web Design", "description": "Beautiful designs"}, {"name": "Development", "description": "Modern technologies"}]}',
-                2,
-            ),
-            (
-                "contact",
-                '{"email": "contact@example.com", "phone": "+1 234 567 890"}',
-                3,
-            ),
-        ]
-
-        for section_type, content, order in content_sections_data:
+        # ── Content sections ───────────────────────────────────────────────────
+        for section_type, content, order in DEMO_SECTIONS:
             result = await session.execute(
                 select(ContentSection).where(
                     ContentSection.page_id == landing_page.id,
                     ContentSection.section_type == section_type,
                 )
             )
-            section_exists = result.scalar_one_or_none()
+            if result.scalar_one_or_none():
+                print(f"Section already exists: {section_type}")
+                continue
 
-            if not section_exists:
-                section = ContentSection(
-                    id=uuid4(),
-                    page_id=landing_page.id,
-                    section_type=section_type,
-                    content=content,
-                    order=order,
-                )
-                session.add(section)
-                print(f"✅ Content section created: {section_type}")
-            else:
-                print(f"✅ Content section already exists: {section_type}")
+            session.add(ContentSection(
+                id=uuid4(),
+                page_id=landing_page.id,
+                section_type=section_type,
+                content_draft=content,
+                content_published=content,  # Already "published" in seed
+                order=order,
+            ))
+            print(f"Section created: {section_type}")
 
         await session.commit()
-        print("✅ Database seeding completed!")
+        print("Database seeding completed!")
+        print("  Demo site: http://localhost:3000/demo-site")
+        print("  Admin user: norbi@docmet.com / password123")
+        print("  Client user: client@docmet.com / password123")
 
 
 if __name__ == "__main__":

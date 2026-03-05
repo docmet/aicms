@@ -6,6 +6,7 @@ from src.api.content import router as content_router
 from src.api.mcp import router as mcp_router
 from src.api.oauth import router as oauth_router
 from src.api.pages import router as pages_router
+from src.api.preview import router as preview_router
 from src.api.public import router as public_router
 from src.api.sites import router as sites_router
 from src.api.themes import router as themes_router
@@ -57,3 +58,4 @@ app.include_router(themes_router, prefix="/api/themes", tags=["themes"])
 app.include_router(public_router, prefix="/api/public/sites", tags=["public"])
 app.include_router(mcp_router, prefix="/api/mcp", tags=["mcp"])
 app.include_router(oauth_router, tags=["oauth"])
+app.include_router(preview_router, prefix="/api/preview", tags=["preview"])
