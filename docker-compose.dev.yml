@@ -65,7 +65,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
-    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --timeout-graceful-shutdown 3
 
   # MCP Server - for AI tool integration
   mcp_server:
