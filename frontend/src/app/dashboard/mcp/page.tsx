@@ -110,7 +110,7 @@ export default function AIToolsPage() {
   const mcpUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   const openClaudeAi = () => {
-    window.open('https://claude.ai/settings', '_blank');
+    window.open('https://claude.ai/customize/connectors', '_blank');
   };
 
   if (loading) {
@@ -157,54 +157,55 @@ export default function AIToolsPage() {
         </div>
       </div>
 
+      {/* ── Connection fields (same for all tools) ───────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Your connection details</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Copy these into your AI tool&apos;s settings — works with Claude, Cursor, and any MCP-compatible assistant.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <CopyField label="Name" value="AI CMS" />
+          <CopyField label="MCP Server URL" value={mcpUrl} />
+          <CopyField label="OAuth Client ID" value={cred.id} />
+          <CopyField label="OAuth Client Secret" value={cred.token} secret />
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="claude-ai">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="claude-ai">Claude.ai</TabsTrigger>
           <TabsTrigger value="claude-desktop">Claude Desktop</TabsTrigger>
-          <TabsTrigger value="other">Cursor / Other</TabsTrigger>
         </TabsList>
 
         {/* ── Claude.ai ─────────────────────────────────────────────── */}
-        <TabsContent value="claude-ai" className="mt-4 space-y-4">
+        <TabsContent value="claude-ai" className="mt-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Add to Claude.ai in 3 steps</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="pt-5 space-y-4">
               <Step n={1}>
-                <p className="text-sm font-medium mb-1">Open Claude.ai integrations settings</p>
+                <p className="text-sm font-medium mb-1">Open Claude.ai integration settings</p>
                 <Button size="sm" onClick={openClaudeAi} className="gap-2">
                   <ExternalLink size={14} />
                   Open Claude.ai Settings
                 </Button>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Go to Settings → Integrations → Add Integration
+                  Then go to <strong>Integrations</strong> → <strong>Add Integration</strong>
                 </p>
               </Step>
 
               <Step n={2}>
-                <p className="text-sm font-medium mb-3">Fill in these fields exactly as shown</p>
-                <div className="space-y-3">
-                  <CopyField label="Name" value="AI CMS" />
-                  <CopyField label="MCP Server URL" value={mcpUrl} />
-                  <CopyField label="OAuth Client ID" value={cred.id} />
-                  <CopyField label="OAuth Client Secret" value={cred.token} secret />
-                </div>
-              </Step>
-
-              <Step n={3}>
-                <p className="text-sm font-medium">Save and start chatting</p>
+                <p className="text-sm font-medium">Paste the fields from above and save</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Claude will now have access to your AI CMS sites. Try: <em>&ldquo;List my sites&rdquo;</em>
+                  Try asking: <em>&ldquo;List my sites&rdquo;</em>
                 </p>
               </Step>
 
               <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
                 <AlertCircle size={14} className="shrink-0 mt-0.5" />
                 <p>
-                  Claude.ai connects from Anthropic&apos;s servers — the URL above must be
-                  publicly accessible. Works automatically in production. For local development,
-                  use <strong>Claude Desktop</strong> or expose your server via ngrok.
+                  Claude.ai connects from Anthropic&apos;s servers so this URL must be publicly
+                  accessible. Works automatically in production; for local dev use Claude Desktop instead.
                 </p>
               </div>
             </CardContent>
@@ -212,89 +213,20 @@ export default function AIToolsPage() {
         </TabsContent>
 
         {/* ── Claude Desktop ─────────────────────────────────────────── */}
-        <TabsContent value="claude-desktop" className="mt-4 space-y-4">
+        <TabsContent value="claude-desktop" className="mt-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Add to Claude Desktop</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="pt-5 space-y-4">
               <Step n={1}>
-                <p className="text-sm font-medium mb-1">
-                  Make sure you have <strong>uv</strong> installed
-                </p>
-                <CopyField
-                  label="Install uv (run in terminal)"
-                  value="curl -LsSf https://astral.sh/uv/install.sh | sh"
-                />
-              </Step>
-
-              <Step n={2}>
-                <p className="text-sm font-medium mb-1">
-                  Open Claude Desktop → Settings → Developer → Edit Config
-                </p>
+                <p className="text-sm font-medium mb-1">Open Claude Desktop settings</p>
                 <p className="text-xs text-muted-foreground">
-                  Add the following inside the <code>mcpServers</code> object:
-                </p>
-              </Step>
-
-              <Step n={3}>
-                <p className="text-sm font-medium mb-2">Paste this configuration</p>
-                <CopyField
-                  label="claude_desktop_config.json snippet"
-                  value={JSON.stringify(
-                    {
-                      aicms: {
-                        command: 'uvx',
-                        args: [
-                          '--from',
-                          'git+https://github.com/docmet/aicms.git#subdirectory=mcp_server',
-                          'aicms-mcp',
-                          '--api-url',
-                          `${typeof window !== 'undefined' ? window.location.origin : ''}/api`,
-                          '--api-token',
-                          cred.token,
-                        ],
-                      },
-                    },
-                    null,
-                    2
-                  )}
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Restart Claude Desktop after saving. Try: <em>&ldquo;List my sites&rdquo;</em>
-                </p>
-              </Step>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── Cursor / Other ─────────────────────────────────────────── */}
-        <TabsContent value="other" className="mt-4 space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Cursor &amp; other MCP-compatible tools</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <Step n={1}>
-                <p className="text-sm font-medium mb-1">Open your tool&apos;s MCP settings</p>
-                <p className="text-xs text-muted-foreground">
-                  Cursor: Settings → MCP → Add Server
+                  Click the menu icon → <strong>Settings</strong> → <strong>Integrations</strong> → <strong>Add custom integration</strong>
                 </p>
               </Step>
 
               <Step n={2}>
-                <p className="text-sm font-medium mb-3">Use these connection details</p>
-                <div className="space-y-3">
-                  <CopyField label="Server URL" value={`${mcpUrl}/sse/${cred.id}`} />
-                  <CopyField label="Bearer Token" value={cred.token} secret />
-                </div>
-              </Step>
-
-              <Step n={3}>
-                <p className="text-sm font-medium">Or use the stdio server (same as Claude Desktop)</p>
+                <p className="text-sm font-medium">Paste the fields from above and save</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  See the Claude Desktop tab for the <code>uvx</code>-based setup — it works with any
-                  tool that supports stdio MCP servers.
+                  Restart Claude Desktop if needed, then try: <em>&ldquo;List my sites&rdquo;</em>
                 </p>
               </Step>
             </CardContent>
