@@ -15,7 +15,7 @@ import {
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: false },
-  { name: 'AI Tools', href: '/dashboard/mcp', icon: Bot, adminOnly: false },
+  { name: 'Connect AI', href: '/dashboard/mcp', icon: Bot, adminOnly: false },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings, adminOnly: false },
   { name: 'Help', href: '/dashboard/help', icon: HelpCircle, adminOnly: false },
   { name: 'Admin', href: '/dashboard/admin', icon: Shield, adminOnly: true },

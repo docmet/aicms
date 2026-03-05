@@ -196,18 +196,22 @@ async def token(request: Request):
     except Exception as e:
         data = {}
     
-    client_id = data.get("client_id")
-    client_secret = data.get("client_secret")
-    
-    # For now, accept any credentials with client_id=aicms-client
-    if client_id == "aicms-client":
-        # Return a token that Claude can use
-        return {
-            "access_token": client_secret or "dummy-token",  # Use the secret or a dummy token
-            "token_type": "Bearer",
-            "expires_in": 86400  # 24 hours
-        }
-    
+    client_secret = data.get("client_secret", "")
+
+    # Validate the client_secret as an MCP client token
+    if client_secret:
+        async with get_db_session() as db:
+            result = await db.execute(
+                select(MCPClient).where(MCPClient.token == client_secret)
+            )
+            mcp_client = result.scalar_one_or_none()
+            if mcp_client:
+                return {
+                    "access_token": client_secret,
+                    "token_type": "Bearer",
+                    "expires_in": 86400,
+                }
+
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 

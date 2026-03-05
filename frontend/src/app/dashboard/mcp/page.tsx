@@ -1,300 +1,315 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Plus, Trash2, Bot, Key } from 'lucide-react';
-import { AIToolsConnect } from '@/components/ai-tools-connect';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Copy, Check, RefreshCw, ExternalLink, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
 
-interface MCPClient {
+interface Credential {
   id: string;
   name: string;
-  tool_type: 'claude' | 'chatgpt' | 'cursor' | 'perplexity' | 'custom';
   token: string;
-  expires_at: string;
   created_at: string;
 }
 
-export default function MCPSettingsPage() {
-  const [clients, setClients] = useState<MCPClient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [newClient, setNewClient] = useState<{
-    name: string;
-    tool_type: 'claude' | 'chatgpt' | 'cursor' | 'perplexity' | 'custom';
-  }>({
-    name: '',
-    tool_type: 'claude',
-  });
+function CopyField({ label, value, secret }: { label: string; value: string; secret?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const { toast } = useToast();
 
-  const fetchClients = useCallback(async () => {
+  const copy = async () => {
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    toast({ title: `${label} copied` });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const display = secret && !revealed ? '••••••••••••••••' : value;
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+      <div className="flex items-center gap-2 bg-muted/50 border rounded-lg px-3 py-2">
+        <code className="flex-1 text-sm font-mono truncate">{display}</code>
+        {secret && (
+          <button
+            onClick={() => setRevealed((r) => !r)}
+            className="text-muted-foreground hover:text-foreground shrink-0"
+          >
+            {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+        )}
+        <button
+          onClick={copy}
+          className="text-muted-foreground hover:text-foreground shrink-0"
+        >
+          {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3">
+      <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">
+        {n}
+      </div>
+      <div className="flex-1">{children}</div>
+    </div>
+  );
+}
+
+export default function AIToolsPage() {
+  const [cred, setCred] = useState<Credential | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
+  const { toast } = useToast();
+
+  const fetchOrCreate = useCallback(async (force = false) => {
     try {
-      const response = await api.get('/mcp/clients');
-      setClients(response.data);
-    } catch (error) {
-      console.error('Failed to fetch clients:', error);
-      toast({ title: 'Failed to fetch clients', variant: 'destructive' });
+      const listRes = await api.get<Credential[]>('/mcp/clients');
+      if (listRes.data.length > 0 && !force) {
+        setCred(listRes.data[0]);
+        return;
+      }
+      // Delete old ones if regenerating
+      if (force) {
+        for (const c of listRes.data) {
+          await api.delete(`/mcp/clients/${c.id}`);
+        }
+      }
+      const createRes = await api.post<Credential>('/mcp/register', {
+        name: 'My AI Connection',
+        tool_type: 'claude',
+      });
+      setCred(createRes.data);
+    } catch {
+      toast({ title: 'Failed to load connection details', variant: 'destructive' });
     } finally {
       setLoading(false);
+      setRegenerating(false);
     }
   }, [toast]);
 
-  useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+  useEffect(() => { fetchOrCreate(); }, [fetchOrCreate]);
 
-  const createClient = async () => {
-    if (!newClient.name) {
-      toast({ title: 'Please enter a name', variant: 'destructive' });
-      return;
-    }
-
-    try {
-      const response = await api.post('/mcp/register', {
-        name: newClient.name || `${newClient.tool_type} Client`,
-        tool_type: newClient.tool_type,
-      });
-      setClients([...clients, response.data]);
-      setShowCreate(false);
-      setNewClient({ name: '', tool_type: 'claude' });
-      toast({ title: 'Success', description: 'Client created successfully' });
-    } catch (error) {
-      console.error('Failed to create client:', error);
-      toast({ title: 'Error', description: 'Failed to create client', variant: 'destructive' });
-    }
+  const regenerate = async () => {
+    setRegenerating(true);
+    await fetchOrCreate(true);
+    toast({ title: 'New connection key generated' });
   };
 
-  const deleteClient = async (id: string) => {
-    try {
-      await api.delete(`/mcp/clients/${id}`);
-      setClients(clients.filter((c) => c.id !== id));
-      toast({ title: 'Success', description: 'Client deleted successfully' });
-    } catch (error) {
-      console.error('Failed to delete client:', error);
-      toast({ title: 'Error', description: 'Failed to delete client', variant: 'destructive' });
-    }
+  // nginx proxies /sse/, /authorize, /token, /.well-known/ to mcp_server
+  // so the MCP server URL is the same origin as the dashboard
+  const mcpUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+  const openClaudeAi = () => {
+    window.open('https://claude.ai/settings', '_blank');
   };
 
-  const copyToken = (token: string) => {
-    navigator.clipboard.writeText(token);
-    toast({ title: 'Token copied to clipboard' });
-  };
-
-  const getToolIcon = (type: string) => {
-    switch (type) {
-      case 'claude':
-        return '🤖';
-      case 'chatgpt':
-        return '💬';
-      case 'cursor':
-        return '👆';
-      case 'perplexity':
-        return '🔍';
-      case 'custom':
-        return '🔧';
-      default:
-        return '🔌';
-    }
-  };
-
-  const getInstructions = (type: string, token: string) => {
-    const baseUrl = window.location.origin;
-    switch (type) {
-      case 'claude':
-        return {
-          title: 'Claude Desktop / Claude.ai Setup',
-          config: JSON.stringify(
-            {
-              mcpServers: {
-                aicms: {
-                  command: 'uvx',
-                  args: [
-                    '--from', 'git+https://github.com/docmet/aicms.git#subdirectory=mcp_server',
-                    'aicms-mcp',
-                    '--api-url', `${baseUrl}/api`,
-                    '--api-token', token,
-                  ],
-                },
-              },
-            },
-            null,
-            2
-          ),
-          note: `Requirements: Python 3.11+ and uv (https://docs.astral.sh/uv/)\n\n1. Install uv if you haven't: curl -LsSf https://astral.sh/uv/install.sh | sh\n2. Paste this config into Claude Desktop's MCP settings\n3. Restart Claude Desktop\n\nAlternative (local install):\n  pip install -e ./mcp_server\n  Then use "command": "aicms-mcp" with the same args.`,
-        };
-      case 'chatgpt':
-        return {
-          title: 'ChatGPT Custom Instructions',
-          instructions: `Add this to your ChatGPT custom instructions:
-You have access to the AI CMS MCP server at ${baseUrl}:8001
-Use this token: ${token}
-Available tools: list_sites, get_site, update_theme, get_content, update_content`,
-        };
-      case 'cursor':
-        return {
-          title: 'Cursor Setup',
-          config: `Name: AI CMS
-URL: ${baseUrl}:8001
-Token: ${token}`,
-        };
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">AI Tool Integration</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage MCP clients for AI tools like Claude, ChatGPT, and Cursor
-        </p>
-      </div>
-
-      {/* AI Tools Connection */}
-      <AIToolsConnect 
-        clients={clients}
-        onCreateClient={(toolType) => {
-          setNewClient({ name: '', tool_type: toolType as 'claude' | 'chatgpt' | 'cursor' | 'perplexity' | 'custom' });
-          setShowCreate(true);
-        }}
-      />
-
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5" />
-                MCP Clients
-              </CardTitle>
-              <CardDescription>Registered clients for AI tool integration</CardDescription>
-            </div>
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p>Loading...</p>
-          ) : clients.length === 0 ? (
-            <p className="text-muted-foreground">No clients registered yet</p>
-          ) : (
-            <div className="space-y-4">
-              {clients.map((client) => {
-                const instructions = getInstructions(client.tool_type, client.token);
-                return (
-                  <div key={client.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{getToolIcon(client.tool_type)}</span>
-                        <div>
-                          <h3 className="font-semibold">{client.name}</h3>
-                          <Badge variant="outline">{client.tool_type}</Badge>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => deleteClient(client.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Key className="h-4 w-4" />
-                        <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
-                          {client.token.substring(0, 20)}...
-                        </span>
-                        <Button variant="ghost" size="sm" onClick={() => copyToken(client.token)}>
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {instructions && (
-                        <div className="mt-4">
-                          <h4 className="font-semibold mb-2">{instructions.title}</h4>
-                          <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded text-xs overflow-x-auto mb-2">
-                            {instructions.config || instructions.instructions}
-                          </pre>
-                          {instructions.note && (
-                            <p className="text-xs text-muted-foreground whitespace-pre-line">
-                              {instructions.note}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {showCreate && (
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Connect AI Tools</h1>
+          <p className="text-muted-foreground mt-1">Setting up your connection...</p>
+        </div>
         <Card>
-          <CardHeader>
-            <CardTitle>Create New MCP Client</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="name">Client Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g., My Claude Desktop"
-                value={newClient.name}
-                onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="tool">AI Tool</Label>
-              <Select
-                value={newClient.tool_type}
-                onValueChange={(value: string) =>
-                  setNewClient({
-                    ...newClient,
-                    tool_type: value as 'claude' | 'chatgpt' | 'cursor',
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="claude">🤖 Claude Desktop</SelectItem>
-                  <SelectItem value="chatgpt">💬 ChatGPT</SelectItem>
-                  <SelectItem value="cursor">👆 Cursor</SelectItem>
-                  <SelectItem value="perplexity">🔍 Perplexity</SelectItem>
-                  <SelectItem value="custom">🔧 Custom Tool</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={createClient}>Create Client</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>
-                Cancel
-              </Button>
-            </div>
+          <CardContent className="py-12 flex justify-center">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </CardContent>
         </Card>
-      )}
+      </div>
+    );
+  }
+
+  if (!cred) return null;
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Connect AI Tools</h1>
+          <p className="text-muted-foreground mt-1">
+            Use Claude, Cursor, or any AI assistant to manage your sites
+          </p>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
+            Active
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={regenerate}
+            disabled={regenerating}
+            className="text-muted-foreground"
+          >
+            <RefreshCw size={14} className={`mr-1 ${regenerating ? 'animate-spin' : ''}`} />
+            Regenerate
+          </Button>
+        </div>
+      </div>
+
+      <Tabs defaultValue="claude-ai">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="claude-ai">Claude.ai</TabsTrigger>
+          <TabsTrigger value="claude-desktop">Claude Desktop</TabsTrigger>
+          <TabsTrigger value="other">Cursor / Other</TabsTrigger>
+        </TabsList>
+
+        {/* ── Claude.ai ─────────────────────────────────────────────── */}
+        <TabsContent value="claude-ai" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Add to Claude.ai in 3 steps</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <Step n={1}>
+                <p className="text-sm font-medium mb-1">Open Claude.ai integrations settings</p>
+                <Button size="sm" onClick={openClaudeAi} className="gap-2">
+                  <ExternalLink size={14} />
+                  Open Claude.ai Settings
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Go to Settings → Integrations → Add Integration
+                </p>
+              </Step>
+
+              <Step n={2}>
+                <p className="text-sm font-medium mb-3">Fill in these fields exactly as shown</p>
+                <div className="space-y-3">
+                  <CopyField label="Name" value="AI CMS" />
+                  <CopyField label="MCP Server URL" value={mcpUrl} />
+                  <CopyField label="OAuth Client ID" value={cred.id} />
+                  <CopyField label="OAuth Client Secret" value={cred.token} secret />
+                </div>
+              </Step>
+
+              <Step n={3}>
+                <p className="text-sm font-medium">Save and start chatting</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Claude will now have access to your AI CMS sites. Try: <em>&ldquo;List my sites&rdquo;</em>
+                </p>
+              </Step>
+
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                <p>
+                  Claude.ai connects from Anthropic&apos;s servers — the URL above must be
+                  publicly accessible. Works automatically in production. For local development,
+                  use <strong>Claude Desktop</strong> or expose your server via ngrok.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Claude Desktop ─────────────────────────────────────────── */}
+        <TabsContent value="claude-desktop" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Add to Claude Desktop</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <Step n={1}>
+                <p className="text-sm font-medium mb-1">
+                  Make sure you have <strong>uv</strong> installed
+                </p>
+                <CopyField
+                  label="Install uv (run in terminal)"
+                  value="curl -LsSf https://astral.sh/uv/install.sh | sh"
+                />
+              </Step>
+
+              <Step n={2}>
+                <p className="text-sm font-medium mb-1">
+                  Open Claude Desktop → Settings → Developer → Edit Config
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Add the following inside the <code>mcpServers</code> object:
+                </p>
+              </Step>
+
+              <Step n={3}>
+                <p className="text-sm font-medium mb-2">Paste this configuration</p>
+                <CopyField
+                  label="claude_desktop_config.json snippet"
+                  value={JSON.stringify(
+                    {
+                      aicms: {
+                        command: 'uvx',
+                        args: [
+                          '--from',
+                          'git+https://github.com/docmet/aicms.git#subdirectory=mcp_server',
+                          'aicms-mcp',
+                          '--api-url',
+                          `${typeof window !== 'undefined' ? window.location.origin : ''}/api`,
+                          '--api-token',
+                          cred.token,
+                        ],
+                      },
+                    },
+                    null,
+                    2
+                  )}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Restart Claude Desktop after saving. Try: <em>&ldquo;List my sites&rdquo;</em>
+                </p>
+              </Step>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Cursor / Other ─────────────────────────────────────────── */}
+        <TabsContent value="other" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Cursor &amp; other MCP-compatible tools</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <Step n={1}>
+                <p className="text-sm font-medium mb-1">Open your tool&apos;s MCP settings</p>
+                <p className="text-xs text-muted-foreground">
+                  Cursor: Settings → MCP → Add Server
+                </p>
+              </Step>
+
+              <Step n={2}>
+                <p className="text-sm font-medium mb-3">Use these connection details</p>
+                <div className="space-y-3">
+                  <CopyField label="Server URL" value={`${mcpUrl}/sse/${cred.id}`} />
+                  <CopyField label="Bearer Token" value={cred.token} secret />
+                </div>
+              </Step>
+
+              <Step n={3}>
+                <p className="text-sm font-medium">Or use the stdio server (same as Claude Desktop)</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  See the Claude Desktop tab for the <code>uvx</code>-based setup — it works with any
+                  tool that supports stdio MCP servers.
+                </p>
+              </Step>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Card className="border-muted">
+        <CardContent className="py-4">
+          <p className="text-xs text-muted-foreground text-center">
+            Your connection key is tied to your account. Keep it private.
+            If compromised, use <strong>Regenerate</strong> above to invalidate it.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
