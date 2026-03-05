@@ -563,6 +563,8 @@ async def sse_endpoint(client_id: str, request: Request):
                                     if response.status_code == 200:
                                         sites = response.json()
                                         for site in sites:
+                                            if page_found:
+                                                break
                                             pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
                                             if pages_resp.status_code == 200:
                                                 pages = pages_resp.json()
@@ -595,9 +597,13 @@ async def sse_endpoint(client_id: str, request: Request):
                                     # Find the site and page
                                     sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
                                     content_text = f"Error: Could not find page {page_id}"
+                                    page_updated = False
+                                    
                                     if sites_resp.status_code == 200:
                                         sites = sites_resp.json()
                                         for site in sites:
+                                            if page_updated:
+                                                break
                                             pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
                                             if pages_resp.status_code == 200:
                                                 pages = pages_resp.json()
@@ -630,6 +636,7 @@ async def sse_endpoint(client_id: str, request: Request):
                                                                     content_text = f"Created {section_type} section with content"
                                                                 else:
                                                                     content_text = f"Error creating: {post_resp.status_code}"
+                                                            page_updated = True
                                                         break
                                 
                                 elif tool_name == "update_page":
@@ -645,9 +652,12 @@ async def sse_endpoint(client_id: str, request: Request):
                                     # Find site and update page
                                     sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
                                     content_text = f"Error: Could not find page {page_id}"
+                                    page_updated = False
                                     if sites_resp.status_code == 200:
                                         sites = sites_resp.json()
                                         for site in sites:
+                                            if page_updated:
+                                                break
                                             pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
                                             if pages_resp.status_code == 200:
                                                 pages = pages_resp.json()
@@ -662,15 +672,19 @@ async def sse_endpoint(client_id: str, request: Request):
                                                             content_text = f"Page updated successfully"
                                                         else:
                                                             content_text = f"Error: {resp.status_code}"
+                                                        page_updated = True
                                                         break
                                 
                                 elif tool_name == "delete_page":
                                     page_id = args["page_id"]
                                     sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
                                     content_text = f"Error: Could not find page {page_id}"
+                                    page_deleted = False
                                     if sites_resp.status_code == 200:
                                         sites = sites_resp.json()
                                         for site in sites:
+                                            if page_deleted:
+                                                break
                                             pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
                                             if pages_resp.status_code == 200:
                                                 pages = pages_resp.json()
@@ -684,6 +698,7 @@ async def sse_endpoint(client_id: str, request: Request):
                                                             content_text = f"Page deleted successfully"
                                                         else:
                                                             content_text = f"Error: {resp.status_code}"
+                                                        page_deleted = True
                                                         break
                                 
                                 elif tool_name == "reorder_sections":
@@ -694,10 +709,13 @@ async def sse_endpoint(client_id: str, request: Request):
                                     # Find the site and page
                                     sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
                                     content_text = f"Error: Could not find page {page_id}"
+                                    page_found = False
                                     
                                     if sites_resp.status_code == 200:
                                         sites = sites_resp.json()
                                         for site in sites:
+                                            if page_found:
+                                                break
                                             pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
                                             if pages_resp.status_code == 200:
                                                 pages = pages_resp.json()
@@ -738,6 +756,7 @@ async def sse_endpoint(client_id: str, request: Request):
                                                                     content_text = f"Error swapping sections: {resp1.status_code}, {resp2.status_code}"
                                                             else:
                                                                 content_text = "Could not find one or both sections"
+                                                        page_found = True
                                                         break
                                 
                                 elif tool_name == "update_site":
