@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Plus, Trash2, Bot, Key, Download } from 'lucide-react';
+import { Copy, Plus, Trash2, Bot, Key } from 'lucide-react';
 import { AIToolsConnect } from '@/components/ai-tools-connect';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
@@ -63,7 +63,7 @@ export default function MCPSettingsPage() {
     }
 
     try {
-      const response = await api.post('/mcp/clients', {
+      const response = await api.post('/mcp/register', {
         name: newClient.name || `${newClient.tool_type} Client`,
         tool_type: newClient.tool_type,
       });
@@ -115,24 +115,25 @@ export default function MCPSettingsPage() {
     switch (type) {
       case 'claude':
         return {
-          title: 'Claude Desktop Setup',
+          title: 'Claude Desktop / Claude.ai Setup',
           config: JSON.stringify(
             {
               mcpServers: {
                 aicms: {
-                  command: 'node',
-                  args: ['/path/to/mcp_cms/mcp-proxy-server.js'],
-                  env: {
-                    API_URL: `${baseUrl}/api`,
-                    AUTH_TOKEN: token,
-                  },
+                  command: 'uvx',
+                  args: [
+                    '--from', 'git+https://github.com/docmet/aicms.git#subdirectory=mcp_server',
+                    'aicms-mcp',
+                    '--api-url', `${baseUrl}/api`,
+                    '--api-token', token,
+                  ],
                 },
               },
             },
             null,
             2
           ),
-          note: `1. Download the MCP proxy file from your dashboard\n2. Save it somewhere on your computer\n3. Update the path in the config above\n4. Copy and paste this configuration into Claude Desktop\n\nNo Docker required!`,
+          note: `Requirements: Python 3.11+ and uv (https://docs.astral.sh/uv/)\n\n1. Install uv if you haven't: curl -LsSf https://astral.sh/uv/install.sh | sh\n2. Paste this config into Claude Desktop's MCP settings\n3. Restart Claude Desktop\n\nAlternative (local install):\n  pip install -e ./mcp_server\n  Then use "command": "aicms-mcp" with the same args.`,
         };
       case 'chatgpt':
         return {
@@ -226,22 +227,6 @@ Token: ${token}`,
                       {instructions && (
                         <div className="mt-4">
                           <h4 className="font-semibold mb-2">{instructions.title}</h4>
-                          {client.tool_type === 'claude' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mb-2"
-                              onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = '/mcp-proxy-server.js';
-                                link.download = 'mcp-proxy-server.js';
-                                link.click();
-                              }}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Download MCP Proxy Server
-                            </Button>
-                          )}
                           <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded text-xs overflow-x-auto mb-2">
                             {instructions.config || instructions.instructions}
                           </pre>

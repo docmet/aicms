@@ -265,38 +265,18 @@ async def mcp_endpoint(
             detail="Access denied"
         )
     
-    # Process MCP request
-    if not mcp_server:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="MCP server not initialized"
-        )
-    
-    # Get user's JWT token for backend API
-    # In a real implementation, you'd generate a fresh token
-    # For now, we'll use a placeholder
-    user_token = "user-jwt-token-placeholder"
-    
-    # Temporarily set the token for this request
-    mcp_server.api_token = user_token
-    
-    try:
-        # Convert to MCP request format
-        if request.get("method") == "tools/list":
-            result = await mcp_server.handle_list_tools(request)
-        elif request.get("method") == "tools/call":
-            result = await mcp_server.handle_call_tool(request)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Unknown MCP method"
-            )
-        
-        return result.dict()
-    
-    finally:
-        # Clear token
-        mcp_server.api_token = None
+    # Build a per-request MCPServer using the client's token (backend validates it)
+    api_url = os.getenv("API_URL", "http://backend:8000/api")
+    per_request_server = MCPServer(api_url, client.token)
+
+    if request.get("method") == "tools/list":
+        return {"tools": _make_tool_list()}
+    elif request.get("method") == "tools/call":
+        params = request.get("params", {})
+        result = await per_request_server._dispatch(params.get("name", ""), params.get("arguments", {}))
+        return {"content": [{"type": c.type, "text": c.text} for c in result.content], "isError": result.isError}
+    else:
+        raise HTTPException(status_code=400, detail="Unknown MCP method")
 
 
 @app.get("/clients", response_model=List[MCPClientResponse])
@@ -1164,17 +1144,51 @@ async def sse_endpoint_alt(client_id: str, request: Request):
 
 
 # Message endpoint for MCP protocol
+def _make_tool_list() -> list[dict]:
+    """Return the canonical list of MCP tools."""
+    return [
+        {"name": "list_sites", "description": "List all sites for the authenticated user", "inputSchema": {"type": "object", "properties": {}}},
+        {"name": "create_site", "description": "Create a new site with name and slug", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["name", "slug"]}},
+        {"name": "get_site_info", "description": "Get detailed information about a site including pages and theme", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+        {"name": "describe_site", "description": "Get a full structured description of a site: theme, all pages, section types and their draft content", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+        {"name": "update_site", "description": "Update site name, slug, or theme", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id"]}},
+        {"name": "delete_site", "description": "Soft delete a site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+        {"name": "list_pages", "description": "List all pages for a site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+        {"name": "create_page", "description": "Create a new page on a site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "title", "slug"]}},
+        {"name": "update_page", "description": "Update page title, slug, or publish status", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "page_id"]}},
+        {"name": "delete_page", "description": "Soft delete a page", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}},
+        {"name": "publish_page", "description": "Publish all draft content on a page (makes changes live)", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}},
+        {"name": "get_page_content", "description": "Get content sections for a page (returns draft content)", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}},
+        {"name": "update_section", "description": "Create or update a content section by type. Pass structured JSON in the content field.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_type": {"type": "string"}, "content": {"type": "object"}, "order": {"type": "integer"}}, "required": ["site_id", "page_id", "section_type", "content"]}},
+        {"name": "generate_section", "description": "Generate a complete content section from a text description using AI defaults", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_type": {"type": "string"}, "description": {"type": "string"}}, "required": ["site_id", "page_id", "section_type", "description"]}},
+        {"name": "delete_section", "description": "Soft delete a content section by type", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_type": {"type": "string"}}, "required": ["site_id", "page_id", "section_type"]}},
+        {"name": "list_themes", "description": "List available themes", "inputSchema": {"type": "object", "properties": {}}},
+        {"name": "apply_theme", "description": "Apply a theme to a site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}},
+    ]
+
+
+async def _get_mcp_server_for_client(client_id: str) -> MCPServer:
+    """Look up MCP client by ID and return an MCPServer configured with its token."""
+    api_url = os.getenv("API_URL", "http://backend:8000/api")
+    async with get_db_session() as db:
+        result = await db.execute(select(MCPClient).where(MCPClient.id == client_id))
+        client = result.scalar_one_or_none()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        return MCPServer(api_url, client.token)
+
+
 @app.post("/sse/{client_id}/messages")
 async def mcp_messages(client_id: str, request: Request):
     """Handle MCP protocol messages"""
     body = await request.body()
     print(f"Received message for {client_id}: {body}")
-    
+
     # Parse the JSON-RPC message
     try:
         message = json.loads(body.decode())
         print(f"Parsed message: {message}")
-        
+
         # Handle initialization
         if message.get("method") == "initialize":
             response = {
@@ -1200,6 +1214,42 @@ async def mcp_messages(client_id: str, request: Request):
         
         # Handle list tools
         if message.get("method") == "tools/list":
+            tools = _make_tool_list()
+            return {
+                "jsonrpc": "2.0",
+                "id": message.get("id"),
+                "result": {"tools": tools},
+            }
+
+        # Handle tool calls — delegate to MCPServer._dispatch
+        if message.get("method") == "tools/call":
+            params = message.get("params", {})
+            tool_name = params.get("name", "")
+            tool_args = params.get("arguments", {})
+            try:
+                server = await _get_mcp_server_for_client(client_id)
+                result = await server._dispatch(tool_name, tool_args)
+                content = [{"type": c.type, "text": c.text} for c in result.content]
+                return {
+                    "jsonrpc": "2.0",
+                    "id": message.get("id"),
+                    "result": {"content": content, "isError": result.isError},
+                }
+            except HTTPException as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": message.get("id"),
+                    "error": {"code": -32000, "message": e.detail},
+                }
+            except Exception as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": message.get("id"),
+                    "error": {"code": -32000, "message": str(e)},
+                }
+
+        # DEAD CODE BELOW — replaced by _make_tool_list() above
+        if False and message.get("method") == "tools/list_DEAD":
             tools = [
                 {
                     "name": "list_sites",
@@ -1364,7 +1414,7 @@ async def mcp_messages(client_id: str, request: Request):
             }
             return response
         
-        # Handle other methods
+        # Default: empty result for unknown methods
         return {"jsonrpc": "2.0", "id": message.get("id"), "result": {}}
         
     except Exception as e:

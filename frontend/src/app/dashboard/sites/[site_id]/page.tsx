@@ -474,8 +474,12 @@ export default function SiteEditorPage({
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
-            <a href={`/${site.slug}`} target="_blank" rel="noopener noreferrer">
-              <Globe size={16} className="mr-2" /> Preview
+            <a
+              href={currentPage ? `/preview/${site_id}/${currentPage.id}` : `/${site.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Globe size={16} className="mr-2" /> Preview Draft
             </a>
           </Button>
           <Button
