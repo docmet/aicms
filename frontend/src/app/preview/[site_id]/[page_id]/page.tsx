@@ -83,11 +83,14 @@ export default function DraftPreviewPage({
   });
 
   // BroadcastChannel — instant updates from admin editor in same browser
-  // (faster than SSE through proxies like ngrok)
+  // (faster than SSE through proxies like ngrok; also carries theme changes)
   useEffect(() => {
     const ch = new BroadcastChannel(`preview-${page_id}`);
-    ch.onmessage = (e: MessageEvent<{ type: string; sections: ContentSection[] }>) => {
-      if (e.data.type === 'sections_updated') setSections(e.data.sections);
+    ch.onmessage = (e: MessageEvent<{ type: string; sections: ContentSection[]; theme: string }>) => {
+      if (e.data.type === 'preview_updated') {
+        setSections(e.data.sections);
+        if (e.data.theme) setSite((prev) => prev ? { ...prev, theme_slug_draft: e.data.theme } : prev);
+      }
     };
     return () => ch.close();
   }, [page_id]);

@@ -302,12 +302,18 @@ export default function SiteEditorPage({
   // BroadcastChannel is instant for same-origin tabs on the same device.
   const initialLoadDone = useRef(false);
   useEffect(() => { if (!loading) initialLoadDone.current = true; }, [loading]);
+
+  // Broadcast sections + theme to preview tab on every change
   useEffect(() => {
-    if (!initialLoadDone.current || !currentPage) return;
+    if (!initialLoadDone.current || !currentPage || !site) return;
     const ch = new BroadcastChannel(`preview-${currentPage.id}`);
-    ch.postMessage({ type: 'sections_updated', sections });
+    ch.postMessage({
+      type: 'preview_updated',
+      sections,
+      theme: site.theme_slug_draft ?? site.theme_slug,
+    });
     ch.close();
-  }, [sections, currentPage]);
+  }, [sections, currentPage, site]);
 
   // ── SSE: pick up MCP edits in real-time ──────────────────────────────────
   const handleSSESections = useCallback((updated: SSESection[]) => {
