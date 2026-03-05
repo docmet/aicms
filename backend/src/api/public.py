@@ -1,9 +1,13 @@
 """Public site API — no authentication required.
 
 GET /api/public/sites/{site_slug}
-  Returns the published content for the site's landing page.
-  Only content_published is served here; drafts are never exposed publicly.
-  Returns 404 if site not found; returns empty sections array if no published page exists.
+  Returns site metadata + all published pages (for nav) + sections of the
+  first published page (homepage). content_published only; drafts never exposed.
+
+GET /api/public/sites/{site_slug}/pages/{page_slug}
+  Returns sections for a specific published page by slug.
+
+Both return 404 if site/page not found or not published.
 """
 
 from typing import Any
@@ -20,36 +24,38 @@ from src.models.site import Site
 router = APIRouter()
 
 
-@router.get("/{site_slug}", response_model=dict[str, Any])
-async def get_public_site(
-    site_slug: str,
-    db: AsyncSession = Depends(get_db),
-) -> dict[str, Any]:
-    """Get published site data by slug. Serves content_published only."""
+def _sections_payload(sections: list[ContentSection]) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": str(s.id),
+            "section_type": s.section_type,
+            "content": s.content_published,
+        }
+        for s in sections
+    ]
+
+
+async def _get_site_or_404(site_slug: str, db: AsyncSession) -> Site:
     result = await db.execute(
         select(Site).where(Site.slug == site_slug, Site.is_deleted.is_(False))
     )
     site = result.scalar_one_or_none()
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
+    return site
 
-    # Get the first published page (lowest order)
-    page_result = await db.execute(
+
+async def _get_published_pages(site: Site, db: AsyncSession) -> list[Page]:
+    result = await db.execute(
         select(Page)
         .where(Page.site_id == site.id, Page.is_published, Page.is_deleted.is_(False))
         .order_by(Page.order)
-        .limit(1)
     )
-    page = page_result.scalar_one_or_none()
-    if not page:
-        return {
-            "name": site.name,
-            "theme_slug": site.theme_slug,
-            "sections": [],
-        }
+    return list(result.scalars().all())
 
-    # Serve only non-deleted sections that have published content
-    sections_result = await db.execute(
+
+async def _get_page_sections(page: Page, db: AsyncSession) -> list[ContentSection]:
+    result = await db.execute(
         select(ContentSection)
         .where(
             ContentSection.page_id == page.id,
@@ -58,18 +64,74 @@ async def get_public_site(
         )
         .order_by(ContentSection.order)
     )
-    sections = sections_result.scalars().all()
+    return list(result.scalars().all())
+
+
+def _nav_pages(pages: list[Page]) -> list[dict[str, str]]:
+    return [{"title": str(p.title), "slug": str(p.slug)} for p in pages]
+
+
+@router.get("/{site_slug}", response_model=dict[str, Any])
+async def get_public_site(
+    site_slug: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Returns site info + all published pages (for nav) + homepage sections."""
+    site = await _get_site_or_404(site_slug, db)
+    pages = await _get_published_pages(site, db)
+
+    if not pages:
+        return {
+            "name": site.name,
+            "theme_slug": site.theme_slug,
+            "pages": [],
+            "page_title": None,
+            "page_slug": None,
+            "sections": [],
+        }
+
+    homepage = pages[0]
+    sections = await _get_page_sections(homepage, db)
 
     return {
         "name": site.name,
         "theme_slug": site.theme_slug,
+        "pages": _nav_pages(pages),
+        "page_title": homepage.title,
+        "page_slug": homepage.slug,
+        "sections": _sections_payload(sections),
+    }
+
+
+@router.get("/{site_slug}/pages/{page_slug}", response_model=dict[str, Any])
+async def get_public_site_page(
+    site_slug: str,
+    page_slug: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Returns sections for a specific published page."""
+    site = await _get_site_or_404(site_slug, db)
+
+    page_result = await db.execute(
+        select(Page).where(
+            Page.site_id == site.id,
+            Page.slug == page_slug,
+            Page.is_published,
+            Page.is_deleted.is_(False),
+        )
+    )
+    page = page_result.scalar_one_or_none()
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    pages = await _get_published_pages(site, db)
+    sections = await _get_page_sections(page, db)
+
+    return {
+        "name": site.name,
+        "theme_slug": site.theme_slug,
+        "pages": _nav_pages(pages),
         "page_title": page.title,
-        "sections": [
-            {
-                "id": str(s.id),
-                "section_type": s.section_type,
-                "content": s.content_published,  # Always serve published content
-            }
-            for s in sections
-        ],
+        "page_slug": page.slug,
+        "sections": _sections_payload(sections),
     }
