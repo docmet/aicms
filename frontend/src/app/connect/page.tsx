@@ -72,10 +72,10 @@ function ConnectContent() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4">
-            <span className="text-white text-2xl font-bold">A</span>
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-violet-600 rounded-2xl mb-4">
+            <span className="text-white text-2xl font-bold">M</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">AI CMS</h1>
+          <h1 className="text-2xl font-bold text-gray-900">My<span className="text-violet-600">Storey</span></h1>
           <p className="text-gray-500 text-sm mt-1">
             {step === 'allow'
               ? 'An AI tool wants to connect to your account'
@@ -100,7 +100,7 @@ function ConnectContent() {
                   autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   placeholder="you@example.com"
                 />
               </div>
@@ -111,14 +111,14 @@ function ConnectContent() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
               </div>
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
+                className="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Signing in…' : 'Continue'}
               </button>
@@ -138,7 +138,7 @@ function ConnectContent() {
                   'Publish changes on your behalf',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2">
-                    <svg className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <svg className="w-4 h-4 text-violet-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                     {item}
@@ -163,7 +163,7 @@ function ConnectContent() {
               <button
                 onClick={handleAllow}
                 disabled={submitting}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
+                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Connecting…' : 'Allow'}
               </button>
@@ -191,7 +191,7 @@ function ConnectContent() {
         {/* Loading */}
         {step === 'loading' && (
           <div className="bg-white rounded-2xl shadow-sm border p-6 flex justify-center">
-            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
