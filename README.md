@@ -1,258 +1,284 @@
 # AI CMS
 
-A modern website engine with user registration, landing pages with switchable themes, content editing through web admin UI, and full MCP (Model Context Protocol) server integration for AI tools like Claude, ChatGPT, and Cursor.
+A multi-tenant website platform where non-technical users build and edit their sites
+by talking to their own AI tools — Claude, ChatGPT, Perplexity, or any MCP-compatible assistant.
 
-## 🎯 Project Overview
+**Core idea:** You already pay for Claude or ChatGPT. Connect it once to your site, then just
+talk to it to update your content. No technical knowledge needed. No extra AI costs on our end.
 
-AI CMS is a multi-tenant content management system that allows users to create and manage their own websites through both a web interface and AI assistants via MCP. Features include multiple pages per site, theme switching, content section management, and complete AI tool integration.
+---
 
-### Key Features
+## How It Works
 
-- ✅ User registration and authentication (JWT)
-- ✅ Multi-tenant architecture (each user manages their own sites)
-- ✅ Multiple pages per site with content sections
-- ✅ 5 switchable TailwindCSS themes (default, warm, nature, dark, minimal)
-- ✅ Content editing with section templates (hero, body, features, cta, footer)
-- ✅ Web admin dashboard for site/page/content management
-- ✅ Public site rendering with theme support
-- ✅ **Full MCP server for AI tool integration** (Claude, ChatGPT, Cursor)
-- ✅ **13 MCP tools for complete CMS control via AI**
-- ✅ Instant save (Mac-style) across all fields
+1. **Sign up** — create your account, get a free site at `[yourname].aicms.docmet.systems`
+2. **Connect your AI** — paste the MCP config into Claude Desktop, ChatGPT, or any AI tool
+3. **Talk to edit** — ask your AI "update my hero headline to say X" and it happens live
 
-### MCP Tools Available
+The AI talks to our MCP server, which updates your site. You preview changes in real-time
+before publishing. Your site is public, SEO-optimized, and looks great out of the box.
 
-The MCP server exposes these tools to AI assistants:
+---
 
-**Site Management:**
-- `list_sites` - List all your sites with UUIDs
-- `create_site` - Create new site (name, slug, theme)
-- `get_site_info` - Get site details including pages
-- `update_site` - Update site name/slug/theme
-- `delete_site` - Delete a site
+## Features
 
-**Page Management:**
-- `list_pages` - List pages for a site
-- `create_page` - Create new page (title, slug, published)
-- `get_page_content` - Get content sections
-- `update_page` - Update page metadata
-- `delete_page` - Delete a page
+### For Users
+- Beautiful, responsive site templates (Framer-level quality)
+- 5 themes: Modern, Startup, Warm, Minimal, Dark
+- Multiple pages per site
+- Draft → preview → publish workflow with rollback (last 5 versions)
+- Real-time preview: see changes as your AI edits them (SSE push, no polling)
+- Instant save in web admin dashboard
+- SEO-optimized: meta tags, OG tags, JSON-LD structured data, semantic HTML
 
-**Content & Themes:**
-- `update_page_content` - Add/update content sections (hero, body, features, cta, footer)
-- `list_themes` - List available themes
-- `apply_theme` - Change site theme
+### AI Integration (MCP)
+Connect any MCP-compatible AI tool. Full list of tools available:
 
-### Future Features
+**Site Management:** `list_sites`, `create_site`, `get_site_info`, `update_site`, `delete_site`, `restore_site`
 
-- 🔄 Blog system with rich text editor
-- 🔄 Multilanguage support with AI translation
-- 🔄 AI image generation
-- 🔄 Custom domain support
-- 🔄 Advanced analytics
+**Page Management:** `list_pages`, `create_page`, `get_page_content`, `update_page`, `delete_page`, `restore_page`
 
-## 🏗️ Tech Stack
+**Content:** `update_page_content`, `delete_section`, `restore_section`, `reorder_sections`, `set_section_order`
+
+**Themes:** `list_themes`, `apply_theme`
+
+**AI-Friendly Tools:** `describe_site` (full narrative in 1 call), `generate_section` (scaffold JSON for AI to fill), `smart_find` (find by name, not UUID), `publish_page`, `get_versions`, `revert_to_version`
+
+### Admin (Platform Owner)
+- User management: list, suspend, tier management
+- Impersonation: see exactly what any user sees for support
+- Platform stats dashboard
+- Audit log for all admin actions
+
+---
+
+## Content Section Types
+
+Each page is built from sections. Sections store structured JSON content:
+
+| Type | Fields |
+|------|--------|
+| `hero` | headline, subheadline, badge, cta_primary, cta_secondary |
+| `features` | headline, subheadline, items (icon, title, description) |
+| `testimonials` | headline, items (quote, name, role, company) |
+| `about` | headline, body, stats (number, label) |
+| `contact` | headline, email, phone, address, hours |
+| `cta` | headline, subheadline, button_label, button_href |
+| `pricing` | headline, plans (name, price, features, cta) |
+| `custom` | title, content — fallback for any type AI invents |
+
+See [docs/content-schema.md](docs/content-schema.md) for complete JSON schemas.
+
+---
+
+## Tech Stack
 
 ### Frontend
-- **Next.js 15+** with App Router
-- **TypeScript** with strict mode
-- **TailwindCSS** for styling
-- **shadcn/ui** for UI components
-- **pnpm** for package management
+- **Next.js 15+** with App Router (SSR for public sites)
+- **TypeScript** strict mode
+- **TailwindCSS** + CSS variables for theming
+- **shadcn/ui** components
+- **pnpm** package manager
 
 ### Backend
 - **Python 3.13+** with FastAPI
-- **SQLAlchemy** (async) for ORM
-- **PostgreSQL** database
-- **JWT** for authentication
-- **uv** for package management
+- **SQLAlchemy** async ORM
+- **PostgreSQL 16**
+- **Alembic** migrations
+- **uv** package manager
+
+### MCP Server
+- FastAPI-based MCP server
+- HTTP + SSE transport
+- Token-based auth (one token per connected AI tool)
 
 ### Infrastructure
-- **Docker** containers
-- **Docker Compose** for local development
-- **GitHub Actions** for CI/CD
-- **Coolify** for deployment on Hetzner
-- **cli.sh** for development operations
+- Docker Compose (dev + production)
+- Nginx reverse proxy
+- GitHub Actions CI/CD
+- Coolify on Hetzner for deployment
+- `./cli.sh` — unified development CLI
 
-## 📁 Project Structure
+---
 
-```
-mcp_cms/
-├── cli.sh                    # Main development CLI
-├── docker-compose.yml        # Production compose
-├── docker-compose.dev.yml    # Development compose
-├── env.example              # Environment template
-├── .env                     # Local environment (gitignored)
-├── .githooks/               # Git hooks
-│   └── pre-commit          # Format, lint, test
-├── frontend/                # Next.js frontend
-│   ├── src/
-│   │   ├── app/            # App Router pages
-│   │   ├── components/     # React components
-│   │   ├── lib/           # Utilities
-│   │   └── styles/        # Global styles
-│   ├── package.json
-│   └── Dockerfile
-├── backend/                 # Python FastAPI backend
-│   ├── src/
-│   │   ├── main.py        # FastAPI app
-│   │   ├── config.py      # Settings
-│   │   ├── database.py    # SQLAlchemy setup
-│   │   ├── models/        # SQLAlchemy models
-│   │   ├── schemas/       # Pydantic schemas
-│   │   ├── api/           # API routes
-│   │   ├── services/      # Business logic
-│   │   └── tests/         # Tests
-│   ├── pyproject.toml
-│   └── Dockerfile
-├── mcp_server/              # MCP server for AI tools
-│   ├── src/
-│   │   ├── main.py         # FastAPI with SSE transport
-│   │   ├── aicms_mcp_server/
-│   │   │   └── server.py   # MCP server implementation
-│   │   └── models.py       # MCP client model
-│   ├── pyproject.toml
-│   └── Dockerfile
-├── nginx/                   # Nginx reverse proxy config
-├── .github/
-│   └── workflows/
-│       └── deploy.yml     # CI/CD + Coolify webhook
-├── docs/                   # Documentation
-├── README.md
-└── ROADMAP.md
-```
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Node.js 22+
-- Python 3.13+
-- pnpm
-- uv
+```bash
+# Docker
+brew install docker
+
+# Node.js 22+
+brew install node@22
+npm install -g pnpm
+
+# Python 3.13+
+brew install python@3.13
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# GitHub CLI (optional)
+brew install gh
+```
 
 ### Quick Start
 
-1. Clone the repository:
 ```bash
 git clone git@github.com:docmet/aicms.git
 cd aicms
+./cli.sh init    # sets up .env, git hooks, deps, DB
+./cli.sh start   # starts all 5 services
 ```
 
-2. Initialize the environment:
-```bash
-./cli.sh init
-```
+Access:
+- **Frontend:** http://localhost:3000
+- **Admin:** http://localhost:3000/dashboard
+- **Backend API:** http://localhost:8000/docs
+- **MCP Server:** http://localhost:8001
 
-3. Start the development stack:
-```bash
-./cli.sh start
-```
+### Test Credentials
 
-4. Access the application:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- Admin Dashboard: http://localhost:3000/dashboard
-- Help/Setup: http://localhost:3000/dashboard/help
+| User | Email | Password | Role |
+|------|-------|----------|------|
+| Admin | norbi@docmet.com | password123 | Admin + client |
+| Client | client@docmet.com | password123 | Regular user |
 
-### Quick Start with MCP Server
+### Mobile Testing via ngrok
 
-1. Start the stack:
-```bash
-./cli.sh start
-```
-
-2. Go to AI Tools in dashboard: http://localhost:3000/dashboard/mcp
-
-3. Register your AI tool (Claude, ChatGPT, or Cursor)
-
-4. Copy the configuration and follow the setup instructions
-
-The MCP server runs automatically at http://localhost:8001
-
-### Development Commands
+To test from a mobile device (including Claude mobile app):
 
 ```bash
-./cli.sh init          # Initialize environment
-./cli.sh start         # Start all services
-./cli.sh stop          # Stop all services
-./cli.sh restart       # Restart services
-./cli.sh lint          # Run linters
-./cli.sh format        # Format code
-./cli.sh test          # Run tests
-./cli.sh typecheck     # Type check
-./cli.sh db:migrate    # Run database migrations
-./cli.sh db:seed       # Seed database
-./cli.sh db:reset      # Reset database
-./cli.sh verify        # Verify tools installed
-./cli.sh clean         # Clean everything
-./cli.sh mcp:install   # Install MCP server
-./cli.sh mcp:run       # Run MCP server (requires token)
+# In a separate terminal, after ./cli.sh start
+ngrok http 80
+# Use the https://xxxx.ngrok.io URL in Claude mobile app MCP config
 ```
 
-## 📚 Documentation
+### Connect Claude Desktop
 
-- [Implementation Plan](PLAN.md) - Detailed implementation plan
-- [Roadmap](ROADMAP.md) - Future features and timeline
-- [Development Guide](docs/development.md) - Development setup and workflows
-- [API Documentation](docs/api.md) - Backend API reference
-- [MCP Server Guide](mcp_server/README.md) - MCP server setup and usage
-- [Deployment Guide](docs/deployment.md) - Deployment instructions
+1. Go to http://localhost:3000/dashboard/mcp
+2. Register a new AI tool (Claude Desktop)
+3. Copy the generated config
+4. Paste into `~/Library/Application Support/Claude/claude_desktop_config.json`
+5. Restart Claude Desktop
 
-## 🔐 Seed Data
+See [docs/ai-platforms.md](docs/ai-platforms.md) for all platform setup guides.
 
-The application comes with seed data for testing:
+---
 
-### Users
-- **Admin**: norbi@docmet.com / password123
-- **Client**: client@docmet.com / password123
+## Development Commands
 
-### Themes
-- default (Blue/gray)
-- warm (Orange/warm gray)
-- nature (Green/earth tones)
-- dark (Dark mode)
-- minimal (Black/white)
+```bash
+./cli.sh start            # Start all services
+./cli.sh stop             # Stop all services
+./cli.sh restart          # Restart all services
+./cli.sh lint             # Run all linters
+./cli.sh format           # Format all code
+./cli.sh test             # Run all tests
+./cli.sh typecheck        # Type check
+./cli.sh db:migrate       # Run migrations
+./cli.sh db:seed          # Seed database
+./cli.sh db:reset         # Wipe + migrate + seed
+./cli.sh logs             # View all service logs
+./cli.sh mcp:run          # Run MCP server manually
+./cli.sh verify           # Check all tools installed
+./cli.sh help             # Full command reference
+```
 
-## 🌐 Deployment
+### Claude Code Skills (slash commands)
 
-### Local Development
-Access user sites via: `http://localhost:3000/[site_slug]`
+```
+/check-stack      Check Docker services health
+/db-reset         Reset and reseed the database
+/test-mcp         Test all MCP tools via curl
+/new-section-type Guide to add a new section type end-to-end
+/deploy-check     Check CI status and staging health
+/seed-demo        Reseed with rich structured demo content
+```
+
+---
+
+## Project Structure
+
+```
+mcp_cms/
+├── cli.sh                    # Development CLI (30+ commands)
+├── docker-compose.yml        # Production Docker Compose
+├── docker-compose.dev.yml    # Dev (5 services: nginx, frontend, backend, mcp_server, postgres)
+├── env.example              # Environment template
+├── lefthook.yml             # Git hooks config (lint+typecheck+test on commit)
+├── frontend/                # Next.js 15+ application
+│   └── src/
+│       ├── app/
+│       │   ├── (public)/    # Landing page, login, register
+│       │   ├── (dashboard)/ # Admin dashboard (auth required)
+│       │   └── [site_slug]/ # Public site renderer (SSR, no auth)
+│       ├── components/
+│       │   ├── sections/    # Public site section components (Hero, Features, etc.)
+│       │   ├── admin/       # Dashboard components
+│       │   └── ui/          # shadcn/ui primitives
+│       └── styles/          # Themes (CSS variables)
+├── backend/                 # Python FastAPI
+│   └── src/
+│       ├── models/          # User, Site, Page, ContentSection, PageVersion, MCPClient
+│       ├── schemas/         # Pydantic schemas + content section schemas
+│       ├── api/             # Routes: auth, sites, pages, content, themes, mcp, admin
+│       └── tests/           # Unit + integration tests
+├── mcp_server/              # MCP server (FastAPI + SSE)
+│   └── src/
+│       └── aicms_mcp_server/server.py  # All MCP tool implementations
+├── nginx/                   # Reverse proxy config + security headers
+├── docs/                    # Documentation
+│   ├── development.md       # Dev setup and workflows
+│   ├── deployment.md        # Staging + production deployment
+│   ├── mcp-integration.md   # MCP tools reference
+│   ├── content-schema.md    # Content JSON schemas reference
+│   ├── versioning.md        # Draft/preview/publish/rollback system
+│   ├── admin.md             # Admin features and impersonation
+│   ├── security.md          # Security principles and implementation
+│   └── ai-platforms.md      # Platform-specific setup guides
+└── .github/
+    └── workflows/
+        └── deploy.yml       # CI (lint+typecheck+test) + deploy to staging
+```
+
+---
+
+## Deployment
 
 ### Staging
-- Domain: aicms.docmet.systems
-- User sites: [site_slug].aicms.docmet.systems
+- Domain: `aicms.docmet.systems`
+- User sites: `[site-slug].aicms.docmet.systems`
 - Platform: Coolify on Hetzner
+- Auto-deploys on push to `main` after CI passes
 
-### Production (Future)
-- Custom domains for user sites
+### Production (future)
+- Custom domains per user site
 - CDN integration
-- Advanced monitoring
+- See [docs/deployment.md](docs/deployment.md)
 
-## 🤝 Contributing
+---
 
-This project uses conventional commits with scopes:
+## Pricing (Freemium)
 
-- `feat(frontend): add login page`
-- `feat(backend): implement user registration`
-- `fix(backend): resolve auth token issue`
-- `refactor(frontend): simplify theme switcher`
-- `test(backend): add integration tests`
-- `docs(readme): update deployment instructions`
-- `chore(infra): update Docker images`
+| Plan | Sites | Domain | Pages | Versions |
+|------|-------|--------|-------|---------|
+| Free | 1 | subdomain only | 5/site | 1 (previous) |
+| Pro | Unlimited | Custom domain | Unlimited | Last 5 |
 
-## 📄 License
+---
 
-MIT License - see LICENSE file for details
+## Documentation
 
-## 🙏 Acknowledgments
+- [Development Guide](docs/development.md) — setup, workflows, conventions
+- [Content Schema](docs/content-schema.md) — all section type JSON schemas
+- [Versioning](docs/versioning.md) — draft/preview/publish/rollback
+- [MCP Integration](docs/mcp-integration.md) — all MCP tools reference
+- [AI Platforms](docs/ai-platforms.md) — Claude, ChatGPT, Perplexity setup
+- [Admin Guide](docs/admin.md) — admin features, impersonation
+- [Security](docs/security.md) — security model and practices
+- [Deployment](docs/deployment.md) — staging and production
 
-Built following the established patterns from:
-- gizike project (cli.sh, Docker, Coolify)
-- reseller project (Next.js + FastAPI architecture)
-- bkk-mcp-server (MCP server patterns)
+---
 
-## 📞 Contact
+## License
 
-- Project: https://github.com/docmet/aicms
-- Issues: https://github.com/docmet/aicms/issues
+MIT — see [LICENSE](LICENSE)

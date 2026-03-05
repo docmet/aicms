@@ -1,235 +1,299 @@
 # MCP Integration Guide
 
-AI CMS supports the Model Context Protocol (MCP) for integration with AI assistants like Claude, ChatGPT, and Cursor.
+The AI CMS exposes a Model Context Protocol (MCP) server that allows any MCP-compatible
+AI tool to manage your website content. Connect Claude, ChatGPT, Perplexity, or any
+MCP-capable assistant and talk to it to edit your site.
 
-## Overview
-
-The MCP server provides a standardized way for AI tools to interact with your CMS. It uses HTTP+SSE transport and implements OAuth 2.0 authentication.
+---
 
 ## Architecture
 
 ```
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│   Claude    │──────▶│   MCP Proxy │──────▶│   MCP Server│
-│   Desktop   │  OAuth│   (Nginx)   │  HTTP │   (FastAPI) │
-└─────────────┘      └─────────────┘      └──────┬──────┘
-                                                   │
-                                                   │ HTTP
-                                                   ▼
-                                            ┌─────────────┐
-                                            │   Backend   │
-                                            │   (FastAPI) │
-                                            └──────┬──────┘
-                                                   │
-                                                   │ SQL
-                                                   ▼
-                                            ┌─────────────┐
-                                            │  PostgreSQL │
-                                            └─────────────┘
+AI Tool (Claude / ChatGPT / etc.)
+         ↓  MCP protocol (HTTP + SSE)
+    Nginx Reverse Proxy (:80)
+         ↓
+    MCP Server (FastAPI, :8001)
+         ↓  HTTP + Bearer token
+    Backend API (FastAPI, :8000)
+         ↓  SQLAlchemy async
+    PostgreSQL (:5432)
 ```
 
-## Available MCP Tools
+The MCP server is a thin adapter — it translates MCP tool calls into backend API requests
+and returns human-readable responses the AI can understand and act on.
 
-### Site Management
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `list_sites` | List all sites with UUIDs | None |
-| `create_site` | Create a new site | `name`, `slug`, `theme_slug` (optional) |
-| `get_site_info` | Get site details and pages | `site_id` (UUID or slug) |
-| `update_site` | Update site properties | `site_id`, `name` (optional), `slug` (optional), `theme_slug` (optional) |
-| `delete_site` | Delete a site | `site_id` (UUID or slug) |
-
-### Page Management
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `list_pages` | List pages for a site | `site_id` (UUID) |
-| `create_page` | Create a new page | `site_id`, `title`, `slug`, `is_published` (optional) |
-| `get_page_content` | Get content sections | `page_id` (UUID or slug) |
-| `update_page` | Update page metadata | `page_id`, `title` (optional), `slug` (optional), `is_published` (optional) |
-| `delete_page` | Delete a page | `page_id` (UUID or slug) |
-
-### Content & Themes
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `update_page_content` | Add/update content section | `page_id`, `section_type`, `content` |
-| `list_themes` | List available themes | None |
-| `apply_theme` | Change site theme | `site_id`, `theme_slug` |
-
-## Section Types
-
-When using `update_page_content`, you can use these section types:
-
-- `hero` - Header/hero section with title and subtitle
-- `body` - Main content body text
-- `features` - Features list with bullet points
-- `cta` - Call-to-action section
-- `footer` - Footer content
+---
 
 ## Authentication
 
-### OAuth 2.0 Flow
+Each AI tool connection gets a unique token:
 
-1. User initiates connection from Claude Desktop
-2. MCP server redirects to authorization endpoint
-3. User authenticates with AI CMS credentials
-4. MCP server issues access token
-5. Claude Desktop uses token for API calls
+1. Log in to the admin dashboard
+2. Go to **AI Tools** (`/dashboard/mcp`)
+3. Click **Register new AI tool**
+4. Choose your AI platform
+5. Copy the generated token and server URL
 
-### Configuration
+Tokens are scoped to your user account. Register multiple tokens (one per AI app).
+Deleting a client immediately revokes its token.
 
-Add this to your Claude Desktop configuration:
+---
+
+## Quick Setup: Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "aicms": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-proxy"],
-      "env": {
-        "SERVER_URL": "https://your-domain.com/sse/YOUR-CLIENT-ID",
-        "CLIENT_ID": "aicms-client",
-        "AUTHORIZATION_TOKEN": "your-token-here"
+      "url": "http://localhost:8001/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_MCP_TOKEN"
       }
     }
   }
 }
 ```
 
-## Usage Examples
+Restart Claude Desktop. See [docs/ai-platforms.md](ai-platforms.md) for all platforms.
 
-### Creating a Site
+---
+
+## All MCP Tools
+
+### Site Management
+
+| Tool | Description | Key Arguments |
+|------|-------------|---------------|
+| `list_sites` | List all your sites | — |
+| `create_site` | Create a new site | `name`, `slug`, `theme_slug` |
+| `get_site_info` | Get site details + pages | `site_id` |
+| `update_site` | Update name/slug/theme | `site_id`, `name?`, `slug?`, `theme_slug?` |
+| `delete_site` | Soft delete a site | `site_id` |
+| `restore_site` | Restore a deleted site | `site_id` |
+
+### Page Management
+
+| Tool | Description | Key Arguments |
+|------|-------------|---------------|
+| `list_pages` | List pages for a site | `site_id` |
+| `create_page` | Create a new page | `site_id`, `title`, `slug`, `is_published?` |
+| `get_page_content` | Get content sections | `site_id`, `page_id` |
+| `update_page` | Update page metadata | `page_id`, `title?`, `slug?`, `is_published?` |
+| `delete_page` | Soft delete a page | `page_id` |
+| `restore_page` | Restore a deleted page | `page_id` |
+
+### Content Editing
+
+| Tool | Description | Key Arguments |
+|------|-------------|---------------|
+| `update_page_content` | Create/update a section | `site_id`, `page_id`, `section_type`, `content` (JSON) |
+| `delete_section` | Soft delete a section | `site_id`, `page_id`, `section_type` |
+| `restore_section` | Restore a deleted section | `site_id`, `page_id`, `section_type` |
+| `reorder_sections` | Swap two sections | `site_id`, `page_id`, `section_id_1`, `section_id_2` |
+| `set_section_order` | Set absolute section order | `site_id`, `page_id`, `section_order` (array of types) |
+
+### Publishing & Versions
+
+| Tool | Description | Key Arguments |
+|------|-------------|---------------|
+| `publish_page` | Publish draft → live | `site_id`, `page_id` |
+| `get_versions` | List saved versions | `site_id`, `page_id` |
+| `revert_to_version` | Revert draft to version | `site_id`, `page_id`, `version_id` |
+
+### Themes
+
+| Tool | Description | Key Arguments |
+|------|-------------|---------------|
+| `list_themes` | List available themes | — |
+| `apply_theme` | Change site theme | `site_id`, `theme_slug` |
+
+### AI Helper Tools
+
+| Tool | Description | Key Arguments |
+|------|-------------|---------------|
+| `describe_site` | Full narrative of site content | `site_id` |
+| `generate_section` | Pre-filled template for a section | `site_id`, `page_id`, `section_type`, `description` |
+| `smart_find` | Find site/page by name, not UUID | `query`, `type?` |
+
+---
+
+## Content Format
+
+`update_page_content` expects structured JSON matching the section type schema.
+
+**All edits go to `content_draft`.** Call `publish_page` to push to live.
+
+### `hero`
+```json
+{
+  "headline": "Welcome to Bloom Florist",
+  "subheadline": "Fresh flowers for every occasion, delivered same-day.",
+  "badge": "Now open on Sundays",
+  "cta_primary": {"label": "Order now", "href": "#contact"},
+  "cta_secondary": {"label": "See our work", "href": "#gallery"}
+}
+```
+
+### `features`
+```json
+{
+  "headline": "Why choose us",
+  "items": [
+    {"icon": "🌸", "title": "Daily fresh", "description": "Sourced from local growers every morning."},
+    {"icon": "🚚", "title": "Same-day delivery", "description": "Order by 2pm for same-day delivery."},
+    {"icon": "💝", "title": "Custom arrangements", "description": "Tell us your vision."}
+  ]
+}
+```
+
+### `testimonials`
+```json
+{
+  "headline": "What our customers say",
+  "items": [
+    {"quote": "Best flower shop in the city!", "name": "Sarah M.", "role": "Regular customer"}
+  ]
+}
+```
+
+### `about`
+```json
+{
+  "headline": "Our story",
+  "body": "We've been bringing beauty into homes since 2010...",
+  "stats": [
+    {"number": "10+", "label": "Years open"},
+    {"number": "500+", "label": "Happy customers"}
+  ]
+}
+```
+
+### `contact`
+```json
+{
+  "headline": "Visit us",
+  "email": "hello@bloom.hu",
+  "phone": "+36 1 234 5678",
+  "address": "Váci utca 15, Budapest",
+  "hours": "Mon-Sat: 8am-7pm"
+}
+```
+
+### `cta`
+```json
+{
+  "headline": "Ready to order?",
+  "subheadline": "Free delivery on orders over 5000 HUF.",
+  "button_label": "Order now",
+  "button_href": "#contact"
+}
+```
+
+### `custom` (fallback for any unknown type)
+```json
+{
+  "title": "Awards",
+  "content": "Winner of Budapest Best Florist 2024..."
+}
+```
+
+See [docs/content-schema.md](content-schema.md) for the complete schema reference.
+
+---
+
+## Typical AI Workflow
+
+### Build a new site from scratch
 
 ```
-You: Create a new site called "My Blog" with slug "my-blog" and theme "nature"
-
-Claude: I'll create that site for you.
-
-Create site
-Name: My Blog
-Slug: my-blog
-Theme: nature
-
-Result: Site 'My Blog' created successfully with slug 'my-blog' (ID: a5fb23e6-bfba-4d53-8945-428c50e7be7e)
+1. smart_find("bloom florist") → check if exists
+2. create_site("Bloom Florist", "bloom-florist", "warm")
+3. create_page(site_id, "Home", "home")
+4. generate_section(site_id, page_id, "hero", "flower shop in Budapest")
+5. update_page_content(site_id, page_id, "hero", {...tailored content...})
+6. update_page_content(site_id, page_id, "features", {...})
+7. update_page_content(site_id, page_id, "contact", {...})
+8. publish_page(site_id, page_id)
 ```
 
-### Adding Content
+### Update existing content
 
 ```
-You: Add a hero section to the home page saying "Welcome to My Blog"
-
-Claude: I'll update the home page content.
-
-Update page content
-Page: home
-Section: hero
-Content: Welcome to My Blog
-
-Result: Created hero section with content
+1. describe_site(site_id)      ← understand what currently exists
+2. update_page_content(...)    ← update drafts
+3. publish_page(site_id, page_id)
 ```
 
-### Soft Delete and Restore
-
-All delete operations in AI CMS use **soft delete**, meaning items are marked as deleted but can be restored later.
-
-**Deleting a section:**
-```
-You: Delete the "oasis" section from my home page
-
-Claude: I'll delete that section for you.
-
-Delete section
-Page: home
-Section Type: oasis
-
-Result: Section 'oasis' soft deleted successfully
-```
-
-**Restoring a deleted section:**
-```
-You: Restore the "oasis" section I just deleted
-
-Claude: I'll restore that section for you.
-
-Restore section
-Page: home
-Section Type: oasis
-
-Result: Section 'oasis' restored successfully
-```
-
-**Available restore tools:**
-- `restore_site` - Restore a deleted site
-- `restore_page` - Restore a deleted page  
-- `restore_section` - Restore a deleted content section
-
-### Listing Sites
+### Rollback after a mistake
 
 ```
-You: Show me all my sites
-
-Claude: Here are your sites:
-
-- My Blog (slug: my-blog, theme: nature, ID: a5fb23e6-bfba-4d53-8945-428c50e7be7e)
-- Demo Site (slug: demo-site, theme: warm, ID: 3644ac4e-7baa-454b-8350-6dfb558e24ec)
+1. get_versions(site_id, page_id)
+2. revert_to_version(site_id, page_id, version_id)
+3. describe_site(site_id)      ← confirm it looks right
+4. publish_page(site_id, page_id)
 ```
 
-## Development
+---
 
-### Testing MCP Locally
+## Real-Time Preview
 
-1. Start the development stack:
-   ```bash
-   ./cli.sh start
-   ```
+When the admin editor is open in the browser, it connects to an SSE stream.
+Any `update_page_content` call instantly pushes the draft change to the preview pane.
+The user can watch changes happen in real-time as the AI edits.
 
-2. Register an MCP client:
-   ```bash
-   curl -X POST http://localhost/api/mcp/register \
-     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "Claude Test", "tool_type": "claude"}'
-   ```
+The preview always shows `content_draft`. The public site always shows `content_published`.
 
-3. Test tools via curl:
-   ```bash
-   curl -X POST http://localhost/sse/YOUR-CLIENT-ID \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR-TOKEN" \
-     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
-   ```
+---
 
-### MCP Server Logs
+## Soft Delete
+
+All delete operations use soft delete — items are marked deleted but recoverable.
+
+```
+delete_site / restore_site
+delete_page / restore_page
+delete_section / restore_section
+```
+
+---
+
+## Error Reference
+
+| Error message | Meaning / Fix |
+|--------------|---------------|
+| `Site not found` | Wrong site_id or not owned by your account |
+| `Page not found` | Wrong page_id, or wrong site_id provided |
+| `Invalid JSON for section type 'hero'` | Schema validation failed, check required fields |
+| `Section 'hero' already exists` | Use `update_page_content` — it creates or updates |
+| `Authentication failed` | Token expired or revoked, get a new one |
+
+---
+
+## Development & Testing
 
 ```bash
-./cli.sh logs:mcp-server
+# Start all services
+./cli.sh start
+
+# Quick test via Claude Code skill
+/test-mcp
+
+# Manual curl test
+TOKEN=$(curl -s -X POST http://localhost/api/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=client@docmet.com&password=password123" | jq -r .access_token)
+
+MCP_TOKEN=$(curl -s -X POST http://localhost/api/mcp/register \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","tool_type":"custom"}' | jq -r .token)
+
+# List sites
+curl -X POST http://localhost:8001/tools/call \
+  -H "Authorization: Bearer $MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"list_sites","arguments":{}}'
 ```
-
-## Troubleshooting
-
-### Connection Issues
-
-- Verify ngrok is running and the URL is correct
-- Check nginx configuration forwards headers properly
-- Ensure MCP server container is healthy
-
-### Authentication Errors
-
-- Verify the MCP client token is valid
-- Check token hasn't expired
-- Ensure user exists in database
-
-### Tool Execution Failures
-
-- Check backend logs for API errors
-- Verify site/page UUIDs are correct
-- Ensure user has permission to modify resources
-
-## Security
-
-- All MCP connections use HTTPS in production
-- OAuth 2.0 tokens expire after 24 hours
-- MCP clients are tied to specific users
-- All API calls validate user permissions

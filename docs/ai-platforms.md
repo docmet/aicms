@@ -1,80 +1,180 @@
-# AI Platform Integration Options
+# AI Platform Setup Guides
 
-## Supported Platforms
+Connect any MCP-compatible AI assistant to your AI CMS site.
+Get your MCP token from the **AI Tools** section of the dashboard (`/dashboard/mcp`).
 
-### 1. Claude Desktop 🤖
-- **Integration**: Native MCP support
-- **Setup**: Settings → Developer → Add Server
-- **Connection Type**: MCP Server
-- **Status**: ✅ Fully supported
+---
 
-### 2. ChatGPT 💬
-- **Integration**: MCP plugin or custom integration
-- **Setup**: 
-  - Option A: Use MCP plugin (if available)
-  - Option B: Custom API integration
-- **Connection Type**: MCP Server / API
-- **Status**: ✅ Supported (requires plugin)
+## Prerequisites
 
-### 3. Cursor 👆
-- **Integration**: Built-in MCP support
-- **Setup**: Settings → MCP Servers → Add Server
-- **Connection Type**: MCP Server
-- **Status**: ✅ Fully supported
+- Stack running: `./cli.sh start`
+- MCP token from `/dashboard/mcp`
+- MCP Server URL: `http://localhost:8001` (dev) or `https://aicms.docmet.systems/mcp` (prod)
 
-### 4. Perplexity 🔍
-- **Integration**: API integration
-- **Setup**: Settings → API Integrations → Add Custom
-- **Connection Type**: REST API
-- **Status**: ✅ Supported (API endpoint)
+---
 
-### 5. Custom Tools 🔧
-- **Integration**: Any MCP-compatible tool
-- **Setup**: Use provided server URL and token
-- **Connection Type**: MCP Server
-- **Status**: ✅ Flexible integration
+## Claude Desktop
 
-## Connection Methods
+**Best experience — native MCP support.**
 
-### MCP Server (Recommended)
-- **Platforms**: Claude, Cursor, ChatGPT (with plugin), Custom
-- **Protocol**: HTTP + Server-Sent Events (SSE)
-- **Authentication**: Token-based
-- **Endpoint**: `/sse/{client_id}`
+### Setup
 
-### REST API
-- **Platforms**: Perplexity, Custom tools
-- **Protocol**: HTTP REST
-- **Authentication**: Bearer token
-- **Endpoint**: `/api/mcp/{client_id}`
+1. Open (or create): `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-## Implementation Notes
-
-1. **Single Server**: All platforms connect to the same MCP server
-2. **Unique Tokens**: Each platform gets its own authentication token
-3. **Automatic Generation**: Server URLs and tokens are generated automatically
-4. **No Configuration**: Users just need to click "Connect" and copy parameters
-
-## Future Expansions
-
-Potential platforms to add:
-- **GitHub Copilot** - MCP support in development
-- **Replit AI** - Custom integration possible
-- **Codeium** - API-based integration
-- **Tabnine** - Plugin-based integration
-- **Sourcegraph Cody** - MCP support planned
-
-## Technical Architecture
-
+```json
+{
+  "mcpServers": {
+    "aicms": {
+      "url": "http://localhost:8001/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_MCP_TOKEN"
+      }
+    }
+  }
+}
 ```
-AI CMS Frontend
-    ↓
-MCP Server (Single instance)
-    ↓
-Multiple AI Platforms
-  ├─ Claude Desktop (MCP)
-  ├─ ChatGPT (MCP/API)
-  ├─ Cursor (MCP)
-  ├─ Perplexity (API)
-  └─ Custom Tools (MCP)
+
+2. Restart Claude Desktop
+3. Look for the tools icon — AI CMS tools should appear
+4. Test: "List my sites"
+
+### Production / Staging
+
+```json
+{
+  "mcpServers": {
+    "aicms": {
+      "url": "https://aicms.docmet.systems/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_MCP_TOKEN"
+      }
+    }
+  }
+}
 ```
+
+---
+
+## Claude Mobile App (iOS / Android)
+
+Connect via MCP when your server is publicly accessible (ngrok for dev, staging/prod URL otherwise).
+
+### Local development with ngrok
+
+```bash
+# In a separate terminal after ./cli.sh start
+ngrok http 80
+# Note the https://xxxx.ngrok.io URL
+```
+
+### Add in Claude Mobile app settings
+
+- **Name:** AI CMS
+- **URL:** `https://xxxx.ngrok.io/mcp/sse` (ngrok) or `https://aicms.docmet.systems/mcp/sse` (prod)
+- **Authorization:** `Bearer YOUR_MCP_TOKEN`
+
+---
+
+## ChatGPT (Custom GPT Actions)
+
+ChatGPT supports tools via Custom GPTs and the Actions API.
+Requires a publicly accessible HTTPS endpoint (staging or production).
+
+### Setup
+
+1. Go to https://chat.openai.com/gpts/create
+2. In **Actions**, add a new action
+3. Set server URL: `https://aicms.docmet.systems/mcp`
+4. Authentication: Bearer token → your MCP token
+5. Import the OpenAPI schema from `/mcp/openapi.json`
+
+---
+
+## Cursor IDE
+
+Cursor has built-in MCP support.
+
+### Setup (`.cursor/mcp.json` or global settings)
+
+```json
+{
+  "mcpServers": {
+    "aicms": {
+      "url": "http://localhost:8001/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_MCP_TOKEN"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Perplexity
+
+Perplexity Pro supports MCP tools.
+
+### Setup
+
+In Perplexity → Settings → Tools → Add MCP:
+- **URL:** `https://aicms.docmet.systems/mcp/sse`
+- **Token:** `Bearer YOUR_MCP_TOKEN`
+
+---
+
+## rube.app
+
+### Setup
+
+In rube.app → Settings → Connections → Add MCP:
+- **Server URL:** `https://aicms.docmet.systems/mcp/sse`
+- **Auth:** `Bearer YOUR_MCP_TOKEN`
+
+---
+
+## Any MCP-Compatible Tool
+
+**Connection details:**
+- **SSE endpoint:** `{BASE_URL}/sse`
+- **Auth header:** `Authorization: Bearer YOUR_MCP_TOKEN`
+- **Protocol:** MCP 1.0 (HTTP + Server-Sent Events)
+
+---
+
+## Multiple AI Tools
+
+Register multiple tokens (one per AI app) in `/dashboard/mcp`.
+All tokens are scoped to your user — each AI can only edit YOUR sites.
+You can revoke individual tokens without affecting others.
+
+---
+
+## Troubleshooting
+
+### "No tools available" or tools don't appear
+
+```bash
+# Verify MCP server is running
+./cli.sh logs  # check mcp_server service
+
+# Test manually
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8001/sse
+```
+
+### "Authentication failed"
+
+- Token may be expired or deleted
+- Regenerate at `/dashboard/mcp`
+- Must use `Bearer ` (with space) before the token
+
+### ngrok issues
+
+- Free ngrok tunnels expire periodically, restart if needed
+- Always use the HTTPS URL (not HTTP)
+
+### "Site not found" from tools
+
+- Use `list_sites` to see available sites for your account
+- Use `describe_site` to get full context
+- Verify you're using the token for the right account

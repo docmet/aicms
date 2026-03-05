@@ -2,617 +2,421 @@
 
 This guide covers the development setup, workflows, and best practices for AI CMS.
 
-## 🛠️ Development Environment Setup
+---
+
+## Development Environment Setup
 
 ### Prerequisites
 
-Install the following tools:
-
 ```bash
-# Docker & Docker Compose
-brew install docker docker-compose
+# Docker
+brew install docker
 
 # Node.js 22+
 brew install node@22
-
-# pnpm
 npm install -g pnpm
 
 # Python 3.13+
 brew install python@3.13
-
-# uv (Python package manager)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# GitHub CLI
+# GitHub CLI (optional)
 brew install gh
 ```
 
 ### Initial Setup
 
-1. Clone the repository:
 ```bash
 git clone git@github.com:docmet/aicms.git
 cd aicms
-```
-
-2. Initialize the environment:
-```bash
 ./cli.sh init
 ```
 
-This will:
-- Create `.env` from `env.example`
-- Configure git hooks
-- Install frontend dependencies (pnpm)
-- Install backend dependencies (uv)
-- Start Docker services
-- Run database migrations
-- Seed the database
-
-3. Start the development stack:
-```bash
-./cli.sh start
-```
-
-## 📋 Development Workflow
-
-### Daily Development
+`./cli.sh init` does:
+1. Creates `.env` from `env.example`
+2. Configures git hooks (lefthook)
+3. Installs frontend dependencies (pnpm)
+4. Installs backend dependencies (uv)
+5. Starts Docker services
+6. Runs database migrations
+7. Seeds the database with test data
 
 ```bash
-# Start services
-./cli.sh start
-
-# Make changes to code
-
-# Run tests
-./cli.sh test
-
-# Run linters
-./cli.sh lint
-
-# Format code
-./cli.sh format
-
-# Type check
-./cli.sh typecheck
-
-# Commit (pre-commit hooks will run automatically)
-git add .
-git commit -m "feat(frontend): add new feature"
+./cli.sh start   # Start all services
 ```
 
-### Database Operations
+Access:
+- Frontend: http://localhost:3000
+- Admin dashboard: http://localhost:3000/dashboard
+- Backend API docs: http://localhost:8000/docs
+- MCP server: http://localhost:8001
+
+### Test Credentials
+
+| User | Email | Password | Role |
+|------|-------|----------|------|
+| Admin | norbi@docmet.com | password123 | Admin + regular user |
+| Client | client@docmet.com | password123 | Regular user |
+
+---
+
+## Mobile Testing via ngrok
+
+To test from a mobile device (including Claude mobile app via MCP):
 
 ```bash
-# Run migrations
-./cli.sh db:migrate
-
-# Seed database
-./cli.sh db:seed
-
-# Reset database (drop, create, migrate, seed)
-./cli.sh db:reset
-
-# Clean database volume only
-./cli.sh clean-db
+# In a separate terminal (after ./cli.sh start)
+ngrok http 80
 ```
 
-### Service Management
+Use the generated `https://xxxx.ngrok.io` URL as the MCP server URL in mobile apps.
+See [docs/ai-platforms.md](ai-platforms.md) for platform-specific setup.
+
+---
+
+## CLI Reference
 
 ```bash
-# Start all services
-./cli.sh start
+# Services
+./cli.sh start              # Start all 5 services (nginx, frontend, backend, mcp_server, postgres)
+./cli.sh stop               # Stop all services
+./cli.sh restart            # Restart all services
+./cli.sh restart-frontend   # Restart frontend only
+./cli.sh restart-backend    # Restart backend only
+./cli.sh logs               # View all service logs
+./cli.sh logs:frontend      # Frontend logs only
+./cli.sh logs:backend       # Backend logs only
 
-# Stop all services
-./cli.sh stop
+# Code quality
+./cli.sh lint               # Run all linters (frontend ESLint + backend ruff)
+./cli.sh lint:frontend      # Frontend only
+./cli.sh lint:backend       # Backend only
+./cli.sh format             # Format all code (Prettier + black + isort)
+./cli.sh typecheck          # Run all type checks (tsc + mypy)
+./cli.sh test               # Run all tests
+./cli.sh test:frontend      # Frontend tests (Vitest)
+./cli.sh test:backend       # Backend tests (pytest)
+./cli.sh test:integration   # Backend integration tests
 
-# Restart all services
-./cli.sh restart
+# Database
+./cli.sh db:migrate         # Run Alembic migrations
+./cli.sh db:seed            # Seed database
+./cli.sh db:reset           # Wipe + migrate + seed (caution: destroys data)
 
-# Restart frontend only
-./cli.sh restart-frontend
+# MCP
+./cli.sh mcp:install        # Install MCP server dependencies
+./cli.sh mcp:run            # Run MCP server manually (requires api_url + token params)
 
-# Restart backend only
-./cli.sh restart-backend
-
-# View logs
-./cli.sh logs
+# Utilities
+./cli.sh verify             # Check all required tools are installed
+./cli.sh build              # Build production Docker images
+./cli.sh clean              # Remove all containers and volumes (caution)
+./cli.sh help               # Full command reference
 ```
 
-## 🎨 Frontend Development
+---
 
-### Technology Stack
+## Claude Code Skills (Slash Commands)
 
-- **Next.js 15+** with App Router
-- **TypeScript** with strict mode
-- **TailwindCSS** for styling
-- **shadcn/ui** for UI components
-- **Vitest** for testing
+Project-specific slash commands are in `.claude/commands/`. Use them in Claude Code:
 
-### Project Structure
+| Command | Description |
+|---------|-------------|
+| `/check-stack` | Verify all services are healthy |
+| `/db-reset` | Reset and reseed the database |
+| `/test-mcp` | Test all MCP tools with seed credentials |
+| `/new-section-type` | Guide to add a new section type end-to-end |
+| `/deploy-check` | Check CI status and staging health |
+| `/seed-demo` | Reseed with rich demo content |
 
-```
-frontend/
-├── src/
-│   ├── app/              # App Router pages
-│   │   ├── (public)/     # Public pages
-│   │   ├── (dashboard)/  # Protected admin pages
-│   │   └── [site_slug]/  # Public site routing
-│   ├── components/       # React components
-│   │   ├── ui/          # shadcn/ui components
-│   │   └── admin/       # Admin-specific components
-│   ├── lib/             # Utilities and helpers
-│   └── styles/          # Global styles and theme config
-├── package.json
-├── pnpm-lock.yaml
-├── tailwind.config.ts
-└── next.config.ts
-```
+---
 
-### Adding New Components
+## Git Workflow
 
-```bash
-cd frontend
+We work directly on `main`. No feature branches required for this project stage.
 
-# Add shadcn/ui component
-pnpm dlx shadcn@latest add button
+Commits are enforced via lefthook (runs in parallel before commit):
+- `lint` — `./cli.sh lint`
+- `typecheck` — `./cli.sh typecheck`
+- `test` — `./cli.sh test`
 
-# Create custom component
-mkdir -p src/components/admin
-touch src/components/admin/MyComponent.tsx
-```
+The pre-commit hook also runs `format` and re-stages changed files automatically.
 
-### Running Tests
-
-```bash
-cd frontend
-pnpm test
-```
-
-### Code Style
-
-- Use TypeScript strict mode
-- Follow React best practices
-- Use functional components with hooks
-- Prefer composition over inheritance
-- Use TailwindCSS for styling
-
-## 🔧 Backend Development
-
-### Technology Stack
-
-- **Python 3.13+**
-- **FastAPI** for API
-- **SQLAlchemy** (async) for ORM
-- **PostgreSQL** for database
-- **Alembic** for migrations
-- **Pytest** for testing
-
-### Project Structure
+### Commit Convention
 
 ```
-backend/
-├── src/
-│   ├── main.py          # FastAPI application
-│   ├── config.py        # Configuration settings
-│   ├── database.py      # Database setup
-│   ├── models/          # SQLAlchemy models
-│   ├── schemas/         # Pydantic schemas
-│   ├── api/             # API routes
-│   ├── services/        # Business logic
-│   └── tests/           # Tests
-├── pyproject.toml
-├── Dockerfile
-└── seeds/
-    └── seed.py          # Database seeding
+<type>(<scope>): <description>
 ```
 
-### Adding New API Endpoints
+**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`
 
-1. Create Pydantic schemas in `src/schemas/`
-2. Create API routes in `src/api/`
-3. Add business logic in `src/services/`
-4. Register routes in `src/main.py`
+**Scopes:** `frontend`, `backend`, `mcp`, `infra`, `docs`, `deploy`, `claude`
 
-Example:
+Examples:
+```
+feat(frontend): add hero section component with gradient background
+fix(backend): enforce site ownership check on content update
+docs(mcp): update tool descriptions with JSON schema examples
+feat(mcp): add describe_site and generate_section tools
+chore(infra): add security headers to nginx config
+```
 
-```python
-# src/schemas/item.py
-from pydantic import BaseModel
-from datetime import datetime
-from uuid import UUID
+---
 
-class ItemCreate(BaseModel):
-    name: str
-    description: str
+## Frontend Development
 
-class ItemResponse(BaseModel):
-    id: UUID
-    name: str
-    description: str
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
+**Stack:** Next.js 15+ App Router, TypeScript strict, TailwindCSS, shadcn/ui, pnpm
 
-# src/api/items.py
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.schemas.item import ItemCreate, ItemResponse
-from src.services.item import ItemService
+### Structure
 
-router = APIRouter(prefix="/items", tags=["items"])
+```
+frontend/src/
+├── app/
+│   ├── (public)/         # Landing page, login, register
+│   ├── (dashboard)/      # Admin dashboard (auth required)
+│   │   └── dashboard/
+│   │       ├── sites/    # Site editor
+│   │       ├── mcp/      # AI tools connection
+│   │       ├── admin/    # Admin panel (admin users only)
+│   │       └── ...
+│   └── [site_slug]/      # Public site renderer (SSR, no auth)
+├── components/
+│   ├── sections/         # Public site section components (HeroSection, etc.)
+│   ├── admin/            # Dashboard components
+│   │   └── section-editor/  # Structured form fields per section type
+│   ├── seo/              # SEO meta + JSON-LD components
+│   └── ui/               # shadcn/ui primitives
+├── hooks/                # Custom React hooks
+│   └── use-preview-stream.ts  # SSE hook for live preview
+├── lib/                  # API client, utilities
+└── styles/               # globals.css, themes.css (CSS variables)
+```
 
-@router.post("/", response_model=ItemResponse)
-async def create_item(
-    item: ItemCreate,
-    db: AsyncSession = Depends(get_db)
-):
-    return await ItemService.create_item(db, item)
+### Section Components
 
-# src/main.py
-from src.api.items import router as items_router
+Public site sections are in `src/components/sections/`. Each renders structured JSON content:
 
-app.include_router(items_router)
+| Component | Section Type | Key Props |
+|-----------|-------------|-----------|
+| `HeroSection` | `hero` | headline, subheadline, badge, cta_primary, cta_secondary |
+| `FeaturesSection` | `features` | headline, subheadline, items[] |
+| `TestimonialsSection` | `testimonials` | headline, items[] |
+| `AboutSection` | `about` | headline, body, stats[] |
+| `ContactSection` | `contact` | headline, email, phone, address, hours |
+| `CTASection` | `cta` | headline, subheadline, button_label, button_href |
+| `PricingSection` | `pricing` | headline, plans[] |
+| `CustomSection` | any unknown | title, content |
+
+### Adding a New Section Type
+
+Use the `/new-section-type` Claude Code skill for guided steps, or manually:
+
+1. Add JSON schema in `backend/src/schemas/content.py`
+2. Create React component in `frontend/src/components/sections/NewSection.tsx`
+3. Register in `frontend/src/app/[site_slug]/page.tsx` mapper
+4. Add admin form fields in `frontend/src/components/admin/section-editor/`
+5. Update MCP tool description in `mcp_server/src/aicms_mcp_server/server.py`
+6. Add example to `docs/content-schema.md`
+
+### Theme System
+
+Themes use CSS variables defined in `frontend/src/styles/themes.css`.
+Applied via `data-theme="<slug>"` attribute on the site wrapper element.
+
+Available themes: `modern`, `startup`, `warm`, `minimal`, `dark`
+
+Each theme defines:
+- `--color-primary`, `--color-secondary`, `--color-accent`
+- `--gradient-hero`, `--gradient-cta`
+- `--font-heading`, `--font-body`
+- `--color-surface`, `--color-background`, `--color-text`
+
+---
+
+## Backend Development
+
+**Stack:** Python 3.13+, FastAPI, SQLAlchemy async, PostgreSQL 16, Alembic, uv, pytest
+
+### Structure
+
+```
+backend/src/
+├── main.py              # FastAPI app, route registration
+├── config.py            # Settings (env vars)
+├── database.py          # SQLAlchemy async session setup
+├── models/              # SQLAlchemy ORM models
+│   ├── user.py          # User (id, email, password_hash, is_admin, tier, is_suspended)
+│   ├── site.py          # Site (user_id FK, slug, name, theme_slug, is_deleted)
+│   ├── page.py          # Page (site_id FK, title, slug, is_published, last_published_at)
+│   ├── content.py       # ContentSection (page_id FK, section_type, content_draft, content_published)
+│   ├── page_version.py  # PageVersion (page_id FK, version_number, snapshot JSON)
+│   ├── theme.py         # Theme (slug, name, config JSON)
+│   └── mcp_client.py    # MCPClient (user_id FK, token, tool_type)
+├── schemas/             # Pydantic request/response schemas
+│   ├── content.py       # Content section schemas (hero, features, etc.)
+│   └── ...
+├── api/                 # FastAPI route handlers
+│   ├── auth.py          # POST /auth/register, /auth/login, GET /auth/me
+│   ├── sites.py         # CRUD /sites/*
+│   ├── pages.py         # CRUD /sites/{id}/pages/*
+│   ├── content.py       # CRUD /sites/{id}/pages/{id}/content/*
+│   ├── preview.py       # SSE /pages/{id}/preview-stream, POST /pages/{id}/publish
+│   ├── themes.py        # GET /themes/*
+│   ├── mcp.py           # MCP client registration
+│   └── admin.py         # Admin-only endpoints
+├── services/            # Business logic
+│   ├── auth.py          # JWT, password hashing
+│   └── theme.py         # Theme management
+└── tests/
+    ├── unit/            # Unit tests
+    └── integration/     # Integration tests (require running DB)
 ```
 
 ### Database Migrations
 
 ```bash
+# Create a new migration
 cd backend
-
-# Create migration
 uv run alembic revision --autogenerate -m "description"
 
-# Apply migration
-uv run alembic upgrade head
+# Apply migrations
+./cli.sh db:migrate
 
-# Rollback migration
-uv run alembic downgrade -1
+# Rollback one step
+cd backend && uv run alembic downgrade -1
 ```
 
-### Running Tests
+### Content Section Schemas
+
+Section content is stored as JSON strings. Schemas are in `backend/src/schemas/content.py`.
+
+See [docs/content-schema.md](content-schema.md) for the complete reference.
+
+When a known `section_type` is submitted, the JSON is validated against its schema.
+Unknown section types are stored as-is (treated as `custom`).
+
+### Adding a New API Endpoint
+
+1. Define Pydantic schemas in `src/schemas/`
+2. Add route handler in `src/api/`
+3. Register router in `src/main.py`
+4. Add integration test in `src/tests/integration/`
+
+**Security checklist for new endpoints:**
+- Requires `current_user = Depends(get_current_user)`
+- Verifies resource ownership (returns 404, not 403, when not found/owned)
+- Input validated via Pydantic
+- No secrets in response body
+
+---
+
+## MCP Server Development
+
+**Location:** `mcp_server/src/aicms_mcp_server/server.py`
+
+The MCP server proxies all tool calls to the backend API. Each tool:
+1. Validates input
+2. Makes HTTP call to `{BACKEND_URL}/api/v1/...` with user's auth token
+3. Formats response as human-readable text for the AI
+
+### Adding a New MCP Tool
+
+1. Add tool definition (name, description, inputSchema) in `server.py`
+2. Add handler in the `call_tool` function
+3. Update tool description to include JSON schema examples
+4. Test via `./cli.sh mcp:run` or `/test-mcp` skill
+5. Update `docs/mcp-integration.md`
+
+### Testing MCP Tools
 
 ```bash
-cd backend
-
-# Unit tests
-uv run pytest tests/unit -v
-
-# Integration tests
-uv run pytest tests/integration -v
-
-# All tests
-uv run pytest tests/ -v
-```
-
-### Code Style
-
-- Follow PEP 8 style guide
-- Use type hints everywhere
-- Use async/await for database operations
-- Write docstrings for all functions
-- Keep functions small and focused
-
-## 🐳 Docker Development
-
-### Development Compose
-
-The `docker-compose.dev.yml` includes:
-- Volume mounts for hot reload
-- Debug configuration
-- Development database
-
-### Production Compose
-
-The `docker-compose.yml` includes:
-- Optimized builds
-- No volume mounts
-- Production database
-- Health checks
-
-### Common Commands
-
-```bash
-# Start development stack
-docker-compose -f docker-compose.dev.yml up -d
-
-# View logs
-docker-compose -f docker-compose.dev.yml logs -f
-
-# Stop stack
-docker-compose -f docker-compose.dev.yml down
-
-# Rebuild services
-docker-compose -f docker-compose.dev.yml build --no-cache
-
-# Execute command in container
-docker-compose -f docker-compose.dev.yml exec backend uv run python -m pytest
-```
-
-## 🧪 Testing
-
-### Frontend Tests
-
-```bash
-cd frontend
-pnpm test
-```
-
-### Backend Tests
-
-```bash
-cd backend
-uv run pytest tests/ -v
-```
-
-### Integration Tests
-
-Integration tests require the database to be running:
-
-```bash
-# Start database
+# Start services
 ./cli.sh start
 
-# Run integration tests
-cd backend
-uv run pytest tests/integration -v
+# Quick test via CLI skill
+/test-mcp
+
+# Manual curl test
+TOKEN=$(curl -s -X POST http://localhost/api/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=client@docmet.com&password=password123" | jq -r .access_token)
+
+# Register MCP client
+MCP_TOKEN=$(curl -s -X POST http://localhost/api/mcp/register \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Test", "tool_type": "custom"}' | jq -r .token)
+
+# List sites via MCP
+curl -X POST http://localhost:8001/tools/call \
+  -H "Authorization: Bearer $MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "list_sites", "arguments": {}}'
 ```
 
-## 🤖 MCP Development
+---
 
-### MCP Server Architecture
+## Versioning System
 
-The MCP server provides AI tool integration via HTTP+SSE transport:
+See [docs/versioning.md](versioning.md) for the full draft/preview/publish architecture.
 
-```
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│   Claude    │──────▶│   MCP Proxy │──────▶│   MCP Server│
-│   Desktop   │  OAuth│   (Nginx)   │  HTTP │   (FastAPI) │
-└─────────────┘      └─────────────┘      └──────┬──────┘
-                                                  │
-                                                  ▼
-                                            ┌─────────────┐
-                                            │   Backend   │
-                                            └─────────────┘
-```
+Quick summary:
+- AI/user edits always update `content_draft`
+- `content_published` only updates on explicit Publish action
+- SSE stream (`/pages/{id}/preview-stream`) pushes draft updates to the admin preview pane
+- `PageVersion` snapshots saved on each publish (max 5, rollback supported)
 
-### Testing MCP Tools Locally
+---
 
-1. Start all services:
-   ```bash
-   ./cli.sh start
-   ```
+## Security
 
-2. Get your JWT token by logging in:
-   ```bash
-   curl -X POST http://localhost/api/auth/login \
-     -H "Content-Type: application/x-www-form-urlencoded" \
-     -d "username=your@email.com&password=yourpassword"
-   ```
+See [docs/security.md](security.md) for the full security guide.
 
-3. Register an MCP client:
-   ```bash
-   curl -X POST http://localhost/api/mcp/register \
-     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "Claude Test", "tool_type": "claude"}'
-   ```
-   Response: `{"id": "uuid", "token": "mcp-token"}`
+Quick summary:
+- All data endpoints verify ownership (user can only see/modify their own data)
+- Input validated via Pydantic + sanitized (HTML stripped)
+- JWT auth, bcrypt passwords, never return password hashes
+- Rate limiting on auth endpoints (via Nginx in production)
 
-4. Test tools/list via curl:
-   ```bash
-   curl -X POST http://localhost/sse/YOUR-CLIENT-ID \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer MCP-TOKEN" \
-     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
-   ```
+---
 
-5. Test creating a site:
-   ```bash
-   curl -X POST http://localhost/sse/YOUR-CLIENT-ID \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer MCP-TOKEN" \
-     -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"create_site","arguments":{"name":"Test Site","slug":"test"}}}'
-   ```
+## Troubleshooting
 
-### MCP Server Logs
-
+### Services won't start
 ```bash
-# View MCP server logs
-./cli.sh logs:mcp-server
-
-# Or via docker
-docker-compose -f docker-compose.dev.yml logs mcp_server -f
+./cli.sh verify          # Check all tools installed
+./cli.sh logs            # View error logs
+./cli.sh restart         # Try restarting
 ```
 
-### Adding New MCP Tools
-
-1. Add tool definition in `mcp_server/src/main.py`:
-   ```python
-   {"name": "my_tool", "description": "...", "inputSchema": {...}}
-   ```
-
-2. Add handler in tools/call section:
-   ```python
-   elif tool_name == "my_tool":
-       response = await client.get(...)
-       content_text = process_response(response)
-   ```
-
-3. Test via curl before testing with Claude
-
-## 📝 Commit Convention
-
-We use conventional commits with scopes:
-
-### Format
-
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-### Types
-
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Test changes
-- `chore`: Maintenance tasks
-- `ci`: CI/CD changes
-
-### Scopes
-
-- `frontend`: Frontend changes
-- `backend`: Backend changes
-- `api`: API changes
-- `infra`: Infrastructure changes
-- `docs`: Documentation changes
-- `test`: Test changes
-- `mcp`: MCP server changes (future)
-- `deploy`: Deployment changes
-
-### Examples
-
-```
-feat(frontend): add login page
-
-Implement login page with email/password form.
-Add validation and error handling.
-
-Closes #123
-```
-
-```
-fix(backend): resolve auth token issue
-
-Fix JWT token expiration validation.
-Add proper error messages for expired tokens.
-
-Fixes #456
-```
-
-```
-refactor(backend): simplify theme service
-
-Extract theme loading logic into separate function.
-Improve code readability and testability.
-```
-
-## 🔒 Security Best Practices
-
-### Authentication
-
-- Use JWT tokens with short expiration
-- Implement refresh token rotation
-- Store passwords using bcrypt
-- Use HTTPS in production
-
-### Data Validation
-
-- Validate all inputs with Pydantic
-- Sanitize user inputs to prevent XSS
-- Use parameterized queries (SQLAlchemy handles this)
-- Implement rate limiting
-
-### Multi-Tenancy
-
-- Always scope queries to authenticated user
-- Validate ownership on all operations
-- Never expose internal IDs in URLs
-- Implement proper authorization checks
-
-## 🚀 Deployment
-
-### Staging Deployment
-
-Deployment is automated via GitHub Actions:
-
-1. Push to `main` branch
-2. CI/CD runs tests
-3. Coolify webhook triggers deployment
-4. Application deploys to staging
-
-### Manual Deployment
-
+### Database issues
 ```bash
-# Build production images
-./cli.sh build
-
-# Deploy to Coolify (via CLI or web UI)
-# See docs/deployment.md for details
+./cli.sh db:reset        # Wipe and start fresh
 ```
 
-## 📚 Resources
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)
-- [TailwindCSS Documentation](https://tailwindcss.com/docs)
-- [shadcn/ui Documentation](https://ui.shadcn.com/)
-
-## 🆘 Troubleshooting
-
-### Database Connection Issues
-
+### Frontend build errors
 ```bash
-# Check if PostgreSQL is running
-docker-compose -f docker-compose.dev.yml ps postgres
-
-# Restart database
-./cli.sh restart-backend
-
-# Reset database
-./cli.sh db:reset
+# Clear cache and reinstall
+cd frontend && rm -rf .next node_modules && pnpm install
 ```
 
-### Frontend Build Issues
-
+### Backend import errors
 ```bash
-# Clear Next.js cache
-cd frontend
-rm -rf .next
-
-# Reinstall dependencies
-rm -rf node_modules
-pnpm install
+cd backend && uv sync --dev
 ```
 
-### Backend Import Issues
-
+### Git hook failures
 ```bash
-# Reinstall dependencies
-cd backend
-uv sync --dev
+# View what failed
+./cli.sh lint
+./cli.sh typecheck
+./cli.sh test
 
-# Check Python version
-python3 --version  # Should be 3.13+
+# Fix issues, then commit again
+# (Never skip hooks with --no-verify in normal workflow)
 ```
 
-### Git Hook Issues
-
-```bash
-# Skip hooks (not recommended)
-git commit --no-verify -m "message"
-
-# Reconfigure hooks
-git config core.hooksPath .githooks
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linters
-5. Commit with conventional commits
-6. Push to your fork
-7. Create a pull request
+### MCP connection issues
+- Verify MCP server is running: `./cli.sh logs` (check mcp_server service)
+- Verify token is valid: check `/dashboard/mcp` in admin
+- Test manually: `/test-mcp` skill

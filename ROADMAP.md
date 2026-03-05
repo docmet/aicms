@@ -1,199 +1,140 @@
 # AI CMS Roadmap
 
-This document outlines the development roadmap for AI CMS, from MVP to future enhancements.
-
-## 🎯 Phase 1: Foundation (Completed)
-
-**Status**: ✅ Completed
-**Timeline**: Week 1-2
-
-### Tasks
-- [x] Initialize project structure
-- [x] Create cli.sh with all commands
-- [x] Set up Docker Compose (dev + prod)
-- [x] Configure Git hooks
-- [x] Set up GitHub Actions CI/CD
-- [x] Create SQLAlchemy models and migrations (Alembic)
-- [x] Create seed data script
-
-### Deliverables
-- ✅ Working development environment
-- ✅ CI/CD pipeline
-- ✅ Database schema
-- ✅ Seed data
-- ✅ Basic frontend structure
-- ✅ Basic backend structure
+Development roadmap: from MVP proof-of-concept to a production-ready freemium SaaS.
 
 ---
 
-## 🎯 Phase 2: Backend Implementation (Completed)
+## Completed Phases
 
-**Status**: ✅ Completed
-**Timeline**: Week 2-3
+### Phase 1: Foundation
+- Project structure, Docker Compose (dev + prod), GitHub Actions CI/CD
+- Git hooks (lefthook + pre-commit: format, lint, test)
+- SQLAlchemy models and Alembic migrations
+- Seed data (admin + client user, 5 themes)
+- `cli.sh` development CLI
 
-### Tasks
-- [x] Implement FastAPI app structure
-- [x] Implement JWT authentication
-- [x] Create user API endpoints (register, login, profile)
-- [x] Create site API endpoints (CRUD, scoped to user)
-- [x] Create page API endpoints (CRUD, scoped to site)
-- [x] Create content section API endpoints (CRUD, scoped to page)
-- [x] Implement theme service
-- [x] Add comprehensive tests
+### Phase 2: Backend
+- FastAPI application with JWT authentication
+- User registration/login endpoints
+- Site, Page, ContentSection CRUD (multi-tenant, scoped to user)
+- Theme service
+- Integration tests: auth, data isolation, theme switching
 
-### Deliverables
-- ✅ Complete backend API
-- ✅ Authentication system
-- ✅ Multi-user data isolation
-- ✅ Test coverage
+### Phase 3: Frontend
+- Next.js 15+ with App Router
+- Login/register pages
+- Admin dashboard with shadcn/ui
+- Site editor: name, slug, theme selector, content sections
+- Public site rendering (`[site_slug]/page.tsx`)
+- TailwindCSS theme variants (5 themes)
 
----
+### Phase 4: Integration & Testing
+- Frontend ↔ backend fully connected
+- Multi-user isolation tested
+- Instant save (Mac-style auto-save on blur)
+- Local Docker stack verified end-to-end
 
-## 🎯 Phase 3: Frontend Implementation (Completed)
-
-**Status**: ✅ Completed
-**Timeline**: Week 3-4
-
-### Tasks
-- [x] Set up Next.js with App Router
-- [x] Implement authentication (login/register pages)
-- [x] Create admin dashboard layout with shadcn/ui
-- [x] Implement site editor (name, slug, theme selector)
-- [x] Implement page editor (content sections)
-- [x] Implement theme switcher (preview)
-- [x] Create public site rendering (dynamic route [site_slug])
-- [x] Add TailwindCSS theme variants
-
-### Deliverables
-- ✅ Complete admin dashboard
-- ✅ Public site rendering
-- ✅ Theme system
-- ✅ Responsive design
+### Phase 5: MCP Server
+- FastAPI-based MCP server with HTTP+SSE transport
+- 13 MCP tools: site, page, content, theme management
+- OAuth 2.0 / token-based authentication per AI client
+- Working with: Claude Desktop ✅, Claude mobile app via ngrok ✅
 
 ---
 
-## 🎯 Phase 4: Integration & Testing (Completed)
+## Current Work (Phase 6: Quality + Architecture)
 
-**Status**: ✅ Completed
-**Timeline**: Week 4-5
+**Goal: Staging deployment live at aicms.docmet.systems by end of day**
 
-### Tasks
-- [x] Connect frontend to backend API (Full Flow)
-- [x] Test multi-user isolation (user A can't access user B's data)
-- [x] Test theme switching
-- [x] Test content security (HTML stripping)
-- [x] Test seed data
-- [x] Add instant save functionality
-- [x] Local Docker stack testing
-
-### Deliverables
-- ✅ Fully integrated application
-- ✅ Security testing
-- ✅ E2E test suite
-- ✅ Local deployment verified
-- ✅ Instant save (Mac-style) across all fields
+- [ ] **0a: Documentation overhaul** — all docs updated to reflect vision and new architecture
+- [ ] **0b: Claude Code skills** — 6 project slash commands in `.claude/commands/`
+- [ ] **1: Content model** — structured JSON schemas per section type, draft/publish split, versioning, SSE preview
+- [ ] **2: Framer-level renderer** — section components (Hero, Features, Testimonials, etc.), SEO, animations
+- [ ] **3: Admin editor** — structured field inputs + live SSE preview pane + publish/rollback UI
+- [ ] **4: Smarter MCP tools** — describe_site, generate_section, smart_find, publish_page, versioning tools
+- [ ] **5: Admin panel** — user management, impersonation, platform stats
+- [ ] **6: Staging deploy** — Coolify config, wildcard DNS, security headers, landing page
 
 ---
 
-## 🎯 Phase 5: MCP Server Integration (Completed)
+## Phase 7: Growth (Post-Launch)
 
-**Status**: ✅ Completed
-**Timeline**: Week 5
+### Core Experience
+- [ ] Onboarding wizard: industry picker → starter site generated → connect AI
+- [ ] Industry-specific templates: Restaurant, Portfolio, Agency/SaaS, Services
+- [ ] Site navigation (multi-page sites with proper nav bar)
+- [ ] Mobile-responsive admin dashboard
 
-### Tasks
-- [x] Implement FastAPI-based hosted MCP server
-- [x] Create MCP tools for all CMS operations
-- [x] Add client authentication system
-- [x] Add Docker integration for automatic startup
-- [x] Create MCP client management UI
-- [x] Add comprehensive setup documentation
+### Content
+- [ ] Image upload and CDN hosting
+- [ ] Rich text sections (headings, lists, links in body)
+- [ ] Blog/posts system with date + author
+- [ ] Custom HTML/embed sections (for advanced users)
 
-### Deliverables
-- ✅ Complete hosted MCP server
-- ✅ AI tool integration (ChatGPT, Claude, Cursor)
-- ✅ Client authentication and management
-- ✅ Docker-based deployment
-- ✅ Help page with setup guides
-
----
-
-## 🎯 Phase 6: Staging Deployment
-
-**Status**: Not Started
-**Timeline**: Week 6-7
-
-### Tasks
-- [ ] Configure Coolify deployment
-- [ ] Set up DNS for aicms.docmet.systems
-- [ ] Configure wildcard subdomain *.aicms.docmet.systems
-- [ ] Deploy to staging
-- [ ] Test staging deployment
-- [ ] Set up monitoring and logging
-
-### Deliverables
-- Staging environment live
-- DNS configured
-- Deployment pipeline verified
+### Distribution
+- [ ] Custom domain support (CNAME + SSL via Let's Encrypt)
+- [ ] Sitemap.xml per site
+- [ ] robots.txt per site
+- [ ] Site analytics: pageviews, referrers, top pages
 
 ---
 
-## 🎯 Phase 7: MVP Complete
+## Phase 8: Scale
 
-**Status**: Not Started
-**Timeline**: Week 7
+### Platform
+- [ ] Stripe integration: free → pro upgrade flow
+- [ ] Email notifications (publish confirmation, limits reached, etc.)
+- [ ] Scheduled publishing (publish at specific datetime)
+- [ ] A/B testing (serve version A to 50% of visitors)
+- [ ] Shareable preview URLs (token-protected, 24hr expiry)
 
-### Tasks
-- [ ] Final testing and bug fixes
-- [ ] Documentation updates
-- [ ] User testing
-- [ ] Performance optimization
-- [ ] Security audit
-
-### Deliverables
-- Production-ready MVP
-- Complete documentation
-- Performance benchmarks
+### AI
+- [ ] AI-powered SEO suggestions ("Your about section is missing keywords")
+- [ ] AI translation for multilingual sites
+- [ ] AI image generation integration (DALL-E, etc.)
+- [ ] Bulk site generation from a document/spreadsheet
 
 ---
 
-## 🚀 Phase 8: Advanced Features (Post-MVP)
+## Future Ideas (Backlog)
 
-**Status**: Not Started
-**Timeline**: Week 8-11
+**Versioning:**
+- Diff view between page versions
+- Site-level publish ("deploy all pages at once")
 
-### Features
-- [ ] Blog system with rich text editor
-- [ ] Image upload and management
-- [ ] Custom domain support
-- [ ] SEO optimization tools
-- [ ] Analytics dashboard
-- [ ] User management (admin dashboard for platform owner)
+**Security:**
+- 2FA for admin users
+- Penetration testing
+- IP allowlist for admin routes
+- Security.txt at `/.well-known/security.txt`
 
-### Deliverables
-- Blog functionality
-- Image management
-- Custom domain configuration
-- SEO tools
-- Analytics
+**Admin:**
+- Multiple admin roles: `super_admin`, `support`, `billing_admin`
+- Bulk email to users
+- Feature flags per user or globally
+- Content moderation queue
 
----
-
-## 📊 Progress Tracking
-
-### Overall Progress: 60%
-
-| Phase | Progress | Status |
-|-------|----------|--------|
-| Phase 1: Foundation | 100% | ✅ Completed |
-| Phase 2: Backend | 100% | ✅ Completed |
-| Phase 3: Frontend | 100% | ✅ Completed |
-| Phase 4: Integration | 100% | ✅ Completed |
-| Phase 5: MCP Server | 100% | ✅ Completed |
-| Phase 6: Deployment | 0% | ⏳ Not Started |
-| Phase 7: MVP Complete | 0% | ⏳ Not Started |
-| Phase 8+: Future | 0% | ⏳ Not Started |
+**Sites:**
+- Password-protected pages (coming soon, members-only)
+- Contact form builder with email notifications
+- eCommerce product pages (read-only, links to external cart)
+- Multilingual content with language switcher
 
 ---
 
-**Last Updated**: 2026-03-04
-**Next Review**: After Phase 6 (Staging Deployment)
+## Progress Tracker
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Foundation | ✅ Done | |
+| Backend | ✅ Done | |
+| Frontend | ✅ Done | Basic implementation |
+| Integration | ✅ Done | |
+| MCP Server | ✅ Done | Proven on desktop + mobile |
+| Quality + Architecture | 🔄 In Progress | Today's work |
+| Growth | ⏳ Planned | Post-launch |
+| Scale | ⏳ Planned | Post-growth |
+
+---
+
+**Last updated:** 2026-03-05
