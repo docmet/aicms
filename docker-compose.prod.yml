@@ -1,12 +1,12 @@
 services:
-  # Nginx Proxy
+  # Nginx reverse proxy (handles SSL termination via Coolify/Traefik in front)
   nginx:
     image: nginx:alpine
     container_name: aicms_nginx
     ports:
       - "80:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       frontend:
         condition: service_started
@@ -16,58 +16,49 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  # Frontend - Next.js
+  # Frontend — Next.js (standalone production build)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: development
+      target: production
     container_name: aicms_frontend
     environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost/api
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
+    restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
-    restart: unless-stopped
-    command: pnpm dev
 
-  # Backend - FastAPI
+  # Backend — FastAPI
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: development
+      target: production
     container_name: aicms_backend
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql+asyncpg://aicms:aicms_password@postgres:5432/aicms
+      - DATABASE_URL=postgresql+asyncpg://aicms:${POSTGRES_PASSWORD}@postgres:5432/aicms
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
-      - JWT_EXPIRATION_MINUTES=${JWT_EXPIRATION_MINUTES:-30}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
-      - BACKEND_URL=${BACKEND_URL:-http://localhost:8000}
-      - DOMAIN=${DOMAIN:-aicms.docmet.systems}
-    volumes:
-      - ./backend:/app
-      - /app/.venv
+      - JWT_EXPIRATION_MINUTES=${JWT_EXPIRATION_MINUTES:-60}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - BACKEND_URL=${BACKEND_URL}
+      - DOMAIN=${DOMAIN}
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 40s
-    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # MCP Server - for AI tool integration
+  # MCP Server — hosted AI tool integration
   mcp_server:
     build:
       context: ./mcp_server
@@ -76,30 +67,23 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - API_URL=http://backend:8000/api
-      - DATABASE_URL=postgresql+asyncpg://aicms:aicms_password@postgres:5432/aicms
-    volumes:
-      - ./mcp_server:/app
-      - /app/.venv
-    ports:
-      - "8001:8000"
+      - DATABASE_URL=postgresql+asyncpg://aicms:${POSTGRES_PASSWORD}@postgres:5432/aicms
+      - DOMAIN=${DOMAIN}
+    restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
-    restart: unless-stopped
-    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Database - PostgreSQL
+  # Database — PostgreSQL 16
   postgres:
     image: postgres:16-alpine
     container_name: aicms_postgres
     environment:
       - POSTGRES_USER=aicms
-      - POSTGRES_PASSWORD=aicms_password
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=aicms
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U aicms -d aicms"]

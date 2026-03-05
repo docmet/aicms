@@ -83,7 +83,7 @@ async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    api_url = os.getenv("API_URL", "http://localhost:8000/api/v1")
+    api_url = os.getenv("API_URL", "http://localhost:8000/api")
     mcp_server = MCPServer(api_url, None)  # Token not needed for hosted version
 
 

@@ -3,9 +3,9 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${PROJECT_ROOT}/.env"
-ENV_EXAMPLE="${PROJECT_ROOT}/env.example"
+ENV_EXAMPLE="${PROJECT_ROOT}/.env.example"
 COMPOSE_DEV="${PROJECT_ROOT}/docker-compose.dev.yml"
-COMPOSE_PROD="${PROJECT_ROOT}/docker-compose.yml"
+COMPOSE_PROD="${PROJECT_ROOT}/docker-compose.prod.yml"
 FRONTEND_DIR="${PROJECT_ROOT}/frontend"
 BACKEND_DIR="${PROJECT_ROOT}/backend"
 
@@ -76,6 +76,7 @@ Commands:
   build                Build Docker images for production
   build:frontend       Build frontend only
   build:backend        Build backend only
+  deploy:prod          Build + start production stack (docker-compose.prod.yml)
   
   mcp:install          Install MCP server dependencies
   mcp:run              Run MCP server (requires token)
@@ -426,6 +427,15 @@ build_backend_command() {
   ${compose_cmd} -f "${COMPOSE_PROD}" build backend
   log_success "Backend image built"
 }
+deploy_prod_command() {
+  local compose_cmd
+  compose_cmd="$(compose_cmd)"
+
+  log_info "Building and starting production stack..."
+  ${compose_cmd} -f "${COMPOSE_PROD}" up -d --build
+  log_success "Production stack deployed"
+  log_info "Run './cli.sh db:migrate' to apply migrations"
+}
 
 verify_command() {
   log_info "Verifying development environment..."
@@ -651,6 +661,9 @@ main() {
       ;;
     build:backend)
       build_backend_command
+      ;;
+    deploy:prod)
+      deploy_prod_command
       ;;
     verify)
       verify_command
