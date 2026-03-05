@@ -3,8 +3,8 @@ services:
   nginx:
     image: nginx:alpine
     container_name: aicms_nginx
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
     depends_on:
