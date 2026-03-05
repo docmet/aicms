@@ -102,6 +102,7 @@ export default function PublicSitePage({ params }: { params: Promise<{ site_slug
   return (
     <div className="min-h-screen" data-theme={data.theme_slug || 'default'}>
       {data.sections
+        .filter((section) => section.content && section.content.trim().length > 0)
         .map((section) => {
           const parsedContent = parseContent(section.content, section.section_type);
 
