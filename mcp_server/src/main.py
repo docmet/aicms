@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 import httpx
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse, RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -102,8 +102,8 @@ async def health():
 @app.get("/.well-known/oauth-authorization-server")
 async def oauth_server_info(request: Request):
     """OAuth server discovery endpoint"""
-    # Use the host from the request to support both localhost and ngrok
-    scheme = request.url.scheme
+    # Use forwarded headers to get the public scheme/host (ngrok, proxies)
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
     host = request.headers.get("host", "localhost:8000")
     base_url = f"{scheme}://{host}"
     
@@ -156,7 +156,10 @@ async def authorize(
     request: Request = None,
 ):
     """OAuth authorization endpoint — redirect to the frontend consent page."""
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost")
+    # Derive frontend base from request host (works through ngrok/proxies)
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    host = request.headers.get("host", "localhost")
+    frontend_url = f"{scheme}://{host}"
     params = []
     if redirect_uri:
         params.append(f"redirect_uri={redirect_uri}")
@@ -273,25 +276,42 @@ async def mcp_endpoint(
     """MCP protocol endpoint"""
     
     # Verify client belongs to user
-    client = await db.get(MCPClient, client_id)
-    if not client or client.user_id != UUID(user_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
-        )
+    try:
+        client = await db.get(MCPClient, UUID(client_id))
+        valid = client and str(client.user_id) == user_id
+    except (ValueError, Exception):
+        valid = False
+    if not valid:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     # Build a per-request MCPServer using the client's token (backend validates it)
     api_url = os.getenv("API_URL", "http://backend:8000/api")
     per_request_server = MCPServer(api_url, client.token)
 
-    if request.get("method") == "tools/list":
-        return {"tools": _make_tool_list()}
-    elif request.get("method") == "tools/call":
+    method = request.get("method", "")
+    req_id = request.get("id")
+
+    def ok(result):
+        return {"jsonrpc": "2.0", "id": req_id, "result": result}
+
+    if method == "initialize":
+        return ok({
+            "protocolVersion": "2024-11-05",
+            "capabilities": {"tools": {"listChanged": True}},
+            "serverInfo": {"name": "aicms-mcp-server", "version": "1.0.0"},
+        })
+    elif method == "notifications/initialized":
+        return {}  # acknowledge, no response needed
+    elif method == "tools/list":
+        return ok({"tools": _make_tool_list()})
+    elif method == "tools/call":
         params = request.get("params", {})
         result = await per_request_server._dispatch(params.get("name", ""), params.get("arguments", {}))
-        return {"content": [{"type": c.type, "text": c.text} for c in result.content], "isError": result.isError}
+        return ok({"content": [{"type": c.type, "text": c.text} for c in result.content], "isError": result.isError})
+    elif method == "ping":
+        return ok({})
     else:
-        raise HTTPException(status_code=400, detail="Unknown MCP method")
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
 
 
 @app.get("/clients", response_model=List[MCPClientResponse])

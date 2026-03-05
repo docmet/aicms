@@ -87,8 +87,6 @@ export default function AIToolsPage() {
     toast({ title: 'New connection key generated' });
   };
 
-  const mcpUrl = typeof window !== 'undefined' ? window.location.origin : '';
-
   if (loading) {
     return (
       <div className="max-w-lg mx-auto space-y-6">
@@ -101,6 +99,12 @@ export default function AIToolsPage() {
   }
 
   if (!cred) return null;
+
+  // Claude sends POST/GET to this URL for all MCP messages.
+  // /mcp/{id} is proxied by nginx keeping the prefix so mcp_server routes match.
+  const mcpUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/mcp/${cred.id}`
+    : '';
 
   return (
     <div className="max-w-lg mx-auto space-y-5">

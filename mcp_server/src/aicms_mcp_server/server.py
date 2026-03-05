@@ -99,7 +99,7 @@ class MCPServer:
 
     async def _make_request(self, method: str, endpoint: str, **kwargs) -> Any:
         """Make authenticated request to AI CMS API."""
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             response = await client.request(
                 method,
                 f"{self.api_url}{endpoint}",
