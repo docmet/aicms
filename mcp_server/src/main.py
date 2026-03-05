@@ -411,6 +411,7 @@ async def sse_endpoint(client_id: str, request: Request):
                             {"name": "update_page", "description": "Update page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["page_id"]}},
                             {"name": "delete_page", "description": "Delete page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
                             {"name": "reorder_sections", "description": "Reorder content sections by swapping two sections", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_id_1": {"type": "string", "description": "First section ID to swap"}, "section_id_2": {"type": "string", "description": "Second section ID to swap"}}, "required": ["page_id", "section_id_1", "section_id_2"]}},
+                            {"name": "delete_section", "description": "Delete a content section by section type (e.g., hero, body, cta)", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_type": {"type": "string", "description": "Section type to delete (e.g., hero, body, cta, oasis)"}}, "required": ["page_id", "section_type"]}},
                             {"name": "list_themes", "description": "List themes", "inputSchema": {"type": "object", "properties": {}}},
                             {"name": "apply_theme", "description": "Apply theme", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}},
                         ]
@@ -757,6 +758,49 @@ async def sse_endpoint(client_id: str, request: Request):
                                                             else:
                                                                 content_text = "Could not find one or both sections"
                                                         page_found = True
+                                                        break
+                                
+                                elif tool_name == "delete_section":
+                                    page_id = args["page_id"]
+                                    section_type = args["section_type"]
+                                    
+                                    # Find the site and page
+                                    sites_resp = await client.get(f"{base_url}/sites/", headers=headers)
+                                    content_text = f"Error: Could not find page {page_id}"
+                                    section_deleted = False
+                                    
+                                    if sites_resp.status_code == 200:
+                                        sites = sites_resp.json()
+                                        for site in sites:
+                                            if section_deleted:
+                                                break
+                                            pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages", headers=headers)
+                                            if pages_resp.status_code == 200:
+                                                pages = pages_resp.json()
+                                                for page in pages:
+                                                    if page['id'] == page_id or page['slug'] == page_id:
+                                                        # Get sections to find the one to delete
+                                                        content_resp = await client.get(
+                                                            f"{base_url}/sites/{site['id']}/pages/{page['id']}/content",
+                                                            headers=headers
+                                                        )
+                                                        if content_resp.status_code == 200:
+                                                            sections = content_resp.json()
+                                                            section = next((s for s in sections if s['section_type'] == section_type), None)
+                                                            
+                                                            if section:
+                                                                # Delete the section
+                                                                delete_resp = await client.delete(
+                                                                    f"{base_url}/sites/{site['id']}/pages/{page['id']}/content/{section['id']}",
+                                                                    headers=headers
+                                                                )
+                                                                if delete_resp.status_code in (200, 204):
+                                                                    content_text = f"Section '{section_type}' deleted successfully"
+                                                                else:
+                                                                    content_text = f"Error deleting section: {delete_resp.status_code}"
+                                                            else:
+                                                                content_text = f"Section '{section_type}' not found"
+                                                        section_deleted = True
                                                         break
                                 
                                 elif tool_name == "update_site":

@@ -176,8 +176,27 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     if (!confirm('Are you sure you want to delete this section?')) return;
     try {
       await api.delete(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`);
-      setSections(sections.filter((s) => s.id !== sectionId));
-      toast({ title: 'Deleted', description: 'Section removed.' });
+      
+      // Remove section and reorder remaining sections
+      const deletedIndex = sections.findIndex((s) => s.id === sectionId);
+      const remainingSections = sections.filter((s) => s.id !== sectionId);
+      
+      // Update order values for remaining sections
+      const reorderedSections = remainingSections.map((s, i) => ({ ...s, order: i }));
+      
+      // Update backend for sections that changed order
+      const updatePromises = remainingSections.map((s, i) => {
+        if (i >= deletedIndex && s.order !== i) {
+          return api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${s.id}`, {
+            order: i,
+          });
+        }
+        return Promise.resolve();
+      });
+      
+      await Promise.all(updatePromises);
+      setSections(reorderedSections);
+      toast({ title: 'Deleted', description: 'Section removed and order updated.' });
     } catch (error) {
       console.error('Failed to delete section', error);
       toast({ title: 'Error', description: 'Failed to delete section.', variant: 'destructive' });
