@@ -1,12 +1,19 @@
-'use client';
+"use client";
 
-import { useEffect, useState, use, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useEffect, useState, use, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -15,25 +22,48 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import api from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
-import { Globe, Layout, Palette, Trash2, Type, Plus, X } from 'lucide-react';
+} from "@/components/ui/select";
+import api from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Globe,
+  Layout,
+  Palette,
+  Trash2,
+  Type,
+  Plus,
+  X,
+  Send,
+  History,
+  ChevronUp,
+  ChevronDown,
+  RotateCcw,
+} from "lucide-react";
+import {
+  HeroEditor,
+  FeaturesEditor,
+  TestimonialsEditor,
+  AboutEditor,
+  ContactEditor,
+  CtaEditor,
+  PricingEditor,
+  CustomEditor,
+} from "@/components/admin/section-editors";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Site {
   id: string;
   name: string;
   slug: string;
   theme_slug: string;
-  is_deleted?: boolean;
-  deleted_at?: string;
 }
 
 interface Page {
@@ -41,17 +71,16 @@ interface Page {
   title: string;
   slug: string;
   is_published: boolean;
-  is_deleted?: boolean;
-  deleted_at?: string;
+  last_published_at?: string;
 }
 
 interface ContentSection {
   id: string;
   section_type: string;
-  content: string;
+  content_draft: string | null;
+  content_published: string | null;
+  has_unpublished_changes: boolean;
   order: number;
-  is_deleted?: boolean;
-  deleted_at?: string;
 }
 
 interface Theme {
@@ -60,332 +89,432 @@ interface Theme {
   slug: string;
 }
 
-const SECTION_TEMPLATES: Record<string, string> = {
-  hero: '# Welcome to {site_name}\n\nYour compelling headline here.',
-  body: 'Add your content here. You can use **markdown** formatting.',
-  features: '## Features\n\n- Feature 1\n- Feature 2\n- Feature 3',
-  cta: '## Ready to get started?\n\nContact us today!',
-  footer: '© 2024 {site_name}. All rights reserved.',
+interface PageVersion {
+  id: string;
+  version_number: number;
+  published_at: string;
+  label?: string;
+}
+
+// ── Section type config ────────────────────────────────────────────────────────
+
+const SECTION_TYPES = [
+  { value: "hero", label: "Hero" },
+  { value: "features", label: "Features" },
+  { value: "testimonials", label: "Testimonials" },
+  { value: "about", label: "About" },
+  { value: "contact", label: "Contact" },
+  { value: "cta", label: "Call to Action" },
+  { value: "pricing", label: "Pricing" },
+  { value: "custom", label: "Custom" },
+];
+
+const SECTION_DEFAULTS: Record<string, object> = {
+  hero: { headline: "", subheadline: "", badge: "", cta_primary: { label: "Get Started", href: "#" }, cta_secondary: { label: "Learn More", href: "#" } },
+  features: { headline: "", subheadline: "", items: [{ icon: "⭐", title: "", description: "" }] },
+  testimonials: { headline: "", items: [{ quote: "", name: "", role: "", company: "" }] },
+  about: { headline: "", body: "", stats: [] },
+  contact: { headline: "Get in Touch", email: "", phone: "", address: "", hours: "" },
+  cta: { headline: "", subheadline: "", button_label: "Get Started", button_href: "#" },
+  pricing: { headline: "", subheadline: "", plans: [] },
+  custom: { title: "", content: "" },
 };
 
-export default function SiteEditorPage({ params }: { params: Promise<{ site_id: string }> }) {
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function parseContent(raw: string | null): Record<string, unknown> {
+  if (!raw) return {};
+  try { return JSON.parse(raw) as Record<string, unknown>; }
+  catch { return {}; }
+}
+
+const THEME_COLORS: Record<string, { ring: string; swatch: string }> = {
+  modern:  { ring: "ring-blue-500",  swatch: "bg-blue-500" },
+  warm:    { ring: "ring-orange-500", swatch: "bg-orange-500" },
+  startup: { ring: "ring-emerald-500", swatch: "bg-emerald-500" },
+  minimal: { ring: "ring-zinc-500",  swatch: "bg-zinc-600" },
+  dark:    { ring: "ring-violet-500", swatch: "bg-violet-700" },
+};
+
+// ── Section editor dispatcher ─────────────────────────────────────────────────
+
+function SectionEditorDispatch({
+  section,
+  siteId,
+  pageId,
+  onSaved,
+}: {
+  section: ContentSection;
+  siteId: string;
+  pageId: string;
+  onSaved: (updated: ContentSection) => void;
+}) {
+  const { toast } = useToast();
+  const [data, setData] = useState<Record<string, unknown>>(
+    parseContent(section.content_draft)
+  );
+  const [saving, setSaving] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced auto-save on every data change
+  const handleChange = useCallback(
+    (next: Record<string, unknown>) => {
+      setData(next);
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(async () => {
+        setSaving(true);
+        try {
+          const res = await api.patch(
+            `/sites/${siteId}/pages/${pageId}/content/${section.id}`,
+            { content_draft: JSON.stringify(next) }
+          );
+          onSaved(res.data as ContentSection);
+        } catch {
+          toast({ title: "Save failed", variant: "destructive" });
+        } finally {
+          setSaving(false);
+        }
+      }, 800);
+    },
+    [siteId, pageId, section.id, onSaved, toast]
+  );
+
+  const editorProps = { content: data as never, onChange: handleChange as never };
+
+  return (
+    <div className="relative">
+      {saving && (
+        <span className="absolute top-0 right-0 text-[10px] text-muted-foreground animate-pulse">
+          saving…
+        </span>
+      )}
+      {section.section_type === "hero" && <HeroEditor {...editorProps} />}
+      {section.section_type === "features" && <FeaturesEditor {...editorProps} />}
+      {section.section_type === "testimonials" && <TestimonialsEditor {...editorProps} />}
+      {section.section_type === "about" && <AboutEditor {...editorProps} />}
+      {section.section_type === "contact" && <ContactEditor {...editorProps} />}
+      {section.section_type === "cta" && <CtaEditor {...editorProps} />}
+      {section.section_type === "pricing" && <PricingEditor {...editorProps} />}
+      {section.section_type === "custom" && <CustomEditor {...editorProps} />}
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export default function SiteEditorPage({
+  params,
+}: {
+  params: Promise<{ site_id: string }>;
+}) {
   const { site_id } = use(params);
   const [site, setSite] = useState<Site | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [currentPage, setCurrentPage] = useState<Page | null>(null);
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [themes, setThemes] = useState<Theme[]>([]);
+  const [versions, setVersions] = useState<PageVersion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDeletedSections] = useState(false);
-  const [newSectionType, setNewSectionType] = useState('body');
+  const [publishing, setPublishing] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+  const [newSectionType, setNewSectionType] = useState("hero");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAddPageDialogOpen, setIsAddPageDialogOpen] = useState(false);
-  const [newPageTitle, setNewPageTitle] = useState('');
-  const [newPageSlug, setNewPageSlug] = useState('');
+  const [newPageTitle, setNewPageTitle] = useState("");
+  const [newPageSlug, setNewPageSlug] = useState("");
   const { toast } = useToast();
   const router = useRouter();
 
-  const createInitialPage = useCallback(async () => {
-    try {
-      const response = await api.post(`/sites/${site_id}/pages`, {
-        title: 'Home',
-        slug: 'home',
-        is_published: true,
-        order: 0,
-      } as { title: string; slug: string; is_published: boolean; order: number } | Record<string, unknown>);
-      setCurrentPage(response.data);
-      setPages([response.data]);
-      const sectionsRes = await api.get(`/sites/${site_id}/pages/${response.data.id}/content?include_deleted=false`);
-      setSections(sectionsRes.data);
-    } catch (error) {
-      console.error('Failed to create initial page:', error);
-      toast({ title: 'Error', description: 'Failed to create initial page.', variant: 'destructive' });
-    }
-  }, [site_id, toast]);
+  // ── Data fetching ────────────────────────────────────────────────────────
+
+  const fetchSections = useCallback(
+    async (pageId: string) => {
+      const res = await api.get(
+        `/sites/${site_id}/pages/${pageId}/content?include_deleted=false`
+      );
+      setSections(res.data as ContentSection[]);
+    },
+    [site_id]
+  );
+
+  const fetchVersions = useCallback(
+    async (pageId: string) => {
+      try {
+        const res = await api.get(`/sites/${site_id}/pages/${pageId}/versions`);
+        setVersions(res.data as PageVersion[]);
+      } catch {
+        setVersions([]);
+      }
+    },
+    [site_id]
+  );
 
   const fetchData = useCallback(async () => {
     try {
       const [siteRes, pagesRes, themesRes] = await Promise.all([
         api.get(`/sites/${site_id}`),
         api.get(`/sites/${site_id}/pages`),
-        api.get('/themes/'),
+        api.get("/themes/"),
       ]);
+      setSite(siteRes.data as Site);
+      setThemes(themesRes.data as Theme[]);
 
-      setSite(siteRes.data);
-      setThemes(themesRes.data);
-
-      if (pagesRes.data.length > 0) {
-        const firstPage = pagesRes.data[0];
-        setCurrentPage(firstPage);
-        const sectionsRes = await api.get(`/sites/${site_id}/pages/${firstPage.id}/content?include_deleted=${showDeletedSections}`);
-        setSections(sectionsRes.data);
+      const fetchedPages = pagesRes.data as Page[];
+      if (fetchedPages.length > 0) {
+        setPages(fetchedPages);
+        setCurrentPage(fetchedPages[0]);
+        await fetchSections(fetchedPages[0].id);
+        await fetchVersions(fetchedPages[0].id);
       } else {
-        // Create initial landing page if none exists
-        await createInitialPage();
+        // Auto-create home page
+        const res = await api.post(`/sites/${site_id}/pages`, {
+          title: "Home", slug: "home", is_published: true, order: 0,
+        });
+        const newPage = res.data as Page;
+        setPages([newPage]);
+        setCurrentPage(newPage);
+        setSections([]);
       }
-    } catch (error) {
-      console.error('Failed to fetch site data', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load site data.',
-        variant: 'destructive',
-      });
+    } catch {
+      toast({ title: "Error", description: "Failed to load site.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [site_id, toast, createInitialPage, showDeletedSections]);
+  }, [site_id, fetchSections, fetchVersions, toast]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleUpdateField = async (field: 'name' | 'slug', value: string) => {
-    if (!site) return;
+  // ── Publish ──────────────────────────────────────────────────────────────
+
+  const handlePublish = async () => {
+    if (!currentPage) return;
+    setPublishing(true);
     try {
-      await api.patch(`/sites/${site_id}`, {
-        name: field === 'name' ? value : site.name,
-        slug: field === 'slug' ? value : site.slug,
-        theme_slug: site.theme_slug,
-      } as Record<string, unknown>);
-      setSite({ ...site, [field]: value });
-      toast({
-        title: 'Saved',
-        description: `${field === 'name' ? 'Site name' : 'URL slug'} updated.`,
-      });
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      toast({
-        title: 'Error',
-        description: error.response?.data?.detail || `Failed to update ${field}.`,
-        variant: 'destructive',
-      });
+      const res = await api.post(
+        `/sites/${site_id}/pages/${currentPage.id}/publish`
+      );
+      setCurrentPage(res.data as Page);
+      // Refresh sections to clear has_unpublished_changes
+      await fetchSections(currentPage.id);
+      await fetchVersions(currentPage.id);
+      toast({ title: "Published!", description: "All changes are now live." });
+    } catch {
+      toast({ title: "Publish failed", variant: "destructive" });
+    } finally {
+      setPublishing(false);
     }
   };
 
-  const handleAddSection = async () => {
-    if (!currentPage || !site) return;
+  // ── Revert to version ────────────────────────────────────────────────────
+
+  const handleRevert = async (versionId: string) => {
+    if (!currentPage) return;
+    if (!confirm("Revert to this version? Draft content will be overwritten.")) return;
     try {
-      const template = SECTION_TEMPLATES[newSectionType] || SECTION_TEMPLATES.body;
-      const content = template.replace(/{site_name}/g, site.name);
-      const response = await api.post(`/sites/${site_id}/pages/${currentPage.id}/content`, {
-        section_type: newSectionType,
-        content,
-        order: sections.length,
-      });
-      setSections([...sections, response.data]);
+      await api.post(`/sites/${site_id}/pages/${currentPage.id}/revert/${versionId}`);
+      await fetchSections(currentPage.id);
+      toast({ title: "Reverted", description: "Draft restored from version. Publish to go live." });
+    } catch {
+      toast({ title: "Revert failed", variant: "destructive" });
+    }
+  };
+
+  // ── Section CRUD ─────────────────────────────────────────────────────────
+
+  const handleAddSection = async () => {
+    if (!currentPage) return;
+    try {
+      const defaults = SECTION_DEFAULTS[newSectionType] || {};
+      const res = await api.post(
+        `/sites/${site_id}/pages/${currentPage.id}/content`,
+        {
+          section_type: newSectionType,
+          content_draft: JSON.stringify(defaults),
+          order: sections.length,
+        }
+      );
+      setSections([...sections, res.data as ContentSection]);
       setIsAddDialogOpen(false);
-      toast({ title: 'Success', description: `${newSectionType} section added.` });
-    } catch (error) {
-      console.error('Failed to add section', error);
-      toast({ title: 'Error', description: 'Failed to add section.', variant: 'destructive' });
+      toast({ title: "Section added" });
+    } catch {
+      toast({ title: "Error", description: "Failed to add section.", variant: "destructive" });
     }
   };
 
   const handleDeleteSection = async (sectionId: string) => {
     if (!currentPage) return;
-    if (!confirm('Are you sure you want to delete this section?')) return;
+    if (!confirm("Delete this section?")) return;
     try {
-      await api.delete(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`);
-      
-      // Remove section and reorder remaining sections
-      const deletedIndex = sections.findIndex((s) => s.id === sectionId);
-      const remainingSections = sections.filter((s) => s.id !== sectionId);
-      
-      // Update order values for remaining sections
-      const reorderedSections = remainingSections.map((s, i) => ({ ...s, order: i }));
-      
-      // Update backend for sections that changed order
-      const updatePromises = remainingSections.map((s, i) => {
-        if (i >= deletedIndex && s.order !== i) {
-          return api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${s.id}`, {
-            order: i,
-          });
-        }
-        return Promise.resolve();
-      });
-      
-      await Promise.all(updatePromises);
-      setSections(reorderedSections);
-      toast({ title: 'Deleted', description: 'Section removed and order updated.' });
-    } catch (error) {
-      console.error('Failed to delete section', error);
-      toast({ title: 'Error', description: 'Failed to delete section.', variant: 'destructive' });
+      await api.delete(
+        `/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`
+      );
+      const remaining = sections
+        .filter((s) => s.id !== sectionId)
+        .map((s, i) => ({ ...s, order: i }));
+      setSections(remaining);
+      toast({ title: "Section deleted" });
+    } catch {
+      toast({ title: "Error", description: "Failed to delete section.", variant: "destructive" });
     }
   };
 
-  const handleMoveSection = async (sectionId: string, direction: 'up' | 'down') => {
+  const handleMove = async (sectionId: string, direction: "up" | "down") => {
     if (!currentPage) return;
-    const index = sections.findIndex((s) => s.id === sectionId);
-    if (index === -1) return;
-    
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= sections.length) return;
-    
-    // Get the other section being swapped
-    const otherSectionId = sections[newIndex].id;
-    
-    // Swap sections locally
-    const newSections = [...sections];
-    [newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]];
-    
-    // Update order values locally
-    const updatedSections = newSections.map((s, i) => ({ ...s, order: i }));
-    setSections(updatedSections);
-    
-    // Update BOTH sections' order in backend
+    const idx = sections.findIndex((s) => s.id === sectionId);
+    const newIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= sections.length) return;
+
+    const next = [...sections];
+    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+    const updated = next.map((s, i) => ({ ...s, order: i }));
+    setSections(updated);
+
     try {
       await Promise.all([
-        api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
-          order: newIndex,
-        }),
-        api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${otherSectionId}`, {
-          order: index,
-        })
+        api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, { order: newIdx }),
+        api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sections[newIdx].id}`, { order: idx }),
       ]);
-      toast({ title: 'Success', description: `Section moved ${direction}.` });
-    } catch (error) {
-      console.error('Failed to move section', error);
-      toast({ title: 'Error', description: 'Failed to move section.', variant: 'destructive' });
-      // Revert on error
-      setSections(sections);
+    } catch {
+      setSections(sections); // revert
+      toast({ title: "Failed to reorder", variant: "destructive" });
     }
+  };
+
+  // ── Page management ──────────────────────────────────────────────────────
+
+  const handleSwitchPage = async (page: Page) => {
+    setCurrentPage(page);
+    await fetchSections(page.id);
+    await fetchVersions(page.id);
   };
 
   const handleAddPage = async () => {
     if (!newPageTitle || !newPageSlug) return;
     try {
-      const response = await api.post(`/sites/${site_id}/pages`, {
+      const res = await api.post(`/sites/${site_id}/pages`, {
         title: newPageTitle,
-        slug: newPageSlug.toLowerCase().replace(/ /g, '-'),
+        slug: newPageSlug.toLowerCase().replace(/ /g, "-"),
         is_published: true,
         order: pages.length,
       });
-      const newPage = response.data;
-      setPages([...pages, newPage]);
-      setCurrentPage(newPage);
-      setSections([]);
+      const page = res.data as Page;
+      setPages([...pages, page]);
+      await handleSwitchPage(page);
       setIsAddPageDialogOpen(false);
-      setNewPageTitle('');
-      setNewPageSlug('');
-      toast({ title: 'Success', description: `Page "${newPageTitle}" created.` });
-    } catch (error) {
-      console.error('Failed to create page', error);
-      toast({ title: 'Error', description: 'Failed to create page.', variant: 'destructive' });
-    }
-  };
-
-  const handleSwitchPage = async (page: Page) => {
-    setCurrentPage(page);
-    try {
-      const sectionsRes = await api.get(`/sites/${site_id}/pages/${page.id}/content?include_deleted=${showDeletedSections}`);
-      setSections(sectionsRes.data);
-    } catch (error) {
-      console.error('Failed to fetch page content', error);
-      setSections([]);
+      setNewPageTitle("");
+      setNewPageSlug("");
+      toast({ title: `Page "${newPageTitle}" created` });
+    } catch {
+      toast({ title: "Error", description: "Failed to create page.", variant: "destructive" });
     }
   };
 
   const handleDeletePage = async (pageId: string) => {
-    if (!confirm('Are you sure you want to delete this page?')) return;
+    if (!confirm("Delete this page?")) return;
     try {
       await api.delete(`/sites/${site_id}/pages/${pageId}`);
-      const updatedPages = pages.filter((p) => p.id !== pageId);
-      setPages(updatedPages);
+      const remaining = pages.filter((p) => p.id !== pageId);
+      setPages(remaining);
       if (currentPage?.id === pageId) {
-        setCurrentPage(updatedPages[0] || null);
-        if (updatedPages[0]) {
-          const sectionsRes = await api.get(
-            `/sites/${site_id}/pages/${updatedPages[0].id}/content?include_deleted=${showDeletedSections}`
-          );
-          setSections(sectionsRes.data);
-        } else {
-          setSections([]);
-        }
+        if (remaining.length > 0) await handleSwitchPage(remaining[0]);
+        else { setCurrentPage(null); setSections([]); }
       }
-      toast({ title: 'Deleted', description: 'Page removed.' });
-    } catch (error) {
-      console.error('Failed to delete page', error);
-      toast({ title: 'Error', description: 'Failed to delete page.', variant: 'destructive' });
+      toast({ title: "Page deleted" });
+    } catch {
+      toast({ title: "Error", description: "Failed to delete page.", variant: "destructive" });
     }
   };
 
-  const handleUpdateContent = async (sectionId: string, content: string) => {
-    if (!currentPage) return;
+  // ── Site settings ────────────────────────────────────────────────────────
+
+  const handleUpdateSiteField = async (field: "name" | "slug", value: string) => {
+    if (!site) return;
     try {
-      await api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
-        content,
-      });
-      setSections(sections.map((s) => (s.id === sectionId ? { ...s, content } : s)));
-      toast({ title: 'Saved', description: 'Content updated.' });
+      await api.patch(`/sites/${site_id}`, { ...site, [field]: value });
+      setSite({ ...site, [field]: value });
+      toast({ title: "Saved" });
     } catch {
-      toast({ title: 'Error', description: 'Failed to save content.', variant: 'destructive' });
+      toast({ title: "Error", description: `Failed to update ${field}.`, variant: "destructive" });
     }
   };
 
-  const handleDeleteSite = async () => {
-    if (!confirm('Are you sure you want to delete this site? This action cannot be undone.'))
-      return;
+  const handleThemeChange = async (slug: string) => {
+    if (!site) return;
+    setSite({ ...site, theme_slug: slug });
     try {
-      await api.delete(`/sites/${site_id}`);
-      toast({ title: 'Site deleted' });
-      router.push('/dashboard');
+      await api.patch(`/sites/${site_id}`, { ...site, theme_slug: slug });
+      toast({ title: "Theme updated" });
     } catch {
-      toast({ title: 'Error', description: 'Failed to delete site.', variant: 'destructive' });
+      setSite(site);
+      toast({ title: "Error", description: "Failed to update theme.", variant: "destructive" });
     }
   };
+
+  // ── Derived state ────────────────────────────────────────────────────────
+
+  const hasUnpublished = sections.some((s) => s.has_unpublished_changes);
 
   if (loading)
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
       </div>
     );
   if (!site) return <div>Site not found</div>;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.push("/dashboard")}>
             Back
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">{site.name}</h1>
+          <h1 className="text-2xl font-bold">{site.name}</h1>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
-            <a href={`/${site.slug}`} target="_blank" rel="noopener noreferrer" className="gap-2">
-              <Globe size={18} /> View Public Site
+            <a href={`/${site.slug}`} target="_blank" rel="noopener noreferrer">
+              <Globe size={16} className="mr-2" /> Preview
             </a>
           </Button>
-          <Button variant="destructive" size="icon" onClick={handleDeleteSite}>
-            <Trash2 size={18} />
+          <Button
+            onClick={handlePublish}
+            disabled={publishing || !currentPage}
+            className="gap-2"
+            variant={hasUnpublished ? "default" : "outline"}
+          >
+            <Send size={16} />
+            {publishing ? "Publishing…" : hasUnpublished ? "Publish Changes" : "Published"}
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="content" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="content" className="gap-2">
-            <Type size={16} /> Content
+        <TabsList className="grid w-full max-w-sm grid-cols-3">
+          <TabsTrigger value="content">
+            <Type size={14} className="mr-1.5" /> Content
           </TabsTrigger>
-          <TabsTrigger value="theme" className="gap-2">
-            <Palette size={16} /> Theme
+          <TabsTrigger value="theme">
+            <Palette size={14} className="mr-1.5" /> Theme
           </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2">
-            <Layout size={16} /> Settings
+          <TabsTrigger value="settings">
+            <Layout size={14} className="mr-1.5" /> Settings
           </TabsTrigger>
         </TabsList>
 
+        {/* ── Content tab ──────────────────────────────────────────────── */}
         <TabsContent value="content" className="mt-6 space-y-6">
-          {/* Page Selector */}
+
+          {/* Page tabs */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Pages</CardTitle>
+                <CardTitle className="text-base">Pages</CardTitle>
                 <Dialog open={isAddPageDialogOpen} onOpenChange={setIsAddPageDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2">
-                      <Plus size={16} /> Add Page
+                    <Button size="sm" variant="outline">
+                      <Plus size={14} className="mr-1" /> Add Page
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -395,22 +524,12 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="pageTitle">Page Title</Label>
-                        <Input
-                          id="pageTitle"
-                          value={newPageTitle}
-                          onChange={(e) => setNewPageTitle(e.target.value)}
-                          placeholder="e.g., About Us"
-                        />
+                        <Label>Page Title</Label>
+                        <Input value={newPageTitle} onChange={(e) => setNewPageTitle(e.target.value)} placeholder="About Us" />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="pageSlug">URL Slug</Label>
-                        <Input
-                          id="pageSlug"
-                          value={newPageSlug}
-                          onChange={(e) => setNewPageSlug(e.target.value)}
-                          placeholder="e.g., about"
-                        />
+                        <Label>URL Slug</Label>
+                        <Input value={newPageSlug} onChange={(e) => setNewPageSlug(e.target.value)} placeholder="about" />
                       </div>
                     </div>
                     <DialogFooter>
@@ -425,25 +544,16 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
                 {pages.map((page) => (
                   <div key={page.id} className="flex items-center gap-1">
                     <Button
-                      variant={currentPage?.id === page.id ? 'default' : 'outline'}
+                      variant={currentPage?.id === page.id ? "default" : "outline"}
                       size="sm"
                       onClick={() => handleSwitchPage(page)}
                     >
                       {page.title}
-                      {page.is_published ? (
-                        <span className="ml-2 w-2 h-2 rounded-full bg-green-500" />
-                      ) : (
-                        <span className="ml-2 w-2 h-2 rounded-full bg-gray-400" />
-                      )}
+                      <span className={`ml-2 w-2 h-2 rounded-full ${page.is_published ? "bg-green-400" : "bg-muted-foreground"}`} />
                     </Button>
                     {pages.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleDeletePage(page.id)}
-                      >
-                        <X size={14} />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeletePage(page.id)}>
+                        <X size={13} />
                       </Button>
                     )}
                   </div>
@@ -452,38 +562,103 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
             </CardContent>
           </Card>
 
-          {/* Content Sections */}
+          {/* Publish bar */}
+          {currentPage && (
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/40">
+              <div className="flex items-center gap-3">
+                <div>
+                  {hasUnpublished ? (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+                      Unpublished changes
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                      All changes published
+                    </Badge>
+                  )}
+                </div>
+                {currentPage.last_published_at && (
+                  <span className="text-xs text-muted-foreground">
+                    Last published {new Date(currentPage.last_published_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {versions.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={() => setShowVersions((v) => !v)}>
+                    <History size={14} className="mr-1.5" /> History ({versions.length})
+                  </Button>
+                )}
+                <Button size="sm" onClick={handlePublish} disabled={publishing || !hasUnpublished}>
+                  <Send size={14} className="mr-1.5" />
+                  {publishing ? "Publishing…" : "Publish"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Version history panel */}
+          {showVersions && versions.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Version History</CardTitle>
+                <CardDescription>Up to 5 versions kept. Reverting updates the draft — publish to go live.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {versions.map((v) => (
+                    <div key={v.id} className="flex items-center justify-between p-2 rounded-md border">
+                      <div>
+                        <span className="text-sm font-medium">v{v.version_number}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {new Date(v.published_at).toLocaleString()}
+                        </span>
+                        {v.label && <span className="ml-2 text-xs text-muted-foreground">— {v.label}</span>}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRevert(v.id)}
+                      >
+                        <RotateCcw size={13} className="mr-1.5" /> Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sections */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              {currentPage ? `"${currentPage.title}" Content` : 'Content'}
+            <h2 className="text-base font-semibold">
+              {currentPage ? `"${currentPage.title}" Sections` : "Sections"}
             </h2>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus size={16} /> Add Section
+                <Button size="sm">
+                  <Plus size={14} className="mr-1.5" /> Add Section
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add Content Section</DialogTitle>
-                  <DialogDescription>Choose a section type to add to your page.</DialogDescription>
+                  <DialogTitle>Add Section</DialogTitle>
+                  <DialogDescription>Choose a section type to add to this page.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                   <Select value={newSectionType} onValueChange={setNewSectionType}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select section type" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hero">Hero (Header)</SelectItem>
-                      <SelectItem value="body">Body Text</SelectItem>
-                      <SelectItem value="features">Features List</SelectItem>
-                      <SelectItem value="cta">Call to Action</SelectItem>
-                      <SelectItem value="footer">Footer</SelectItem>
+                      {SECTION_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleAddSection}>Add Section</Button>
+                  <Button onClick={handleAddSection}>Add</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -491,172 +666,126 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
 
           {sections.length === 0 ? (
             <Card className="p-12 text-center">
-              <p className="text-gray-500 mb-4">No content sections yet.</p>
+              <p className="text-muted-foreground mb-4">No sections yet.</p>
               <Button onClick={() => setIsAddDialogOpen(true)} variant="outline">
-                <Plus size={16} className="mr-2" /> Add Your First Section
+                <Plus size={14} className="mr-2" /> Add First Section
               </Button>
             </Card>
           ) : (
-            sections.map((section) => (
-              <Card key={section.id}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div className="space-y-1">
-                    <CardTitle className="text-sm font-medium capitalize">
-                      {section.section_type} Section
-                    </CardTitle>
+            sections.map((section, idx) => (
+              <Card key={section.id} className={section.has_unpublished_changes ? "border-amber-300" : ""}>
+                <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold capitalize">{section.section_type}</span>
+                    {section.has_unpublished_changes && (
+                      <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 py-0">
+                        draft
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleMoveSection(section.id, 'up')}
-                      disabled={sections.indexOf(section) === 0}
-                    >
-                      ↑
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMove(section.id, "up")} disabled={idx === 0}>
+                      <ChevronUp size={14} />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleMoveSection(section.id, 'down')}
-                      disabled={sections.indexOf(section) === sections.length - 1}
-                    >
-                      ↓
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMove(section.id, "down")} disabled={idx === sections.length - 1}>
+                      <ChevronDown size={14} />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteSection(section.id)}
-                    >
-                      <Trash2 size={16} className="text-red-500" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteSection(section.id)}>
+                      <Trash2 size={14} />
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <textarea
-                    className="w-full min-h-[100px] p-3 border rounded-md font-mono text-sm"
-                    defaultValue={section.content}
-                    onBlur={(e) => handleUpdateContent(section.id, e.target.value)}
+                <CardContent className="px-4 pb-4">
+                  <SectionEditorDispatch
+                    section={section}
+                    siteId={site_id}
+                    pageId={currentPage!.id}
+                    onSaved={(updated) =>
+                      setSections((prev) =>
+                        prev.map((s) => (s.id === updated.id ? updated : s))
+                      )
+                    }
                   />
-                  <p className="text-[10px] text-gray-400 mt-1 italic text-right">
-                    Changes auto-save on blur
-                  </p>
                 </CardContent>
               </Card>
             ))
           )}
         </TabsContent>
 
+        {/* ── Theme tab ─────────────────────────────────────────────────── */}
         <TabsContent value="theme" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Choose a Theme</CardTitle>
-              <CardDescription>Select a visual style for your landing page.</CardDescription>
+              <CardDescription>Select a visual style for your public site.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {themes.map((t) => {
-                  const themeColors = {
-                    default: { bg: 'bg-blue-500', light: 'bg-blue-100', border: 'border-blue-600' },
-                    warm: {
-                      bg: 'bg-orange-500',
-                      light: 'bg-orange-100',
-                      border: 'border-orange-600',
-                    },
-                    nature: {
-                      bg: 'bg-green-500',
-                      light: 'bg-green-100',
-                      border: 'border-green-600',
-                    },
-                    dark: { bg: 'bg-slate-800', light: 'bg-slate-700', border: 'border-slate-600' },
-                    minimal: { bg: 'bg-gray-600', light: 'bg-gray-100', border: 'border-gray-600' },
-                  };
-                  const colors =
-                    themeColors[t.slug as keyof typeof themeColors] || themeColors.default;
-
+                  const colors = THEME_COLORS[t.slug] || THEME_COLORS.modern;
+                  const active = site.theme_slug === t.slug;
                   return (
                     <button
                       key={t.id}
-                      onClick={async () => {
-                        setSite({ ...site, theme_slug: t.slug });
-                        try {
-                          await api.patch(`/sites/${site_id}`, {
-                            name: site.name,
-                            slug: site.slug,
-                            theme_slug: t.slug,
-                          } as Record<string, unknown>);
-                          toast({ title: 'Success', description: `Theme changed to ${t.name}.` });
-                        } catch (err: unknown) {
-                          const error = err as { response?: { data?: { detail?: string } } };
-                          toast({
-                            title: 'Error',
-                            description: error.response?.data?.detail || 'Failed to update theme.',
-                            variant: 'destructive',
-                          });
-                          // Revert on error
-                          setSite({ ...site, theme_slug: site.theme_slug });
-                        }
-                      }}
-                      className={`p-4 border-2 rounded-lg text-center transition-all ${
-                        site.theme_slug === t.slug
-                          ? `${colors.border} ${colors.light}`
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      onClick={() => handleThemeChange(t.slug)}
+                      className={`p-4 border-2 rounded-xl text-center transition-all hover:shadow-md ${active ? `${colors.ring} ring-2` : "border-border hover:border-muted-foreground"}`}
                     >
-                      <div
-                        className={`w-full aspect-video ${colors.light} rounded mb-2 flex items-center justify-center relative overflow-hidden`}
-                      >
-                        <div className={`absolute inset-0 ${colors.bg} opacity-20`}></div>
-                        <div className="relative flex gap-1">
-                          <div className={`w-4 h-4 ${colors.bg} rounded-full`}></div>
-                          <div className={`w-4 h-4 ${colors.bg} rounded-full opacity-60`}></div>
-                          <div className={`w-4 h-4 ${colors.bg} rounded-full opacity-30`}></div>
-                        </div>
-                      </div>
-                      <span className="text-sm font-medium capitalize">{t.name}</span>
+                      <div className={`w-8 h-8 rounded-full mx-auto mb-2 ${colors.swatch}`} />
+                      <span className="text-sm font-medium">{t.name}</span>
                     </button>
                   );
                 })}
               </div>
-              <p className="text-[10px] text-gray-400 mt-4 italic">Changes auto-save on click</p>
+              <p className="text-[11px] text-muted-foreground mt-4">Saves automatically on click</p>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="settings" className="mt-6">
+        {/* ── Settings tab ──────────────────────────────────────────────── */}
+        <TabsContent value="settings" className="mt-6 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Site Settings</CardTitle>
               <CardDescription>Update your site name and public URL slug.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Site Name</Label>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Site Name</Label>
+                <Input
+                  defaultValue={site.name}
+                  onBlur={(e) => handleUpdateSiteField("name", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>URL Slug</Label>
+                <div className="flex items-center gap-2">
                   <Input
-                    id="name"
-                    defaultValue={site.name}
-                    onBlur={(e) => handleUpdateField('name', e.target.value)}
-                    required
+                    defaultValue={site.slug}
+                    onBlur={(e) =>
+                      handleUpdateSiteField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-"))
+                    }
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="slug">URL Slug</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="slug"
-                      defaultValue={site.slug}
-                      onBlur={(e) =>
-                        handleUpdateField('slug', e.target.value.toLowerCase().replace(/ /g, '-'))
-                      }
-                      required
-                    />
-                    <span className="text-sm text-gray-500">.aicms.docmet.systems</span>
-                  </div>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">.aicms.docmet.systems</span>
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 mt-4 italic">Changes auto-save on blur</p>
+              <p className="text-[11px] text-muted-foreground">Saves automatically on blur</p>
+            </CardContent>
+          </Card>
+          <Card className="border-destructive/50">
+            <CardHeader>
+              <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!confirm("Delete this site permanently?")) return;
+                  await api.delete(`/sites/${site_id}`);
+                  router.push("/dashboard");
+                }}
+              >
+                <Trash2 size={16} className="mr-2" /> Delete Site
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
