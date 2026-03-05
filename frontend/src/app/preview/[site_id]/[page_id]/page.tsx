@@ -24,6 +24,7 @@ interface Site {
   name: string;
   slug: string;
   theme_slug: string;
+  theme_slug_draft: string | null;
 }
 
 const SECTION_COMPONENTS: Record<string, React.ComponentType<{ content: string }>> = {
@@ -95,7 +96,7 @@ export default function DraftPreviewPage({
   return (
     <div
       className="min-h-screen"
-      data-theme={site.theme_slug || 'default'}
+      data-theme={site.theme_slug_draft ?? site.theme_slug ?? 'default'}
       style={{
         background: 'var(--color-bg, #ffffff)',
         color: 'var(--color-text, #0f172a)',

@@ -576,8 +576,11 @@ class MCPServer:
         elif tool_name == "apply_theme":
             site_id = args["site_id"]
             theme_slug = args["theme_slug"]
-            await self._make_request("PATCH", f"/sites/{site_id}", json={"theme_slug": theme_slug})
-            return self._text(f"Theme '{theme_slug}' applied to site {site_id}.")
+            await self._make_request("PATCH", f"/sites/{site_id}", json={"theme_slug_draft": theme_slug})
+            return self._text(
+                f"Theme '{theme_slug}' staged as draft on site {site_id}. "
+                "Call publish_page to make the theme change live on the public site."
+            )
 
         else:
             return CallToolResult(

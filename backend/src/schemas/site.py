@@ -24,6 +24,7 @@ class SiteUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     slug: str | None = Field(None, min_length=1, max_length=255, pattern="^[a-z0-9-]+$")
     theme_slug: str | None = Field(None, max_length=50)
+    theme_slug_draft: str | None = Field(None, max_length=50)
 
 
 class SiteInDB(SiteBase):
@@ -32,6 +33,7 @@ class SiteInDB(SiteBase):
     id: UUID
     user_id: UUID
     domain: str | None = None
+    theme_slug_draft: str | None = None
     is_deleted: bool = False
     deleted_at: datetime | None = None
     created_at: datetime

@@ -24,6 +24,7 @@ class Site(Base):
     name = Column(String(255), nullable=False)
     domain = Column(String(255), nullable=True)  # For custom domains (future)
     theme_slug = Column(String(50), default="default", nullable=False)
+    theme_slug_draft = Column(String(50), nullable=True)  # pending theme change; NULL = no draft
     is_deleted = Column(Boolean, default=False, nullable=False, index=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(

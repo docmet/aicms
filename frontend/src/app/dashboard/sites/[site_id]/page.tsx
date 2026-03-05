@@ -64,6 +64,7 @@ interface Site {
   name: string;
   slug: string;
   theme_slug: string;
+  theme_slug_draft: string | null;
 }
 
 interface Page {
@@ -440,10 +441,10 @@ export default function SiteEditorPage({
 
   const handleThemeChange = async (slug: string) => {
     if (!site) return;
-    setSite({ ...site, theme_slug: slug });
+    setSite({ ...site, theme_slug_draft: slug });
     try {
-      await api.patch(`/sites/${site_id}`, { ...site, theme_slug: slug });
-      toast({ title: "Theme updated" });
+      await api.patch(`/sites/${site_id}`, { theme_slug_draft: slug });
+      toast({ title: "Theme staged", description: "Publish a page to make this theme live." });
     } catch {
       setSite(site);
       toast({ title: "Error", description: "Failed to update theme.", variant: "destructive" });
@@ -452,7 +453,7 @@ export default function SiteEditorPage({
 
   // ── Derived state ────────────────────────────────────────────────────────
 
-  const hasUnpublished = sections.some((s) => s.has_unpublished_changes);
+  const hasUnpublished = sections.some((s) => s.has_unpublished_changes) || !!site?.theme_slug_draft;
 
   if (loading)
     return (
@@ -727,7 +728,9 @@ export default function SiteEditorPage({
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {themes.map((t) => {
                   const colors = THEME_COLORS[t.slug] || THEME_COLORS.modern;
-                  const active = site.theme_slug === t.slug;
+                  const effectiveTheme = site.theme_slug_draft ?? site.theme_slug;
+                  const active = effectiveTheme === t.slug;
+                  const isDraft = site.theme_slug_draft === t.slug && site.theme_slug !== t.slug;
                   return (
                     <button
                       key={t.id}
@@ -736,11 +739,16 @@ export default function SiteEditorPage({
                     >
                       <div className={`w-8 h-8 rounded-full mx-auto mb-2 ${colors.swatch}`} />
                       <span className="text-sm font-medium">{t.name}</span>
+                      {isDraft && (
+                        <span className="block text-[9px] text-amber-600 font-semibold mt-0.5">draft</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
-              <p className="text-[11px] text-muted-foreground mt-4">Saves automatically on click</p>
+              <p className="text-[11px] text-muted-foreground mt-4">
+                Theme changes are staged as draft. Publish a page to make them live.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

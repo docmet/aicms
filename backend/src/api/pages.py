@@ -221,7 +221,7 @@ async def publish_page(
     - Enforces MAX_VERSIONS_PER_PAGE by deleting the oldest version on overflow
     - Sets page.is_published = True and page.last_published_at = now
     """
-    await get_site_owned_by_user(site_id, current_user, db)
+    site = await get_site_owned_by_user(site_id, current_user, db)
     result = await db.execute(
         select(Page).where(
             Page.id == page_id,
@@ -235,6 +235,12 @@ async def publish_page(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Page not found",
         )
+
+    # Publish pending theme draft (site-level, applies on any page publish)
+    if site.theme_slug_draft is not None:
+        site.theme_slug = site.theme_slug_draft  # type: ignore
+        site.theme_slug_draft = None  # type: ignore
+        db.add(site)
 
     # Fetch all active sections
     sections_result = await db.execute(
