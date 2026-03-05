@@ -56,6 +56,7 @@ import {
   PricingEditor,
   CustomEditor,
 } from "@/components/admin/section-editors";
+import { usePreviewSSE, SSESection } from "@/hooks/use-preview-sse";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -284,6 +285,29 @@ export default function SiteEditorPage({
   }, [site_id, fetchSections, fetchVersions, toast]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── SSE: pick up MCP edits in real-time ──────────────────────────────────
+  // Updates section list (new/deleted/reordered sections from MCP).
+  // Preserves content_draft for already-mounted editors so in-progress
+  // typing is never clobbered. has_unpublished_changes badge stays accurate.
+  const handleSSESections = useCallback((updated: SSESection[]) => {
+    setSections((prev) => {
+      const prevMap = new Map(prev.map((s) => [s.id, s]));
+      return updated.map((s) => ({
+        // SSE fields
+        ...s,
+        // preserve content_published (not in SSE payload)
+        content_published: prevMap.get(s.id)?.content_published ?? null,
+        // preserve content_draft for already-mounted editors (in-progress typing)
+        content_draft: prevMap.has(s.id) ? prevMap.get(s.id)!.content_draft : s.content_draft,
+      }));
+    });
+  }, []);
+
+  usePreviewSSE({
+    pageId: currentPage?.id,
+    onSectionsUpdated: handleSSESections,
+  });
 
   // ── Publish ──────────────────────────────────────────────────────────────
 

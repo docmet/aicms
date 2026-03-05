@@ -67,6 +67,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - API_URL=http://backend:8000/api
+      - APP_URL=https://${DOMAIN}
       - DATABASE_URL=postgresql+asyncpg://aicms:${POSTGRES_PASSWORD}@postgres:5432/aicms
       - DOMAIN=${DOMAIN}
     restart: unless-stopped

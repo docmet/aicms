@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { usePreviewSSE } from '@/hooks/use-preview-sse';
 import { HeroSection } from '@/components/sections/HeroSection';
 import { FeaturesSection } from '@/components/sections/FeaturesSection';
 import { TestimonialsSection } from '@/components/sections/TestimonialsSection';
@@ -69,6 +70,17 @@ export default function DraftPreviewPage({
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [site_id, page_id, user, authLoading, router]);
+
+  // Live SSE updates — re-renders instantly on any draft change
+  const handleSSEUpdate = useCallback((updated: ContentSection[]) => {
+    setSections(updated);
+  }, []);
+
+  usePreviewSSE({
+    pageId: page_id,
+    onSectionsUpdated: handleSSEUpdate,
+    enabled: !!user && !authLoading,
+  });
 
   if (authLoading || loading) {
     return (

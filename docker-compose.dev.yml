@@ -76,6 +76,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - API_URL=http://backend:8000/api
+      - APP_URL=http://localhost
       - DATABASE_URL=postgresql+asyncpg://aicms:aicms_password@postgres:5432/aicms
     volumes:
       - ./mcp_server:/app

@@ -85,11 +85,18 @@ VALID_SECTION_TYPES = list(SECTION_DEFAULTS.keys())
 
 
 class MCPServer:
-    def __init__(self, api_url: str, api_token: str):
+    def __init__(self, api_url: str, api_token: str, app_url: str = ""):
         self.server = Server("aicms-mcp")
         self.api_url = api_url.rstrip("/")
         self.api_token = api_token
+        self.app_url = app_url.rstrip("/")
         self.headers = {"Authorization": f"Bearer {api_token}"}
+
+    def _preview_url(self, site_id: str, page_id: str) -> str | None:
+        """Return the draft preview URL, or None if app_url is not configured."""
+        if not self.app_url:
+            return None
+        return f"{self.app_url}/preview/{site_id}/{page_id}"
 
         # Register handlers
         self.server.list_tools = self.handle_list_tools
@@ -414,7 +421,11 @@ class MCPServer:
             for page in pages:
                 pid = page["id"]
                 pub_str = "published" if page["is_published"] else "draft"
-                lines.append(f"## Page: {page['title']} (/{page['slug']}) [{pub_str}] id={pid}")
+                preview_url = self._preview_url(site_id, pid)
+                page_header = f"## Page: {page['title']} (/{page['slug']}) [{pub_str}] id={pid}"
+                if preview_url:
+                    page_header += f" | preview: {preview_url}"
+                lines.append(page_header)
                 try:
                     sections = await self._make_request("GET", f"/sites/{site_id}/pages/{pid}/content")
                 except Exception:
@@ -504,8 +515,10 @@ class MCPServer:
             page = await self._make_request("GET", f"/sites/{site_id}/pages/{page_id}")
             sections = await self._make_request("GET", f"/sites/{site_id}/pages/{page_id}/content")
 
+            preview_url = self._preview_url(site_id, page_id)
             lines = [
                 f"Page: {page['title']} (/{page['slug']}, published: {page['is_published']})",
+                *([ f"Preview draft: {preview_url}" ] if preview_url else []),
                 "",
             ]
 
@@ -538,9 +551,11 @@ class MCPServer:
                 f"/sites/{site_id}/pages/{page_id}/content/by-type/{section_type}",
                 json={"content_draft": json.dumps(content_json), "order": order},
             )
+            preview_url = self._preview_url(site_id, page_id)
+            preview_hint = f"\nPreview draft: {preview_url}" if preview_url else ""
             return self._text(
                 f"Section '{section_type}' updated on page {page_id}. "
-                "Call publish_page to make this change live."
+                f"Call publish_page to make this change live.{preview_hint}"
             )
 
         # ── generate_section ──────────────────────────────────────────────
@@ -599,8 +614,8 @@ class MCPServer:
         return ListPromptsResult(prompts=[])
 
 
-def create_server(api_url: str, api_token: str) -> MCPServer:
-    return MCPServer(api_url, api_token)
+def create_server(api_url: str, api_token: str, app_url: str = "") -> MCPServer:
+    return MCPServer(api_url, api_token, app_url)
 
 
 async def main():
@@ -617,6 +632,11 @@ async def main():
         default=os.getenv("AICMS_API_TOKEN"),
         help="AI CMS API bearer token",
     )
+    parser.add_argument(
+        "--app-url",
+        default=os.getenv("APP_URL", ""),
+        help="Public frontend URL for preview links (e.g. https://mystorey.io)",
+    )
 
     args = parser.parse_args()
 
@@ -624,7 +644,7 @@ async def main():
         print("Error: API token required. Set AICMS_API_TOKEN or use --api-token")
         return
 
-    server = create_server(args.api_url, args.api_token)
+    server = create_server(args.api_url, args.api_token, args.app_url)
 
     async with stdio_server() as (read_stream, write_stream):
         await server.server.run(

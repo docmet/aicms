@@ -92,7 +92,7 @@ async def startup_event():
         await conn.run_sync(Base.metadata.create_all)
     
     api_url = os.getenv("API_URL", "http://localhost:8000/api")
-    mcp_server = MCPServer(api_url, None)  # Token not needed for hosted version
+    mcp_server = MCPServer(api_url, None, os.getenv("APP_URL", ""))  # Token not needed for hosted version
 
 
 @app.get("/")
@@ -354,7 +354,7 @@ async def mcp_generic_endpoint(
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
     api_url = os.getenv("API_URL", "http://backend:8000/api")
-    per_request_server = MCPServer(api_url, authed_client.token)
+    per_request_server = MCPServer(api_url, authed_client.token, os.getenv("APP_URL", ""))
 
     if method == "initialize":
         return ok({
@@ -421,7 +421,7 @@ async def mcp_endpoint(
         return JSONResponse(status_code=403, content={"error": "forbidden"})
 
     api_url = os.getenv("API_URL", "http://backend:8000/api")
-    per_request_server = MCPServer(api_url, url_client.token)
+    per_request_server = MCPServer(api_url, url_client.token, os.getenv("APP_URL", ""))
 
     method = body.get("method", "")
     req_id = body.get("id")
@@ -1344,7 +1344,7 @@ async def _get_mcp_server_for_client(client_id: str) -> MCPServer:
         client = result.scalar_one_or_none()
         if not client:
             raise HTTPException(status_code=404, detail="Client not found")
-        return MCPServer(api_url, client.token)
+        return MCPServer(api_url, client.token, os.getenv("APP_URL", ""))
 
 
 @app.post("/sse/{client_id}/messages")

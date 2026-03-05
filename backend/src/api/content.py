@@ -93,6 +93,7 @@ async def _broadcast_sections(page_id: UUID, db: AsyncSession) -> None:
                 "section_type": s.section_type,
                 "content_draft": s.content_draft,
                 "order": s.order,
+                "has_unpublished_changes": s.has_unpublished_changes,
             }
             for s in sections
         ],
