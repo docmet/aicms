@@ -297,19 +297,25 @@ export default function SiteEditorPage({
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // ── BroadcastChannel: push section updates to preview tab in real-time ────
+  // SSE works on localhost but can be buffered by ngrok/proxies.
+  // BroadcastChannel is instant for same-origin tabs on the same device.
+  const initialLoadDone = useRef(false);
+  useEffect(() => { if (!loading) initialLoadDone.current = true; }, [loading]);
+  useEffect(() => {
+    if (!initialLoadDone.current || !currentPage) return;
+    const ch = new BroadcastChannel(`preview-${currentPage.id}`);
+    ch.postMessage({ type: 'sections_updated', sections });
+    ch.close();
+  }, [sections, currentPage]);
+
   // ── SSE: pick up MCP edits in real-time ──────────────────────────────────
-  // Updates section list (new/deleted/reordered sections from MCP).
-  // Preserves content_draft for already-mounted editors so in-progress
-  // typing is never clobbered. has_unpublished_changes badge stays accurate.
   const handleSSESections = useCallback((updated: SSESection[]) => {
     setSections((prev) => {
       const prevMap = new Map(prev.map((s) => [s.id, s]));
       return updated.map((s) => ({
         ...s,
-        // preserve content_published (not in SSE payload)
         content_published: prevMap.get(s.id)?.content_published ?? null,
-        // pass SSE content_draft through — SectionEditorDispatch will ignore it
-        // if the user is actively typing (isDirty guard in the component)
         content_draft: s.content_draft,
       }));
     });
@@ -480,19 +486,38 @@ export default function SiteEditorPage({
 
   const handleThemeChange = async (slug: string) => {
     if (!site) return;
-    setSite({ ...site, theme_slug_draft: slug });
+    // Clicking the already-published theme restores (clears the draft)
+    const newDraft = slug === site.theme_slug ? null : slug;
+    setSite({ ...site, theme_slug_draft: newDraft });
     try {
-      await api.patch(`/sites/${site_id}`, { theme_slug_draft: slug });
-      toast({ title: "Theme staged", description: "Publish a page to make this theme live." });
+      await api.patch(`/sites/${site_id}`, { theme_slug_draft: newDraft });
+      toast({
+        title: newDraft ? "Theme staged" : "Theme restored",
+        description: newDraft ? "Publish to make this theme live." : "Draft cleared — back to published theme.",
+      });
     } catch {
       setSite(site);
       toast({ title: "Error", description: "Failed to update theme.", variant: "destructive" });
     }
   };
 
+  const handleDiscardThemeDraft = async () => {
+    if (!site?.theme_slug_draft) return;
+    setSite({ ...site, theme_slug_draft: null });
+    try {
+      await api.patch(`/sites/${site_id}`, { theme_slug_draft: null });
+      toast({ title: "Theme restored", description: "Draft cleared — back to published theme." });
+    } catch {
+      setSite(site);
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
   // ── Derived state ────────────────────────────────────────────────────────
 
-  const hasUnpublished = sections.some((s) => s.has_unpublished_changes) || !!site?.theme_slug_draft;
+  const hasUnpublished =
+    sections.some((s) => s.has_unpublished_changes) ||
+    (!!site?.theme_slug_draft && site.theme_slug_draft !== site.theme_slug);
 
   if (loading)
     return (
@@ -785,9 +810,18 @@ export default function SiteEditorPage({
                   );
                 })}
               </div>
-              <p className="text-[11px] text-muted-foreground mt-4">
-                Theme changes are staged as draft. Publish a page to make them live.
-              </p>
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-[11px] text-muted-foreground">
+                  {site.theme_slug_draft && site.theme_slug_draft !== site.theme_slug
+                    ? `Draft: "${site.theme_slug_draft}" — click the current theme to restore, or publish to make live.`
+                    : "Click a theme to stage it as a draft. Publish to make it live."}
+                </p>
+                {site.theme_slug_draft && site.theme_slug_draft !== site.theme_slug && (
+                  <Button variant="ghost" size="sm" className="text-xs shrink-0 ml-4" onClick={handleDiscardThemeDraft}>
+                    <RotateCcw size={12} className="mr-1" /> Restore
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

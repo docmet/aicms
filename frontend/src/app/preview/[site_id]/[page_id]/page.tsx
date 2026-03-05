@@ -71,9 +71,9 @@ export default function DraftPreviewPage({
       .finally(() => setLoading(false));
   }, [site_id, page_id, user, authLoading, router]);
 
-  // Live SSE updates — re-renders instantly on any draft change
+  // Live SSE updates — re-renders instantly on any draft change (via nginx)
   const handleSSEUpdate = useCallback((updated: ContentSection[]) => {
-    setSections(updated);
+    setSections(updated as ContentSection[]);
   }, []);
 
   usePreviewSSE({
@@ -81,6 +81,16 @@ export default function DraftPreviewPage({
     onSectionsUpdated: handleSSEUpdate,
     enabled: !!user && !authLoading,
   });
+
+  // BroadcastChannel — instant updates from admin editor in same browser
+  // (faster than SSE through proxies like ngrok)
+  useEffect(() => {
+    const ch = new BroadcastChannel(`preview-${page_id}`);
+    ch.onmessage = (e: MessageEvent<{ type: string; sections: ContentSection[] }>) => {
+      if (e.data.type === 'sections_updated') setSections(e.data.sections);
+    };
+    return () => ch.close();
+  }, [page_id]);
 
   if (authLoading || loading) {
     return (
