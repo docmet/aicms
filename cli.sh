@@ -331,35 +331,31 @@ typecheck_command() {
   log_success "Type checks completed"
 }
 
+is_backend_running() {
+  docker inspect -f '{{.State.Running}}' aicms_backend 2>/dev/null | grep -q true
+}
+
 db_migrate_command() {
-  if [[ ! -d "${BACKEND_DIR}" ]]; then
-    log_error "Backend directory not found"
-    exit 1
-  fi
-  
-  if ! command -v uv >/dev/null 2>&1; then
-    log_error "uv is required but not found"
-    exit 1
-  fi
-  
   log_info "Running database migrations..."
-  (cd "${BACKEND_DIR}" && uv run alembic upgrade head)
+  if is_backend_running; then
+    local compose_cmd
+    compose_cmd="$(compose_cmd)"
+    ${compose_cmd} -f "${COMPOSE_DEV}" exec backend uv run alembic upgrade head
+  else
+    (cd "${BACKEND_DIR}" && uv run alembic upgrade head)
+  fi
   log_success "Migrations completed"
 }
 
 db_seed_command() {
-  if [[ ! -d "${BACKEND_DIR}" ]]; then
-    log_error "Backend directory not found"
-    exit 1
-  fi
-  
-  if ! command -v uv >/dev/null 2>&1; then
-    log_error "uv is required but not found"
-    exit 1
-  fi
-  
   log_info "Seeding database..."
-  (cd "${BACKEND_DIR}" && uv run python seeds/seed.py)
+  if is_backend_running; then
+    local compose_cmd
+    compose_cmd="$(compose_cmd)"
+    ${compose_cmd} -f "${COMPOSE_DEV}" exec backend uv run python seeds/seed.py
+  else
+    (cd "${BACKEND_DIR}" && uv run python seeds/seed.py)
+  fi
   log_success "Database seeded"
 }
 
@@ -377,13 +373,20 @@ db_reset_command() {
   log_info "Resetting database..."
   ${compose_cmd} -f "${COMPOSE_DEV}" down -v
   ${compose_cmd} -f "${COMPOSE_DEV}" up -d postgres
-  
+
   log_info "Waiting for postgres to be ready..."
   sleep 5
-  
+
+  # Start backend temporarily for migrations (needs DB connection)
+  ${compose_cmd} -f "${COMPOSE_DEV}" up -d backend
+  log_info "Waiting for backend to be ready..."
+  sleep 3
+
   db_migrate_command
   db_seed_command
-  
+
+  # Bring up the rest of the stack
+  ${compose_cmd} -f "${COMPOSE_DEV}" up -d
   log_success "Database reset completed"
 }
 
