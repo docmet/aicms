@@ -24,6 +24,8 @@ class Page(Base):
     slug = Column(String(255), nullable=False)
     is_published = Column(Boolean, default=False, nullable=False)
     order = Column(Integer, default=0, nullable=False)
+    is_deleted = Column(Boolean, default=False, nullable=False, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

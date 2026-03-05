@@ -1,7 +1,9 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,9 +27,10 @@ async def get_page_owned_by_user(
     page_id: UUID,
     current_user: User,
     db: AsyncSession,
+    include_deleted: bool = False,
 ) -> Page:
     """Helper to verify page ownership via site."""
-    result = await db.execute(
+    query = (
         select(Page)
         .join(Site)
         .where(
@@ -36,6 +39,9 @@ async def get_page_owned_by_user(
             Site.user_id == current_user.id,
         )
     )
+    if not include_deleted:
+        query = query.where(Page.is_deleted == False)
+    result = await db.execute(query)
     page = result.scalar_one_or_none()
     if not page:
         raise HTTPException(
@@ -78,14 +84,18 @@ async def list_content_sections(
     page_id: UUID,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    include_deleted: bool = Query(default=False, description="Include deleted sections"),
 ) -> list[ContentSection]:
     """List all content sections for a specific page."""
-    await get_page_owned_by_user(site_id, page_id, current_user, db)
-    result = await db.execute(
+    await get_page_owned_by_user(site_id, page_id, current_user, db, include_deleted)
+    query = (
         select(ContentSection)
         .where(ContentSection.page_id == page_id)
         .order_by(ContentSection.order)
     )
+    if not include_deleted:
+        query = query.where(ContentSection.is_deleted == False)
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 
@@ -99,14 +109,16 @@ async def get_content_section(
     content_id: UUID,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    include_deleted: bool = Query(default=False),
 ) -> ContentSection:
     """Get a specific content section by ID."""
-    await get_page_owned_by_user(site_id, page_id, current_user, db)
-    result = await db.execute(
-        select(ContentSection).where(
-            ContentSection.id == content_id, ContentSection.page_id == page_id
-        )
+    await get_page_owned_by_user(site_id, page_id, current_user, db, include_deleted)
+    query = select(ContentSection).where(
+        ContentSection.id == content_id, ContentSection.page_id == page_id
     )
+    if not include_deleted:
+        query = query.where(ContentSection.is_deleted == False)
+    result = await db.execute(query)
     content = result.scalar_one_or_none()
     if not content:
         raise HTTPException(
@@ -163,11 +175,13 @@ async def delete_content_section(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
-    """Delete a content section."""
+    """Soft delete a content section."""
     await get_page_owned_by_user(site_id, page_id, current_user, db)
     result = await db.execute(
         select(ContentSection).where(
-            ContentSection.id == content_id, ContentSection.page_id == page_id
+            ContentSection.id == content_id,
+            ContentSection.page_id == page_id,
+            ContentSection.is_deleted == False,
         )
     )
     content = result.scalar_one_or_none()
@@ -177,5 +191,8 @@ async def delete_content_section(
             detail="Content section not found",
         )
 
-    await db.delete(content)
+    # Soft delete
+    content.is_deleted = True
+    content.deleted_at = datetime.now(UTC)
+    db.add(content)
     await db.commit()

@@ -32,6 +32,8 @@ interface Site {
   name: string;
   slug: string;
   theme_slug: string;
+  is_deleted?: boolean;
+  deleted_at?: string;
 }
 
 interface Page {
@@ -39,6 +41,8 @@ interface Page {
   title: string;
   slug: string;
   is_published: boolean;
+  is_deleted?: boolean;
+  deleted_at?: string;
 }
 
 interface ContentSection {
@@ -46,6 +50,8 @@ interface ContentSection {
   section_type: string;
   content: string;
   order: number;
+  is_deleted?: boolean;
+  deleted_at?: string;
 }
 
 interface Theme {
@@ -70,6 +76,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
   const [sections, setSections] = useState<ContentSection[]>([]);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeletedSections, setShowDeletedSections] = useState(false);
   const [newSectionType, setNewSectionType] = useState('body');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAddPageDialogOpen, setIsAddPageDialogOpen] = useState(false);
@@ -107,7 +114,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
       if (pagesRes.data.length > 0) {
         const firstPage = pagesRes.data[0];
         setCurrentPage(firstPage);
-        const sectionsRes = await api.get(`/sites/${site_id}/pages/${firstPage.id}/content`);
+        const sectionsRes = await api.get(`/sites/${site_id}/pages/${firstPage.id}/content?include_deleted=${showDeletedSections}`);
         setSections(sectionsRes.data);
       } else {
         // Create initial landing page if none exists
@@ -168,6 +175,24 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
     } catch (error) {
       console.error('Failed to add section', error);
       toast({ title: 'Error', description: 'Failed to add section.', variant: 'destructive' });
+    }
+  };
+
+  const handleRestoreSection = async (sectionId: string) => {
+    if (!currentPage) return;
+    try {
+      await api.patch(`/sites/${site_id}/pages/${currentPage.id}/content/${sectionId}`, {
+        is_deleted: false,
+        deleted_at: null,
+      });
+      
+      // Refresh sections to show restored section
+      const sectionsRes = await api.get(`/sites/${site_id}/pages/${currentPage.id}/content?include_deleted=${showDeletedSections}`);
+      setSections(sectionsRes.data);
+      toast({ title: 'Restored', description: 'Section restored successfully.' });
+    } catch (error) {
+      console.error('Failed to restore section', error);
+      toast({ title: 'Error', description: 'Failed to restore section.', variant: 'destructive' });
     }
   };
 
@@ -267,7 +292,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
   const handleSwitchPage = async (page: Page) => {
     setCurrentPage(page);
     try {
-      const sectionsRes = await api.get(`/sites/${site_id}/pages/${page.id}/content`);
+      const sectionsRes = await api.get(`/sites/${site_id}/pages/${page.id}/content?include_deleted=${showDeletedSections}`);
       setSections(sectionsRes.data);
     } catch (error) {
       console.error('Failed to fetch page content', error);
@@ -285,7 +310,7 @@ export default function SiteEditorPage({ params }: { params: Promise<{ site_id: 
         setCurrentPage(updatedPages[0] || null);
         if (updatedPages[0]) {
           const sectionsRes = await api.get(
-            `/sites/${site_id}/pages/${updatedPages[0].id}/content`
+            `/sites/${site_id}/pages/${updatedPages[0].id}/content?include_deleted=${showDeletedSections}`
           );
           setSections(sectionsRes.data);
         } else {

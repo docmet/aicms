@@ -33,6 +33,8 @@ class PageInDB(PageBase):
 
     id: UUID
     site_id: UUID
+    is_deleted: bool = False
+    deleted_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

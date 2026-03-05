@@ -130,6 +130,41 @@ Content: Welcome to My Blog
 Result: Created hero section with content
 ```
 
+### Soft Delete and Restore
+
+All delete operations in AI CMS use **soft delete**, meaning items are marked as deleted but can be restored later.
+
+**Deleting a section:**
+```
+You: Delete the "oasis" section from my home page
+
+Claude: I'll delete that section for you.
+
+Delete section
+Page: home
+Section Type: oasis
+
+Result: Section 'oasis' soft deleted successfully
+```
+
+**Restoring a deleted section:**
+```
+You: Restore the "oasis" section I just deleted
+
+Claude: I'll restore that section for you.
+
+Restore section
+Page: home
+Section Type: oasis
+
+Result: Section 'oasis' restored successfully
+```
+
+**Available restore tools:**
+- `restore_site` - Restore a deleted site
+- `restore_page` - Restore a deleted page  
+- `restore_section` - Restore a deleted content section
+
 ### Listing Sites
 
 ```

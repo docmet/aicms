@@ -18,8 +18,10 @@ async def get_public_site(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     """Get public site data by slug."""
-    # Find site by slug
-    result = await db.execute(select(Site).where(Site.slug == site_slug))
+    # Find site by slug (only non-deleted)
+    result = await db.execute(
+        select(Site).where(Site.slug == site_slug, Site.is_deleted == False)
+    )
     site = result.scalar_one_or_none()
     if not site:
         raise HTTPException(
@@ -27,10 +29,10 @@ async def get_public_site(
             detail="Site not found",
         )
 
-    # Get the first published page (landing page)
+    # Get the first published page (landing page, only non-deleted)
     page_result = await db.execute(
         select(Page)
-        .where(Page.site_id == site.id, Page.is_published)
+        .where(Page.site_id == site.id, Page.is_published, Page.is_deleted == False)
         .order_by(Page.order)
         .limit(1)
     )
@@ -42,10 +44,10 @@ async def get_public_site(
             "sections": [],
         }
 
-    # Get sections for this page
+    # Get sections for this page (only non-deleted)
     sections_result = await db.execute(
         select(ContentSection)
-        .where(ContentSection.page_id == page.id)
+        .where(ContentSection.page_id == page.id, ContentSection.is_deleted == False)
         .order_by(ContentSection.order)
     )
     sections = sections_result.scalars().all()

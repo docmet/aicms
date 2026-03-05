@@ -32,6 +32,8 @@ class SiteInDB(SiteBase):
     id: UUID
     user_id: UUID
     domain: str | None = None
+    is_deleted: bool = False
+    deleted_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -403,15 +403,18 @@ async def sse_endpoint(client_id: str, request: Request):
                             {"name": "create_site", "description": "Create a new site", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["name", "slug"]}},
                             {"name": "get_site_info", "description": "Get site details", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
                             {"name": "update_site", "description": "Update site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id"]}},
-                            {"name": "delete_site", "description": "Delete site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+                            {"name": "delete_site", "description": "Soft delete a site (can be restored later)", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
                             {"name": "list_pages", "description": "List pages", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
                             {"name": "create_page", "description": "Create page", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "title", "slug"]}},
                             {"name": "get_page_content", "description": "Get page content", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
                             {"name": "update_page_content", "description": "Update content", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_type": {"type": "string"}, "content": {"type": "string"}}, "required": ["page_id", "section_type", "content"]}},
                             {"name": "update_page", "description": "Update page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["page_id"]}},
-                            {"name": "delete_page", "description": "Delete page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
+                            {"name": "delete_page", "description": "Soft delete a page (can be restored later)", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
                             {"name": "reorder_sections", "description": "Reorder content sections by swapping two sections", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_id_1": {"type": "string", "description": "First section ID to swap"}, "section_id_2": {"type": "string", "description": "Second section ID to swap"}}, "required": ["page_id", "section_id_1", "section_id_2"]}},
-                            {"name": "delete_section", "description": "Delete a content section by section type (e.g., hero, body, cta)", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_type": {"type": "string", "description": "Section type to delete (e.g., hero, body, cta, oasis)"}}, "required": ["page_id", "section_type"]}},
+                            {"name": "delete_section", "description": "Soft delete a content section by section type (can be restored later)", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_type": {"type": "string", "description": "Section type to delete (e.g., hero, body, cta)"}}, "required": ["page_id", "section_type"]}},
+                            {"name": "restore_site", "description": "Restore a soft-deleted site", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+                            {"name": "restore_page", "description": "Restore a soft-deleted page", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}}, "required": ["page_id"]}},
+                            {"name": "restore_section", "description": "Restore a soft-deleted section by section type", "inputSchema": {"type": "object", "properties": {"page_id": {"type": "string"}, "section_type": {"type": "string", "description": "Section type to restore (e.g., hero, body, cta)"}}, "required": ["page_id", "section_type"]}},
                             {"name": "list_themes", "description": "List themes", "inputSchema": {"type": "object", "properties": {}}},
                             {"name": "apply_theme", "description": "Apply theme", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}},
                         ]
@@ -854,6 +857,98 @@ async def sse_endpoint(client_id: str, request: Request):
                                         content_text = f"Site deleted successfully"
                                     else:
                                         content_text = f"Error deleting site: {response.status_code} - {response.text}"
+                                
+                                elif tool_name == "restore_site":
+                                    site_id = args["site_id"]
+                                    
+                                    # Convert slug to UUID if needed
+                                    if len(site_id) < 36 or "-" not in site_id:
+                                        sites_resp = await client.get(f"{base_url}/sites/?include_deleted=true", headers=headers)
+                                        if sites_resp.status_code == 200:
+                                            sites = sites_resp.json()
+                                            for s in sites:
+                                                if s["slug"] == site_id:
+                                                    site_id = s["id"]
+                                                    break
+                                    
+                                    response = await client.patch(
+                                        f"{base_url}/sites/{site_id}",
+                                        headers=headers,
+                                        json={"is_deleted": False, "deleted_at": None}
+                                    )
+                                    if response.status_code == 200:
+                                        content_text = f"Site restored successfully"
+                                    else:
+                                        content_text = f"Error restoring site: {response.status_code}"
+                                
+                                elif tool_name == "restore_page":
+                                    page_id = args["page_id"]
+                                    sites_resp = await client.get(f"{base_url}/sites/?include_deleted=true", headers=headers)
+                                    content_text = f"Error: Could not find page {page_id}"
+                                    page_restored = False
+                                    
+                                    if sites_resp.status_code == 200:
+                                        sites = sites_resp.json()
+                                        for site in sites:
+                                            if page_restored:
+                                                break
+                                            pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages?include_deleted=true", headers=headers)
+                                            if pages_resp.status_code == 200:
+                                                pages = pages_resp.json()
+                                                for page in pages:
+                                                    if page['id'] == page_id or page['slug'] == page_id:
+                                                        resp = await client.patch(
+                                                            f"{base_url}/sites/{site['id']}/pages/{page['id']}",
+                                                            headers=headers,
+                                                            json={"is_deleted": False, "deleted_at": None}
+                                                        )
+                                                        if resp.status_code == 200:
+                                                            content_text = f"Page restored successfully"
+                                                        else:
+                                                            content_text = f"Error: {resp.status_code}"
+                                                        page_restored = True
+                                                        break
+                                
+                                elif tool_name == "restore_section":
+                                    page_id = args["page_id"]
+                                    section_type = args["section_type"]
+                                    
+                                    sites_resp = await client.get(f"{base_url}/sites/?include_deleted=true", headers=headers)
+                                    content_text = f"Error: Could not find page {page_id}"
+                                    section_restored = False
+                                    
+                                    if sites_resp.status_code == 200:
+                                        sites = sites_resp.json()
+                                        for site in sites:
+                                            if section_restored:
+                                                break
+                                            pages_resp = await client.get(f"{base_url}/sites/{site['id']}/pages?include_deleted=true", headers=headers)
+                                            if pages_resp.status_code == 200:
+                                                pages = pages_resp.json()
+                                                for page in pages:
+                                                    if page['id'] == page_id or page['slug'] == page_id:
+                                                        content_resp = await client.get(
+                                                            f"{base_url}/sites/{site['id']}/pages/{page['id']}/content?include_deleted=true",
+                                                            headers=headers
+                                                        )
+                                                        if content_resp.status_code == 200:
+                                                            sections = content_resp.json()
+                                                            section = next((s for s in sections if s['section_type'] == section_type and s['is_deleted']), None)
+                                                            
+                                                            if section:
+                                                                resp = await client.patch(
+                                                                    f"{base_url}/sites/{site['id']}/pages/{page['id']}/content/{section['id']}",
+                                                                    headers=headers,
+                                                                    json={"is_deleted": False, "deleted_at": None}
+                                                                )
+                                                                if resp.status_code == 200:
+                                                                    content_text = f"Section '{section_type}' restored successfully"
+                                                                else:
+                                                                    content_text = f"Error restoring section: {resp.status_code}"
+                                                            else:
+                                                                content_text = f"Deleted section '{section_type}' not found"
+                                                        section_restored = True
+                                                        break
                                 
                                 else:
                                     content_text = f"Tool {tool_name} executed with args: {args}"

@@ -1,7 +1,9 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,9 +45,13 @@ async def create_site(
 async def list_sites(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    include_deleted: bool = Query(default=False, description="Include deleted sites"),
 ) -> list[Site]:
     """List all sites belonging to the current user."""
-    result = await db.execute(select(Site).where(Site.user_id == current_user.id))
+    query = select(Site).where(Site.user_id == current_user.id)
+    if not include_deleted:
+        query = query.where(Site.is_deleted == False)
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 
@@ -54,11 +60,13 @@ async def get_site(
     site_id: UUID,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    include_deleted: bool = Query(default=False),
 ) -> Site:
     """Get a specific site by ID, if it belongs to the current user."""
-    result = await db.execute(
-        select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
-    )
+    query = select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
+    if not include_deleted:
+        query = query.where(Site.is_deleted == False)
+    result = await db.execute(query)
     site = result.scalar_one_or_none()
     if not site:
         raise HTTPException(
@@ -77,7 +85,9 @@ async def update_site(
 ) -> Site:
     """Update a site belonging to the current user."""
     result = await db.execute(
-        select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
+        select(Site).where(
+            Site.id == site_id, Site.user_id == current_user.id, Site.is_deleted == False
+        )
     )
     db_site = result.scalar_one_or_none()
     if not db_site:
@@ -91,7 +101,7 @@ async def update_site(
     # If slug is being updated, check if it's already taken
     if "slug" in update_data and update_data["slug"] != db_site.slug:
         slug_result = await db.execute(
-            select(Site).where(Site.slug == update_data["slug"])
+            select(Site).where(Site.slug == update_data["slug"], Site.is_deleted == False)
         )
         if slug_result.scalar_one_or_none():
             raise HTTPException(
@@ -114,9 +124,11 @@ async def delete_site(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
-    """Delete a site belonging to the current user."""
+    """Soft delete a site belonging to the current user."""
     result = await db.execute(
-        select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
+        select(Site).where(
+            Site.id == site_id, Site.user_id == current_user.id, Site.is_deleted == False
+        )
     )
     site = result.scalar_one_or_none()
     if not site:
@@ -125,5 +137,8 @@ async def delete_site(
             detail="Site not found",
         )
 
-    await db.delete(site)
+    # Soft delete
+    site.is_deleted = True
+    site.deleted_at = datetime.now(UTC)
+    db.add(site)
     await db.commit()
