@@ -30,6 +30,7 @@ interface SiteData {
   page_title?: string;
   page_slug?: string;
   sections: ContentSection[];
+  show_badge?: boolean;
 }
 
 const SECTION_COMPONENTS: Record<string, React.ComponentType<{ content: string }>> = {
@@ -130,9 +131,24 @@ export function SiteRenderer({ siteSlug, pageSlug }: SiteRendererProps) {
         }}
       >
         <p className="text-sm">
-          &copy; {new Date().getFullYear()} {data.name}. Powered by{" "}
-          <span style={{ color: "var(--color-primary)" }}>AI CMS</span>
+          &copy; {new Date().getFullYear()} {data.name}
         </p>
+        {data.show_badge && (
+          <a
+            href="https://mystorey.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full text-xs font-medium border transition-opacity hover:opacity-80"
+            style={{
+              borderColor: "var(--color-card-border, #e2e8f0)",
+              color: "var(--color-text-muted, #64748b)",
+              background: "var(--color-bg, #ffffff)",
+            }}
+          >
+            <span style={{ color: "#7c3aed" }}>✦</span>
+            Made with MyStorey
+          </a>
+        )}
       </footer>
     </div>
   );

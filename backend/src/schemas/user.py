@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
+from src.models.user import UserPlan
+
 
 class UserBase(BaseModel):
     """Base user schema."""
@@ -28,6 +30,7 @@ class UserInDB(UserBase):
 
     id: UUID
     is_admin: bool
+    plan: UserPlan
     created_at: datetime
     updated_at: datetime
 

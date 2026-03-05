@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,82 +24,95 @@ export default function LoginPage() {
       formData.append('password', password);
 
       const response = await api.post('/auth/login', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
-
       login(response.data.access_token);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Failed to login');
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e.response?.data?.detail || 'Incorrect email or password.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-white flex">
+      {/* Left: brand panel */}
+      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-violet-600 to-indigo-700 flex-col justify-between p-12 text-white">
+        <Link href="/" className="text-xl font-bold tracking-tight">
+          My<span className="text-violet-200">Storey</span>
+        </Link>
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-              create a new account
+          <blockquote className="text-2xl font-medium leading-snug mb-4 max-w-sm">
+            &ldquo;I built my entire portfolio by just chatting with Claude.&rdquo;
+          </blockquote>
+          <p className="text-violet-300 text-sm">Alex M. — Photographer</p>
+        </div>
+        <p className="text-violet-400 text-xs">© 2026 MyStorey</p>
+      </div>
+
+      {/* Right: form */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <Link href="/" className="lg:hidden block text-xl font-bold text-gray-900 mb-8">
+            My<span className="text-violet-600">Storey</span>
+          </Link>
+
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
+          <p className="text-sm text-gray-500 mb-8">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="text-violet-600 hover:text-violet-700 font-medium">
+              Sign up free
             </Link>
           </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div
-              className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-              role="alert"
-            >
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
-                id="email-address"
-                name="email"
                 type="email"
-                autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                autoFocus
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
+                placeholder="you@example.com"
               />
             </div>
+
             <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-gray-700">Password</label>
+              </div>
               <input
-                id="password"
-                name="password"
                 type="password"
-                autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
+                placeholder="••••••••"
               />
             </div>
-          </div>
 
-          <div>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all disabled:opacity-50 mt-2"
             >
-              {isSubmitting ? 'Signing in...' : 'Sign in'}
+              {isSubmitting ? 'Signing in…' : 'Sign in'}
+              {!isSubmitting && <ArrowRight size={15} />}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

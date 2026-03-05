@@ -1,16 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { ArrowRight, Check } from 'lucide-react';
+import { Suspense } from 'react';
 
-export default function RegisterPage() {
+const planLabels: Record<string, { name: string; price: string; highlight: string }> = {
+  pro: { name: 'Pro', price: '$9.99/mo', highlight: '7-day free trial' },
+  agency: { name: 'Agency', price: '$99/mo', highlight: '7-day free trial' },
+};
+
+function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const plan = searchParams.get('plan') ?? 'free';
+  const planInfo = planLabels[plan];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,83 +28,131 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      await api.post('/auth/register', {
-        email,
-        password,
-      });
-
+      await api.post('/auth/register', { email, password });
       router.push('/login?registered=true');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Failed to register');
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e.response?.data?.detail || 'Could not create account. Try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+    <div className="min-h-screen bg-white flex">
+      {/* Left: brand panel */}
+      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-violet-600 to-indigo-700 flex-col justify-between p-12 text-white">
+        <Link href="/" className="text-xl font-bold tracking-tight">
+          My<span className="text-violet-200">Storey</span>
+        </Link>
+        <div className="space-y-6">
+          <h2 className="text-3xl font-bold leading-snug max-w-xs">
+            Your story starts here.
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to your existing account
-            </Link>
-          </p>
+          <ul className="space-y-3">
+            {[
+              'Free forever plan — no card needed',
+              'Connect any AI assistant in seconds',
+              'Beautiful themes out of the box',
+            ].map((item) => (
+              <li key={item} className="flex items-center gap-3 text-sm text-violet-100">
+                <Check size={15} className="text-violet-300 flex-shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div
-              className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-              role="alert"
-            >
-              <span className="block sm:inline">{error}</span>
+        <p className="text-violet-400 text-xs">© 2026 MyStorey</p>
+      </div>
+
+      {/* Right: form */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <Link href="/" className="lg:hidden block text-xl font-bold text-gray-900 mb-8">
+            My<span className="text-violet-600">Storey</span>
+          </Link>
+
+          {/* Plan badge */}
+          {planInfo && (
+            <div className="mb-6 bg-violet-50 border border-violet-200 rounded-xl p-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-violet-800">{planInfo.name} plan selected</p>
+                <p className="text-xs text-violet-500 mt-0.5">{planInfo.price} · {planInfo.highlight}</p>
+              </div>
+              <Link href="/register" className="text-xs text-violet-400 hover:text-violet-600 whitespace-nowrap mt-0.5">
+                Switch to Free
+              </Link>
             </div>
           )}
-          <div className="rounded-md shadow-sm -space-y-px">
+
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h1>
+          <p className="text-sm text-gray-500 mb-8">
+            Already have one?{' '}
+            <Link href="/login" className="text-violet-600 hover:text-violet-700 font-medium">
+              Sign in
+            </Link>
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
-                id="email-address"
-                name="email"
                 type="email"
-                autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                autoFocus
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
+                placeholder="you@example.com"
               />
             </div>
+
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
               <input
-                id="password"
-                name="password"
                 type="password"
-                autoComplete="new-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
+                placeholder="At least 8 characters"
               />
             </div>
-          </div>
 
-          <div>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all disabled:opacity-50 mt-2"
             >
-              {isSubmitting ? 'Creating account...' : 'Register'}
+              {isSubmitting ? 'Creating account…' : 'Create free account'}
+              {!isSubmitting && <ArrowRight size={15} />}
             </button>
-          </div>
-        </form>
+
+            <p className="text-xs text-gray-400 text-center">
+              By signing up you agree to our{' '}
+              <a href="#" className="underline hover:text-gray-600">Terms</a> and{' '}
+              <a href="#" className="underline hover:text-gray-600">Privacy Policy</a>.
+            </p>
+          </form>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }

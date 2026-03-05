@@ -65,7 +65,7 @@ export function DashboardSidebar() {
       {/* ── Mobile top bar ─────────────────────────────────────────────────── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b flex items-center justify-between px-4 h-14">
         <Link href="/dashboard" className="text-lg font-bold text-blue-600">
-          AI CMS
+          My<span className="text-violet-600">Storey</span>
         </Link>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
@@ -112,7 +112,7 @@ export function DashboardSidebar() {
       <aside className="hidden md:flex w-64 bg-white border-r min-h-screen flex-col">
         <div className="p-6 border-b">
           <Link href="/dashboard" className="text-xl font-bold text-blue-600">
-            AI CMS
+            My<span className="text-violet-600">Storey</span>
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-2">

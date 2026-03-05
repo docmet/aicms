@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.auth import get_current_user
 from src.database import get_db
 from src.models.site import Site
-from src.models.user import User
+from src.models.user import PLAN_SITE_LIMITS, User
 from src.schemas.site import SiteCreate, SiteResponse, SiteUpdate
 
 router = APIRouter()
@@ -22,6 +22,18 @@ async def create_site(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> Site:
     """Create a new site for the current user."""
+    # Enforce plan site limit
+    count_result = await db.execute(
+        select(Site).where(Site.user_id == current_user.id, Site.is_deleted.is_(False))
+    )
+    current_count = len(count_result.scalars().all())
+    limit = PLAN_SITE_LIMITS.get(str(current_user.plan), 1)
+    if current_count >= limit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"plan_limit_reached:{current_user.plan}:{limit}",
+        )
+
     # Check if slug is already taken
     result = await db.execute(select(Site).where(Site.slug == site_in.slug))
     if result.scalar_one_or_none():

@@ -19,8 +19,8 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "AI CMS",
-  description: "Build and edit stunning websites with your own AI tools.",
+  title: "MyStorey — Build websites by talking to AI",
+  description: "Connect Claude or any AI assistant to MyStorey and build beautiful websites through conversation — no code, no design skills needed.",
 };
 
 export default function RootLayout({

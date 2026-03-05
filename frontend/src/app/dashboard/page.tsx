@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Globe, Edit, Trash2 } from 'lucide-react';
+import { Plus, Globe, Edit, Trash2, Sparkles, ArrowRight, Zap } from 'lucide-react';
 
 interface Site {
   id: string;
@@ -17,7 +17,11 @@ interface Site {
   created_at: string;
 }
 
+const PLAN_LIMITS = { free: 1, pro: 3, agency: 15 };
+const PLAN_LABELS = { free: 'Free', pro: 'Pro', agency: 'Agency' };
+
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [sites, setSites] = useState<Site[]>([]);
   const [deletedSites, setDeletedSites] = useState<Site[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -32,162 +36,189 @@ export default function DashboardPage() {
       const allSites = deletedRes.data as Site[];
       setSites(activeRes.data as Site[]);
       setDeletedSites(allSites.filter((s) => s.is_deleted));
-    } catch (error) {
-      console.error('Failed to fetch sites', error);
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchSites();
-  }, [fetchSites]);
+  useEffect(() => { fetchSites(); }, [fetchSites]);
 
   const handleDeleteSite = async (siteId: string) => {
-    if (!confirm('Are you sure you want to delete this site?')) return;
-
+    if (!confirm('Delete this site?')) return;
     try {
       await api.delete(`/sites/${siteId}`);
       fetchSites();
-    } catch (error) {
-      console.error('Failed to delete site', error);
-    }
+    } catch { /* ignore */ }
   };
 
   const handleRestoreSite = async (siteId: string) => {
     try {
       await api.patch(`/sites/${siteId}`, { is_deleted: false, deleted_at: null });
       fetchSites();
-    } catch (error) {
-      console.error('Failed to restore site', error);
-    }
+    } catch { /* ignore */ }
   };
+
+  const plan = user?.plan ?? 'free';
+  const limit = PLAN_LIMITS[plan];
+  const atLimit = sites.length >= limit;
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex justify-center py-16">
+        <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Sites</h1>
-          <p className="text-gray-600">Manage your websites</p>
+          <h1 className="text-2xl font-bold text-gray-900">My Sites</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {sites.length} of {limit} site{limit !== 1 ? 's' : ''} used
+            {' · '}<span className="font-medium text-gray-700">{PLAN_LABELS[plan]} plan</span>
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowDeleted(!showDeleted)}
-          >
-            {showDeleted ? 'Hide' : 'Show'} Deleted ({deletedSites.length})
-          </Button>
-          <Link href="/dashboard/sites/new">
-            <Button className="gap-2">
-              <Plus size={20} />
-              New Site
+        <div className="flex items-center gap-2">
+          {deletedSites.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setShowDeleted(!showDeleted)}>
+              {showDeleted ? 'Hide' : 'Trash'} ({deletedSites.length})
             </Button>
-          </Link>
+          )}
+          {atLimit ? (
+            <Link href="/#pricing">
+              <Button size="sm" className="gap-1.5 bg-violet-600 hover:bg-violet-700">
+                <Zap size={14} />
+                Upgrade
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/dashboard/sites/new">
+              <Button size="sm" className="gap-1.5 bg-violet-600 hover:bg-violet-700">
+                <Plus size={14} />
+                New Site
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
-      {sites.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Globe className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No sites yet</h3>
-          <p className="text-gray-600 mb-4">Create your first site to get started</p>
-          <Link href="/dashboard/sites/new">
-            <Button>Create Site</Button>
+      {/* Plan limit banner */}
+      {atLimit && plan === 'free' && (
+        <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl px-5 py-4">
+          <div className="flex items-start gap-3">
+            <Sparkles size={18} className="text-violet-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Free plan limit reached</p>
+              <p className="text-xs text-gray-500 mt-0.5">Upgrade to Pro for 3 sites, custom domains, and no badge — just $9.99/mo.</p>
+            </div>
+          </div>
+          <Link href="/#pricing">
+            <Button size="sm" className="gap-1.5 bg-violet-600 hover:bg-violet-700 whitespace-nowrap">
+              See plans <ArrowRight size={13} />
+            </Button>
           </Link>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sites.map((site) => (
-            <Card key={site.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-xl">{site.name}</CardTitle>
-                    <CardDescription>/{site.slug}</CardDescription>
-                  </div>
-                  <div className="flex gap-1">
-                    <Link href={`/dashboard/sites/${site.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Edit size={16} />
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteSite(site.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Theme:</span>
-                    <span className="capitalize">{site.theme_slug}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Created:</span>
-                    <span>{new Date(site.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <Link href={`/${site.slug}`} target="_blank">
-                    <Button variant="outline" className="w-full gap-2">
-                      <Globe size={16} />
-                      View Site
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
         </div>
       )}
 
-      {showDeleted && deletedSites.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-gray-500 mb-4">Deleted Sites</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
-            {deletedSites.map((site) => (
-              <Card key={site.id} className="hover:shadow-lg transition-shadow border-red-200">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-xl text-gray-500">{site.name}</CardTitle>
-                      <CardDescription>/{site.slug}</CardDescription>
-                    </div>
+      {/* Sites grid */}
+      {sites.length === 0 ? (
+        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center bg-gray-50/50">
+          <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center mx-auto mb-4">
+            <Globe size={22} className="text-violet-600" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-900 mb-1">No sites yet</h3>
+          <p className="text-sm text-gray-500 mb-5">Create your first site and connect your AI assistant to start building.</p>
+          <Link href="/dashboard/sites/new">
+            <Button className="gap-2 bg-violet-600 hover:bg-violet-700">
+              <Plus size={15} />
+              Create your first site
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {sites.map((site) => (
+            <div key={site.id} className="group bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+              {/* Site preview strip */}
+              <div className="h-24 bg-gradient-to-br from-violet-50 to-indigo-100 flex items-center justify-center border-b border-gray-100">
+                <Globe size={28} className="text-violet-300" />
+              </div>
+
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">{site.name}</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">/{site.slug}</p>
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Link href={`/dashboard/sites/${site.id}`}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-gray-700">
+                        <Edit size={14} />
+                      </Button>
+                    </Link>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => handleRestoreSite(site.id)}
-                      className="text-green-600 hover:text-green-700"
+                      className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
+                      onClick={() => handleDeleteSite(site.id)}
                     >
-                      Restore
+                      <Trash2 size={14} />
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Theme:</span>
-                      <span className="capitalize">{site.theme_slug}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Deleted:</span>
-                      <span>{site.deleted_at ? new Date(site.deleted_at).toLocaleDateString() : 'Unknown'}</span>
-                    </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
+                  <span className="capitalize bg-gray-100 px-2 py-0.5 rounded-md font-medium text-gray-500">{site.theme_slug}</span>
+                  <span>{new Date(site.created_at).toLocaleDateString()}</span>
+                </div>
+
+                <Link href={`/${site.slug}`} target="_blank">
+                  <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs h-8">
+                    <Globe size={12} />
+                    View site
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ))}
+
+          {/* Add site card (only if under limit) */}
+          {!atLimit && (
+            <Link href="/dashboard/sites/new" className="group border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 hover:border-violet-300 hover:bg-violet-50/30 transition-all min-h-[220px]">
+              <div className="w-10 h-10 rounded-xl bg-gray-100 group-hover:bg-violet-100 flex items-center justify-center mb-3 transition-colors">
+                <Plus size={18} className="text-gray-400 group-hover:text-violet-600 transition-colors" />
+              </div>
+              <p className="text-sm font-medium text-gray-500 group-hover:text-violet-600 transition-colors">New site</p>
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Deleted sites */}
+      {showDeleted && deletedSites.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Trash</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 opacity-60">
+            {deletedSites.map((site) => (
+              <div key={site.id} className="bg-white border border-red-100 rounded-2xl p-5">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-500 truncate">{site.name}</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">/{site.slug}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <Button variant="outline" size="sm" onClick={() => handleRestoreSite(site.id)} className="text-xs h-7 px-2">
+                    Restore
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Deleted {site.deleted_at ? new Date(site.deleted_at).toLocaleDateString() : '—'}
+                </p>
+              </div>
             ))}
           </div>
         </div>

@@ -20,6 +20,7 @@ from src.database import get_db
 from src.models.content import ContentSection
 from src.models.page import Page
 from src.models.site import Site
+from src.models.user import User, UserPlan
 
 router = APIRouter()
 
@@ -43,6 +44,15 @@ async def _get_site_or_404(site_slug: str, db: AsyncSession) -> Site:
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
     return site
+
+
+async def _site_shows_badge(site: Site, db: AsyncSession) -> bool:
+    """Returns True if the site owner is on the free plan (badge required)."""
+    result = await db.execute(select(User).where(User.id == site.user_id))
+    owner = result.scalar_one_or_none()
+    if not owner:
+        return True
+    return str(owner.plan) == UserPlan.free
 
 
 async def _get_published_pages(site: Site, db: AsyncSession) -> list[Page]:
@@ -79,6 +89,7 @@ async def get_public_site(
     """Returns site info + all published pages (for nav) + homepage sections."""
     site = await _get_site_or_404(site_slug, db)
     pages = await _get_published_pages(site, db)
+    show_badge = await _site_shows_badge(site, db)
 
     if not pages:
         return {
@@ -88,6 +99,7 @@ async def get_public_site(
             "page_title": None,
             "page_slug": None,
             "sections": [],
+            "show_badge": show_badge,
         }
 
     homepage = pages[0]
@@ -100,6 +112,7 @@ async def get_public_site(
         "page_title": homepage.title,
         "page_slug": homepage.slug,
         "sections": _sections_payload(sections),
+        "show_badge": show_badge,
     }
 
 
@@ -126,6 +139,7 @@ async def get_public_site_page(
 
     pages = await _get_published_pages(site, db)
     sections = await _get_page_sections(page, db)
+    show_badge = await _site_shows_badge(site, db)
 
     return {
         "name": site.name,
@@ -134,4 +148,5 @@ async def get_public_site_page(
         "page_title": page.title,
         "page_slug": page.slug,
         "sections": _sections_payload(sections),
+        "show_badge": show_badge,
     }

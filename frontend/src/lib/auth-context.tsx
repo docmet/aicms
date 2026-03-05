@@ -8,6 +8,7 @@ interface User {
   id: string;
   email: string;
   is_admin: boolean;
+  plan: 'free' | 'pro' | 'agency';
 }
 
 interface AuthContextType {
