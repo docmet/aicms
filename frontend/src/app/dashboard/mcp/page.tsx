@@ -17,12 +17,12 @@ import { Copy, Plus, Trash2, Bot, Key, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
-import { ClaudeConnect } from '@/components/claude-connect';
+import { AIToolsConnect } from '@/components/ai-tools-connect';
 
 interface MCPClient {
   id: string;
   name: string;
-  tool_type: 'claude' | 'chatgpt' | 'cursor';
+  tool_type: 'claude' | 'chatgpt' | 'cursor' | 'perplexity' | 'custom';
   token: string;
   expires_at: string;
   created_at: string;
@@ -34,7 +34,7 @@ export default function MCPSettingsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newClient, setNewClient] = useState<{
     name: string;
-    tool_type: 'claude' | 'chatgpt' | 'cursor';
+    tool_type: 'claude' | 'chatgpt' | 'cursor' | 'perplexity' | 'custom';
   }>({
     name: '',
     tool_type: 'claude',
@@ -101,6 +101,10 @@ export default function MCPSettingsPage() {
         return '💬';
       case 'cursor':
         return '👆';
+      case 'perplexity':
+        return '🔍';
+      case 'custom':
+        return '🔧';
       default:
         return '🔌';
     }
@@ -159,10 +163,13 @@ Token: ${token}`,
         </p>
       </div>
 
-      {/* Quick Connect for Claude Desktop */}
-      <ClaudeConnect
-        token={clients.find((c) => c.tool_type === 'claude')?.token || ''}
-        clientId={clients.find((c) => c.tool_type === 'claude')?.id || ''}
+      {/* AI Tools Connection */}
+      <AIToolsConnect 
+        clients={clients}
+        onCreateClient={(toolType) => {
+          setNewClient({ name: '', tool_type: toolType as any });
+          setShowCreate(true);
+        }}
       />
 
       <Card>
@@ -288,6 +295,8 @@ Token: ${token}`,
                   <SelectItem value="claude">🤖 Claude Desktop</SelectItem>
                   <SelectItem value="chatgpt">💬 ChatGPT</SelectItem>
                   <SelectItem value="cursor">👆 Cursor</SelectItem>
+                  <SelectItem value="perplexity">🔍 Perplexity</SelectItem>
+                  <SelectItem value="custom">🔧 Custom Tool</SelectItem>
                 </SelectContent>
               </Select>
             </div>
