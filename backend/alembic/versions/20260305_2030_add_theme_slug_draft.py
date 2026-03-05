@@ -1,6 +1,6 @@
 """Add theme_slug_draft column to sites table.
 
-Revision ID: 20260305_2030_add_theme_slug_draft
+Revision ID: 20260305_2030_theme_draft
 Revises: 20260305_1800_add_user_plan
 Create Date: 2026-03-05
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260305_2030_add_theme_slug_draft"
+revision = "20260305_2030_theme_draft"
 down_revision = "20260305_1800_add_user_plan"
 branch_labels = None
 depends_on = None
