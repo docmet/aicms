@@ -517,38 +517,38 @@ clean_command() {
 
 mcp_install_command() {
   log_info "Installing MCP server..."
-  cd mcp_server
-  if command -v uv &> /dev/null; then
-    uv sync
-  else
-    pip install -e .
-  fi
-  cd ..
+  (cd "${PROJECT_ROOT}/mcp_server" && {
+    if command -v uv &> /dev/null; then
+      uv sync
+    else
+      pip install -e .
+    fi
+  })
   log_success "MCP server installed"
 }
 
 mcp_run_command() {
   local api_url="${2:-http://localhost:8000/api/v1}"
   local token="${3:-}"
-  
+
   if [[ -z "$token" ]]; then
     log_error "API token required. Usage: ./cli.sh mcp:run [api_url] [token]"
     exit 1
   fi
-  
+
   log_info "Starting MCP server..."
-  cd mcp_server
-  if command -v uv &> /dev/null; then
-    uv run aicms-mcp --api-url "$api_url" --api-token "$token"
-  else
-    aicms-mcp --api-url "$api_url" --api-token "$token"
-  fi
-  cd ..
+  (cd "${PROJECT_ROOT}/mcp_server" && {
+    if command -v uv &> /dev/null; then
+      uv run aicms-mcp --api-url "$api_url" --api-token "$token"
+    else
+      aicms-mcp --api-url "$api_url" --api-token "$token"
+    fi
+  })
 }
 
 main() {
   # Ensure we're in the project root
-  cd "$(dirname "$0")/.."
+  cd "${PROJECT_ROOT}"
   
   # Set up Python path
   export PYTHONPATH="${PYTHONPATH:-}:$(pwd)/backend/src"
