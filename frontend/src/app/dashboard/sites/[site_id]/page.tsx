@@ -350,14 +350,14 @@ export default function SiteEditorPage({
   const handleSSETheme = useCallback((themeSlugDraft: string | null, themeSlug: string | null) => {
     setSite((prev) => {
       if (!prev) return prev;
-      const updated = {
+      return {
         ...prev,
         theme_slug_draft: themeSlugDraft,
         ...(themeSlug ? { theme_slug: themeSlug } : {}),
       };
-      broadcastToPreview(undefined, themeSlugDraft ?? updated.theme_slug ?? 'default');
-      return updated;
     });
+    // Broadcast outside the state setter — side effects must not run inside setSite
+    broadcastToPreview(undefined, themeSlugDraft ?? themeSlug ?? siteRef.current?.theme_slug ?? 'default');
   }, [broadcastToPreview]);
 
   usePreviewSSE({
@@ -395,10 +395,24 @@ export default function SiteEditorPage({
 
   const handleRevert = async (versionId: string) => {
     if (!currentPage) return;
-    if (!confirm("Revert to this version? Draft content will be overwritten.")) return;
+    if (!confirm("Revert to this version? All draft changes (content + theme) will be overwritten.")) return;
     try {
       await api.post(`/sites/${site_id}/pages/${currentPage.id}/revert/${versionId}`);
-      await fetchSections(currentPage.id);
+      // Clear theme draft in parallel with section fetch so preview gets the right theme
+      const clearTheme = site?.theme_slug_draft
+        ? api.patch(`/sites/${site_id}`, { theme_slug_draft: null })
+        : Promise.resolve();
+      const [sectionsData] = await Promise.all([
+        api.get(`/sites/${site_id}/pages/${currentPage.id}/content?include_deleted=false`),
+        clearTheme,
+      ]);
+      const data = sectionsData.data as ContentSection[];
+      setSections(data);
+      if (site?.theme_slug_draft) {
+        setSite((prev) => prev ? { ...prev, theme_slug_draft: null } : prev);
+      }
+      const publishedTheme = site?.theme_slug ?? 'default';
+      broadcastToPreview(data, publishedTheme);
       toast({ title: "Reverted", description: "Draft restored from version. Publish to go live." });
     } catch {
       toast({ title: "Revert failed", variant: "destructive" });
@@ -540,22 +554,6 @@ export default function SiteEditorPage({
       setSite(site);
       broadcastToPreview(undefined, site.theme_slug_draft ?? site.theme_slug);
       toast({ title: "Error", description: "Failed to update theme.", variant: "destructive" });
-    }
-  };
-
-  const handleDiscardThemeDraft = async () => {
-    if (!site?.theme_slug_draft) return;
-    const publishedTheme = site.theme_slug;
-    const previousSite = site;
-    setSite({ ...site, theme_slug_draft: null });
-    broadcastToPreview(undefined, publishedTheme);
-    try {
-      await api.patch(`/sites/${site_id}`, { theme_slug_draft: null });
-      toast({ title: "Theme restored", description: "Draft cleared — back to published theme." });
-    } catch {
-      setSite(previousSite);
-      broadcastToPreview(undefined, previousSite.theme_slug_draft ?? previousSite.theme_slug);
-      toast({ title: "Error", variant: "destructive" });
     }
   };
 
@@ -856,18 +854,11 @@ export default function SiteEditorPage({
                   );
                 })}
               </div>
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-[11px] text-muted-foreground">
-                  {site.theme_slug_draft && site.theme_slug_draft !== site.theme_slug
-                    ? `Draft: "${site.theme_slug_draft}" — click the current theme to restore, or publish to make live.`
-                    : "Click a theme to stage it as a draft. Publish to make it live."}
-                </p>
-                {site.theme_slug_draft && site.theme_slug_draft !== site.theme_slug && (
-                  <Button variant="ghost" size="sm" className="text-xs shrink-0 ml-4" onClick={handleDiscardThemeDraft}>
-                    <RotateCcw size={12} className="mr-1" /> Restore
-                  </Button>
-                )}
-              </div>
+              <p className="text-[11px] text-muted-foreground mt-4">
+                {site.theme_slug_draft && site.theme_slug_draft !== site.theme_slug
+                  ? `Draft: "${site.theme_slug_draft}" — publish to make live, or revert via Version History to undo all changes.`
+                  : "Click a theme to stage it as a draft. Publish to make it live."}
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
