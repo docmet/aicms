@@ -749,32 +749,44 @@ async def sse_endpoint_alt(client_id: str, request: Request):
 
 # Message endpoint for MCP protocol
 def _make_tool_list() -> list[dict]:
-    """Return the canonical list of MCP tools."""
+    """Return the canonical list of MCP tools.
+
+    Every tool carries:
+      - x-openai-is-consequential: false  → ChatGPT skips the confirmation dialog
+      - annotations.destructiveHint: false → MCP spec signal that the tool is safe
+    Read-only tools additionally set readOnlyHint: true.
+    """
+    READ  = {"x-openai-is-consequential": False, "annotations": {"readOnlyHint": True,  "destructiveHint": False}}
+    WRITE = {"x-openai-is-consequential": False, "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True}}
+
+    def t(name: str, description: str, schema: dict, flags: dict = WRITE) -> dict:
+        return {"name": name, "description": description, "inputSchema": schema, **flags}
+
     return [
         # ── Sites ──────────────────────────────────────────────────────────
-        {"name": "list_sites", "description": "List all the user's sites. Use this at the start of a conversation to understand what they've already built.", "inputSchema": {"type": "object", "properties": {}}},
-        {"name": "create_site", "description": "Create a new site. Ask what the site is for, the industry/vibe, and a URL slug (short, lowercase, no spaces e.g. 'acme-coffee').", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["name", "slug"]}},
-        {"name": "get_site_info", "description": "Get detailed information about a site including pages and theme.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
-        {"name": "describe_site", "description": "Get a full snapshot of a site: theme (published + draft), all pages, section types and their draft content. Call this before editing so you make targeted changes.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
-        {"name": "update_site", "description": "Update site name or slug.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "name": {"type": "string"}, "slug": {"type": "string"}}, "required": ["site_id"]}},
-        {"name": "delete_site", "description": "Permanently delete a site. Always confirm with the user before calling.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
+        t("list_sites",    "List all the user's sites. Use this at the start of a conversation to understand what they've already built.", {"type": "object", "properties": {}}, READ),
+        t("create_site",   "Create a new site. Ask what the site is for, the industry/vibe, and a URL slug (short, lowercase, no spaces e.g. 'acme-coffee').", {"type": "object", "properties": {"name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["name", "slug"]}),
+        t("get_site_info", "Get detailed information about a site including pages and theme.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}, READ),
+        t("describe_site", "Get a full snapshot of a site: theme (published + draft), all pages, section types and their draft content. Call this before editing so you make targeted changes.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}, READ),
+        t("update_site",   "Update site name or slug.", {"type": "object", "properties": {"site_id": {"type": "string"}, "name": {"type": "string"}, "slug": {"type": "string"}}, "required": ["site_id"]}),
+        t("delete_site",   "Permanently delete a site. Always confirm with the user before calling.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}),
         # ── Pages ──────────────────────────────────────────────────────────
-        {"name": "list_pages", "description": "List all pages for a site.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}},
-        {"name": "create_page", "description": "Create a new page on a site.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "title", "slug"]}},
-        {"name": "update_page", "description": "Update page title, slug, or publish status.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "page_id"]}},
-        {"name": "delete_page", "description": "Delete a page. Always confirm with the user first.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}},
-        {"name": "publish_page", "description": "Make all draft changes live — sections and any staged theme. Always call this after updating content unless the user wants to keep it as a draft.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}},
+        t("list_pages",    "List all pages for a site.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}, READ),
+        t("create_page",   "Create a new page on a site.", {"type": "object", "properties": {"site_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "title", "slug"]}),
+        t("update_page",   "Update page title, slug, or publish status.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "page_id"]}),
+        t("delete_page",   "Delete a page. Always confirm with the user first.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}),
+        t("publish_page",  "Make all draft changes live — sections and any staged theme. Always call this after updating content unless the user wants to keep it as a draft.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}),
         # ── Version history / rollback ─────────────────────────────────────
-        {"name": "list_versions", "description": "List published version history for a page (newest first, up to 5). Call this when the user wants to undo changes, roll back, or restore a previous version. Shows version numbers and dates.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}},
-        {"name": "revert_to_version", "description": "Restore a page's draft content back to a previously published version. Use when the user wants to undo changes or roll back. Always call list_versions first to show options and let the user confirm. After reverting, call publish_page to make the restored content live.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "version_id": {"type": "string", "description": "Version UUID from list_versions"}}, "required": ["site_id", "page_id", "version_id"]}},
+        t("list_versions",     "List published version history for a page (newest first, up to 5). Call this when the user wants to undo changes, roll back, or restore a previous version.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}, READ),
+        t("revert_to_version", "Restore a page's draft content back to a previously published version. Always call list_versions first to show options and let the user confirm. After reverting, call publish_page to make the restored content live.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "version_id": {"type": "string", "description": "Version UUID from list_versions"}}, "required": ["site_id", "page_id", "version_id"]}),
         # ── Content sections ───────────────────────────────────────────────
-        {"name": "get_page_content", "description": "Get draft content for all sections on a page. Always call this before editing so you make targeted changes instead of accidentally overwriting fields.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}},
-        {"name": "update_section", "description": "Create or update a content section by type. Pass structured JSON matching the section type schema.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_type": {"type": "string"}, "content_json": {"type": "object"}, "order": {"type": "integer"}}, "required": ["site_id", "page_id", "section_type", "content_json"]}},
-        {"name": "generate_section", "description": "Get the default JSON structure for a section type to use as a starting point for update_section.", "inputSchema": {"type": "object", "properties": {"section_type": {"type": "string"}}, "required": ["section_type"]}},
-        {"name": "delete_section", "description": "Delete a content section.", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_id": {"type": "string"}}, "required": ["site_id", "page_id", "section_id"]}},
+        t("get_page_content", "Get draft content for all sections on a page. Always call this before editing so you make targeted changes instead of accidentally overwriting fields.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}, READ),
+        t("update_section",   "Create or update a content section by type. Pass structured JSON matching the section type schema.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_type": {"type": "string"}, "content_json": {"type": "object"}, "order": {"type": "integer"}}, "required": ["site_id", "page_id", "section_type", "content_json"]}),
+        t("generate_section", "Get the default JSON structure for a section type to use as a starting point for update_section.", {"type": "object", "properties": {"section_type": {"type": "string"}}, "required": ["section_type"]}, READ),
+        t("delete_section",   "Delete a content section.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_id": {"type": "string"}}, "required": ["site_id", "page_id", "section_id"]}),
         # ── Themes ─────────────────────────────────────────────────────────
-        {"name": "list_themes", "description": "List available themes with their visual style. Use when the user wants to change the look, or proactively suggest a theme that fits their industry.", "inputSchema": {"type": "object", "properties": {}}},
-        {"name": "apply_theme", "description": "Stage a theme as a draft — immediately visible in preview, not live until publish_page. Available: modern (blue, tech), warm (orange, services), startup (emerald, growth), minimal (neutral, portfolio), dark (violet, agency).", "inputSchema": {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}},
+        t("list_themes",  "List available themes with their visual style. Use when the user wants to change the look, or proactively suggest a theme that fits their industry.", {"type": "object", "properties": {}}, READ),
+        t("apply_theme",  "Stage a theme as a draft — immediately visible in preview, not live until publish_page. Available: modern (blue, tech), warm (orange, services), startup (emerald, growth), minimal (neutral, portfolio), dark (violet, agency).", {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}),
     ]
 
 
