@@ -1,6 +1,6 @@
 """Add email verification and password reset columns to users.
 
-Revision ID: 20260306_2000_add_email_verification
+Revision ID: 20260306_2000_email_verify
 Revises: 20260306_1800_add_stripe_fields
 Create Date: 2026-03-06
 """
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260306_2000_add_email_verification"
+revision = "20260306_2000_email_verify"
 down_revision = "20260306_1800_add_stripe_fields"
 branch_labels = None
 depends_on = None
