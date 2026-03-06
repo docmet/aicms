@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.auth import get_current_user
+from src.api.content import _broadcast_theme
 from src.database import get_db
 from src.models.site import Site
 from src.models.user import PLAN_SITE_LIMITS, User
@@ -126,6 +127,16 @@ async def update_site(
     db.add(db_site)
     await db.commit()
     await db.refresh(db_site)
+
+    # Broadcast theme change so admin editor and preview update in real-time
+    if "theme_slug_draft" in update_data or "theme_slug" in update_data:
+        await _broadcast_theme(
+            UUID(str(db_site.id)),
+            str(db_site.theme_slug_draft) if db_site.theme_slug_draft else None,
+            str(db_site.theme_slug) if db_site.theme_slug else None,
+            db,
+        )
+
     return db_site
 
 

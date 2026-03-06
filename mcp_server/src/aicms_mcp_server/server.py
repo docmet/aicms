@@ -542,7 +542,7 @@ class MCPServer:
             site_id = args["site_id"]
             page_id = args["page_id"]
             section_type = args["section_type"]
-            content_json = args["content_json"]
+            content_json = args.get("content_json") or args.get("content")
             order = args.get("order", 0)
 
             # Use the upsert-by-type endpoint — idempotent, MCP-friendly

@@ -347,9 +347,23 @@ export default function SiteEditorPage({
     broadcastToPreview(next);
   }, [broadcastToPreview]);
 
+  const handleSSETheme = useCallback((themeSlugDraft: string | null, themeSlug: string | null) => {
+    setSite((prev) => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        theme_slug_draft: themeSlugDraft,
+        ...(themeSlug ? { theme_slug: themeSlug } : {}),
+      };
+      broadcastToPreview(undefined, themeSlugDraft ?? updated.theme_slug ?? 'default');
+      return updated;
+    });
+  }, [broadcastToPreview]);
+
   usePreviewSSE({
     pageId: currentPage?.id,
     onSectionsUpdated: handleSSESections,
+    onThemeUpdated: handleSSETheme,
   });
 
   // ── Publish ──────────────────────────────────────────────────────────────

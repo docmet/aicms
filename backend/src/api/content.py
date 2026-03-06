@@ -73,6 +73,22 @@ async def get_page_owned_by_user(
     return page
 
 
+async def _broadcast_theme(site_id: UUID, theme_slug_draft: str | None, theme_slug: str | None, db: AsyncSession) -> None:
+    """Broadcast a theme change to SSE clients on every page of the site."""
+    pages_result = await db.execute(
+        select(Page).where(Page.site_id == site_id, Page.is_deleted.is_(False))
+    )
+    pages = pages_result.scalars().all()
+    payload = json.dumps({
+        "type": "theme_updated",
+        "site_id": str(site_id),
+        "theme_slug_draft": theme_slug_draft,
+        "theme_slug": theme_slug,
+    })
+    for page in pages:
+        await preview_manager.broadcast(UUID(str(page.id)), payload)
+
+
 async def _broadcast_sections(page_id: UUID, db: AsyncSession) -> None:
     """Fetch all active sections and broadcast to SSE preview clients."""
     sections_result = await db.execute(

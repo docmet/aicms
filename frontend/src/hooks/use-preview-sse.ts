@@ -19,12 +19,15 @@ export interface SSESection {
 interface UsePreviewSSEOptions {
   pageId: string | null | undefined;
   onSectionsUpdated: (sections: SSESection[]) => void;
+  onThemeUpdated?: (themeSlugDraft: string | null, themeSlug: string | null) => void;
   enabled?: boolean;
 }
 
-export function usePreviewSSE({ pageId, onSectionsUpdated, enabled = true }: UsePreviewSSEOptions) {
+export function usePreviewSSE({ pageId, onSectionsUpdated, onThemeUpdated, enabled = true }: UsePreviewSSEOptions) {
   const onUpdateRef = useRef(onSectionsUpdated);
   onUpdateRef.current = onSectionsUpdated;
+  const onThemeRef = useRef(onThemeUpdated);
+  onThemeRef.current = onThemeUpdated;
 
   useEffect(() => {
     if (!pageId || !enabled) return;
@@ -63,9 +66,16 @@ export function usePreviewSSE({ pageId, onSectionsUpdated, enabled = true }: Use
             for (const line of lines) {
               if (!line.startsWith('data: ')) continue;
               try {
-                const data = JSON.parse(line.slice(6)) as { type: string; sections?: SSESection[] };
+                const data = JSON.parse(line.slice(6)) as {
+                  type: string;
+                  sections?: SSESection[];
+                  theme_slug_draft?: string | null;
+                  theme_slug?: string | null;
+                };
                 if (data.type === 'sections_updated' && data.sections) {
                   onUpdateRef.current(data.sections);
+                } else if (data.type === 'theme_updated') {
+                  onThemeRef.current?.(data.theme_slug_draft ?? null, data.theme_slug ?? null);
                 }
               } catch {
                 // ignore malformed event
