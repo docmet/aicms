@@ -45,6 +45,8 @@ import {
   ChevronUp,
   ChevronDown,
   RotateCcw,
+  Mail,
+  Inbox,
 } from "lucide-react";
 import {
   HeroEditor,
@@ -96,6 +98,17 @@ interface PageVersion {
   version_number: number;
   published_at: string;
   label?: string;
+}
+
+interface FormSubmission {
+  id: string;
+  name: string;
+  email: string;
+  subject: string | null;
+  message: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
 }
 
 // ── Section type config ────────────────────────────────────────────────────────
@@ -236,6 +249,9 @@ export default function SiteEditorPage({
   const [isAddPageDialogOpen, setIsAddPageDialogOpen] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState("");
   const [newPageSlug, setNewPageSlug] = useState("");
+  const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [expandedSub, setExpandedSub] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -300,6 +316,31 @@ export default function SiteEditorPage({
     },
     [site_id]
   );
+
+  const fetchSubmissions = useCallback(async () => {
+    setSubmissionsLoading(true);
+    try {
+      const res = await api.get(`/sites/${site_id}/submissions`);
+      setSubmissions(res.data as FormSubmission[]);
+    } catch {
+      setSubmissions([]);
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  }, [site_id]);
+
+  const markRead = useCallback(async (subId: string) => {
+    await api.patch(`/sites/${site_id}/submissions/${subId}/read`);
+    setSubmissions((prev) =>
+      prev.map((s) => (s.id === subId ? { ...s, is_read: true, read_at: new Date().toISOString() } : s))
+    );
+  }, [site_id]);
+
+  const deleteSubmission = useCallback(async (subId: string) => {
+    await api.delete(`/sites/${site_id}/submissions/${subId}`);
+    setSubmissions((prev) => prev.filter((s) => s.id !== subId));
+    if (expandedSub === subId) setExpandedSub(null);
+  }, [site_id, expandedSub]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -609,15 +650,25 @@ export default function SiteEditorPage({
             api.get(`/sites/${site_id}`).then((r) => setSite(r.data as Site)).catch(() => {});
           } else if (tab === "theme") {
             api.get(`/sites/${site_id}`).then((r) => setSite(r.data as Site)).catch(() => {});
+          } else if (tab === "inbox") {
+            fetchSubmissions();
           }
         }}
       >
-        <TabsList className="grid w-full max-w-sm grid-cols-3">
+        <TabsList className="grid w-full max-w-lg grid-cols-4">
           <TabsTrigger value="content">
             <Type size={14} className="mr-1.5" /> Content
           </TabsTrigger>
           <TabsTrigger value="theme">
             <Palette size={14} className="mr-1.5" /> Theme
+          </TabsTrigger>
+          <TabsTrigger value="inbox">
+            <Mail size={14} className="mr-1.5" /> Inbox
+            {submissions.filter((s) => !s.is_read).length > 0 && (
+              <Badge variant="destructive" className="ml-1.5 h-4 w-4 p-0 text-[10px] flex items-center justify-center rounded-full">
+                {submissions.filter((s) => !s.is_read).length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="settings">
             <Layout size={14} className="mr-1.5" /> Settings
@@ -867,6 +918,87 @@ export default function SiteEditorPage({
                   ? `Draft: "${site.theme_slug_draft}" — publish to make live, or revert via Version History to undo all changes.`
                   : "Click a theme to stage it as a draft. Publish to make it live."}
               </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Inbox tab ─────────────────────────────────────────────────── */}
+        <TabsContent value="inbox" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Inbox size={18} />
+                Contact Form Submissions
+              </CardTitle>
+              <CardDescription>Messages submitted via the contact form on your site.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {submissionsLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading…</div>
+              ) : submissions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
+                  <Mail size={32} className="text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">No submissions yet.</p>
+                  <p className="text-xs text-muted-foreground">When visitors submit your contact form, messages appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {submissions.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className={`rounded-lg border transition-colors ${sub.is_read ? "border-border bg-background" : "border-primary/30 bg-primary/5"}`}
+                    >
+                      {/* Summary row */}
+                      <button
+                        className="w-full text-left px-4 py-3 flex items-center gap-3"
+                        onClick={() => {
+                          setExpandedSub(expandedSub === sub.id ? null : sub.id);
+                          if (!sub.is_read) markRead(sub.id);
+                        }}
+                      >
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${sub.is_read ? "bg-transparent" : "bg-primary"}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium truncate ${sub.is_read ? "font-normal" : "font-semibold"}`}>
+                              {sub.name}
+                            </span>
+                            {sub.subject && (
+                              <span className="text-sm text-muted-foreground truncate">— {sub.subject}</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{sub.email}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          {new Date(sub.created_at).toLocaleDateString()}
+                        </span>
+                      </button>
+
+                      {/* Expanded body */}
+                      {expandedSub === sub.id && (
+                        <div className="px-4 pb-4 space-y-3 border-t pt-3">
+                          <p className="text-sm whitespace-pre-wrap">{sub.message}</p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <a
+                              href={`mailto:${sub.email}?subject=Re: ${encodeURIComponent(sub.subject ?? "Your message")}`}
+                              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                            >
+                              <Mail size={12} /> Reply
+                            </a>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive h-7 text-xs"
+                              onClick={() => deleteSubmission(sub.id)}
+                            >
+                              <Trash2 size={12} className="mr-1" /> Delete
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
