@@ -398,21 +398,17 @@ export default function SiteEditorPage({
     if (!confirm("Revert to this version? All draft changes (content + theme) will be overwritten.")) return;
     try {
       await api.post(`/sites/${site_id}/pages/${currentPage.id}/revert/${versionId}`);
-      // Clear theme draft in parallel with section fetch so preview gets the right theme
-      const clearTheme = site?.theme_slug_draft
-        ? api.patch(`/sites/${site_id}`, { theme_slug_draft: null })
-        : Promise.resolve();
-      const [sectionsData] = await Promise.all([
+      // Re-fetch sections AND site so we get the theme_slug_draft the backend just restored
+      const [sectionsData, siteData] = await Promise.all([
         api.get(`/sites/${site_id}/pages/${currentPage.id}/content?include_deleted=false`),
-        clearTheme,
+        api.get(`/sites/${site_id}`),
       ]);
       const data = sectionsData.data as ContentSection[];
+      const updatedSite = siteData.data;
       setSections(data);
-      if (site?.theme_slug_draft) {
-        setSite((prev) => prev ? { ...prev, theme_slug_draft: null } : prev);
-      }
-      const publishedTheme = site?.theme_slug ?? 'default';
-      broadcastToPreview(data, publishedTheme);
+      setSite(updatedSite);
+      const activeTheme = updatedSite.theme_slug_draft ?? updatedSite.theme_slug ?? 'default';
+      broadcastToPreview(data, activeTheme);
       toast({ title: "Reverted", description: "Draft restored from version. Publish to go live." });
     } catch {
       toast({ title: "Revert failed", variant: "destructive" });
