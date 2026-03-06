@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from alembic import op
 
 revision = "20260307_0000"
-down_revision = "20260306_2000"
+down_revision = "20260306_2000_email_verify"
 branch_labels = None
 depends_on = None
 
@@ -25,14 +25,12 @@ def upgrade() -> None:
             UUID(as_uuid=True),
             sa.ForeignKey("sites.id", ondelete="CASCADE"),
             nullable=False,
-            index=True,
         ),
         sa.Column(
             "user_id",
             UUID(as_uuid=True),
             sa.ForeignKey("users.id", ondelete="SET NULL"),
             nullable=True,
-            index=True,
         ),
         sa.Column("original_filename", sa.String(255), nullable=False),
         sa.Column("storage_key", sa.String(500), nullable=False, unique=True),
