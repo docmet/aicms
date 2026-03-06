@@ -603,7 +603,18 @@ export default function SiteEditorPage({
         </div>
       </div>
 
-      <Tabs defaultValue="content" className="w-full">
+      <Tabs
+        defaultValue="content"
+        className="w-full"
+        onValueChange={(tab) => {
+          if (tab === "content" && currentPage) {
+            fetchSections(currentPage.id);
+            api.get(`/sites/${site_id}`).then((r) => setSite(r.data as Site)).catch(() => {});
+          } else if (tab === "theme") {
+            api.get(`/sites/${site_id}`).then((r) => setSite(r.data as Site)).catch(() => {});
+          }
+        }}
+      >
         <TabsList className="grid w-full max-w-sm grid-cols-3">
           <TabsTrigger value="content">
             <Type size={14} className="mr-1.5" /> Content
