@@ -35,6 +35,9 @@ SECTION_DEFAULTS: Dict[str, Any] = {
         "badge": "",
         "cta_primary": {"label": "Get Started", "href": "#"},
         "cta_secondary": {"label": "Learn More", "href": "#"},
+        # Optional image fields — omit or set to null when not used
+        "background_image": None,   # Full-width bg: recommended 1920×1080 px JPEG/WebP
+        "logo_url": None,           # Logo above headline: recommended 400×200 px PNG (transparent)
     },
     "features": {
         "headline": "Features",
@@ -48,7 +51,13 @@ SECTION_DEFAULTS: Dict[str, Any] = {
     "testimonials": {
         "headline": "What our customers say",
         "items": [
-            {"quote": "This is amazing!", "name": "Jane Doe", "role": "CEO", "company": "Acme Inc"},
+            {
+                "quote": "This is amazing!",
+                "name": "Jane Doe",
+                "role": "CEO",
+                "company": "Acme Inc",
+                "avatar_url": None,  # Headshot: recommended 200×200 px square
+            },
         ],
     },
     "about": {
@@ -58,6 +67,8 @@ SECTION_DEFAULTS: Dict[str, Any] = {
             {"number": "500+", "label": "Customers"},
             {"number": "99%", "label": "Satisfaction"},
         ],
+        # Optional: set image_url OR stats — image takes priority when both are set
+        "image_url": None,  # About photo/illustration: recommended 1200×800 px
     },
     "contact": {
         "headline": "Get in Touch",
@@ -91,6 +102,11 @@ THEME_DESCRIPTIONS = {
     "startup": "emerald greens, energetic and growth-focused",
     "minimal": "neutral zinc, lets the content breathe — ideal for portfolios",
     "dark": "deep violet, bold and premium — great for agencies or creative studios",
+    "ocean": "deep navy + cyan, Stripe-like professional — ideal for fintech or enterprise SaaS",
+    "rose": "rose/blush palette with serif headings, elegant — great for beauty, luxury, or events",
+    "slate": "indigo-tinted slate, polished modern SaaS — similar to Linear or Notion",
+    "forest": "deep forest greens, premium organic feel — perfect for wellness or sustainability brands",
+    "sunset": "vibrant purple-magenta gradients, bold creative — great for agencies or entertainment",
     "default": "balanced neutral default",
     "nature": "organic greens, alias for startup",
 }
@@ -830,7 +846,19 @@ def _build_tools() -> list[Tool]:
                 f"Valid section types: {', '.join(VALID_SECTION_TYPES)}. "
                 "Read current content first (get_page_content) to preserve fields not being changed. "
                 "Write copy that is specific, human, and relevant to the user's actual business — "
-                "no generic filler. After updating, ask if the tone and wording feel right."
+                "no generic filler. After updating, ask if the tone and wording feel right.\n\n"
+                "Content schemas by section type (all image fields accept a URL string or null):\n"
+                "• hero: {headline, subheadline?, badge?, cta_primary?: {label, href}, cta_secondary?: {label, href}, "
+                "background_image?: <URL, 1920×1080 px>, logo_url?: <URL, 400×200 px transparent PNG>}\n"
+                "• features: {headline, subheadline?, items: [{icon?, title, description}]}\n"
+                "• testimonials: {headline?, items: [{quote, name, role?, company?, avatar_url?: <URL, 200×200 px square>}]}\n"
+                "• about: {headline, body (newline-separated paragraphs), stats?: [{number, label}], "
+                "image_url?: <URL, 1200×800 px> — image takes priority over stats when both set}\n"
+                "• contact: {headline, subheadline?, email?, phone?, address?, hours?}\n"
+                "• cta: {headline, subheadline?, button_label?, button_href?}\n"
+                "• pricing: {headline, subheadline?, plans: [{name, price, period?, features: [string], cta_label?, highlighted?}]}\n"
+                "• custom: {title?, content} — raw HTML/text\n\n"
+                "Call generate_section to get a filled-in default structure for any type."
             ),
             inputSchema={
                 "type": "object",
@@ -838,7 +866,7 @@ def _build_tools() -> list[Tool]:
                     "site_id": {"type": "string"},
                     "page_id": {"type": "string"},
                     "section_type": {"type": "string", "enum": VALID_SECTION_TYPES},
-                    "content_json": {"type": "object", "description": "Full content object for this section type"},
+                    "content_json": {"type": "object", "description": "Full content object for this section type. Always include all existing fields from get_page_content — this replaces the entire section content."},
                     "order": {"type": "integer", "description": "Display order (0=top). Typical: hero(0), features(1), testimonials(2), about(3), cta(4)."},
                 },
                 "required": ["site_id", "page_id", "section_type", "content_json"],
@@ -848,8 +876,10 @@ def _build_tools() -> list[Tool]:
         Tool(
             name="generate_section",
             description=(
-                "Get the default content structure for a section type — useful for "
-                "understanding available fields before writing real content."
+                "Get the full content schema (all available fields with example values) for a section type. "
+                "Use this to understand what fields exist — including optional image fields — "
+                "before writing real content with update_section. "
+                "Image fields show the recommended URL format and dimensions in comments."
             ),
             inputSchema={
                 "type": "object",
@@ -948,8 +978,10 @@ def _build_tools() -> list[Tool]:
             name="list_media",
             description=(
                 "List all media files (images and documents) uploaded to a site. "
-                "Returns file URLs, types, sizes, and dimensions. "
-                "Use to check what images are available before referencing them in content."
+                "Returns: id, url (use this in section image fields), original_filename, mime_type, "
+                "file_type (image|document), size_bytes, width, height, alt_text, created_at. "
+                "Always call this before importing a new image — the site may already have what you need. "
+                "Use the returned url directly in update_section image fields (background_image, logo_url, image_url, avatar_url)."
             ),
             inputSchema={
                 "type": "object",
@@ -962,16 +994,22 @@ def _build_tools() -> list[Tool]:
             name="import_image_from_url",
             description=(
                 "Download an image from a public URL and save it to the site's media library. "
-                "Returns the stored URL. Use when the user wants to add an image from the web, "
-                "or when generating/sourcing images for the site. "
-                "After importing, use update_section to reference the returned URL in content."
+                "Returns the stored URL — use this URL in update_section to attach it to content.\n\n"
+                "Recommended dimensions by placement:\n"
+                "• Hero background (background_image): 1920×1080 px landscape JPEG/WebP\n"
+                "• About / section image (image_url): 1200×800 px landscape\n"
+                "• Logo (logo_url): 400×200 px PNG with transparent background\n"
+                "• Avatar / headshot (avatar_url): 400×400 px square\n"
+                "• Product / feature illustration: 800×800 px square\n\n"
+                "Always call list_media first to check if a suitable image is already uploaded. "
+                "After importing, use update_section to reference the returned URL in the appropriate image field."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "site_id": {"type": "string"},
-                    "url": {"type": "string", "description": "Public URL of the image to import"},
-                    "alt_text": {"type": "string", "description": "Alt text for the image"},
+                    "url": {"type": "string", "description": "Public URL of the image to import (must be publicly accessible)"},
+                    "alt_text": {"type": "string", "description": "Descriptive alt text for accessibility and SEO"},
                 },
                 "required": ["site_id", "url"],
             },
