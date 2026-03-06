@@ -331,6 +331,66 @@ async def publish_page(
     return page
 
 
+@router.post("/{site_id}/publish-all", status_code=status.HTTP_200_OK)
+async def publish_all_pages(
+    site_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict:
+    """Publish all pages in a site at once.
+
+    For each active page, copies content_draft → content_published for every
+    active section and marks the page as published. Also commits any pending
+    theme draft. Returns a count of pages published.
+    """
+    site = await get_site_owned_by_user(site_id, current_user, db)
+
+    # Commit pending theme draft
+    if site.theme_slug_draft is not None:
+        site.theme_slug = site.theme_slug_draft  # type: ignore
+        site.theme_slug_draft = None  # type: ignore
+        db.add(site)
+
+    pages_result = await db.execute(
+        select(Page).where(
+            Page.site_id == site_id,
+            Page.is_deleted.is_(False),
+        )
+    )
+    pages = pages_result.scalars().all()
+
+    published_count = 0
+    for page in pages:
+        sections_result = await db.execute(
+            select(ContentSection).where(
+                ContentSection.page_id == page.id,
+                ContentSection.is_deleted.is_(False),
+            )
+        )
+        sections = sections_result.scalars().all()
+        for section in sections:
+            section.content_published = section.content_draft  # type: ignore
+            db.add(section)
+        page.is_published = True  # type: ignore
+        page.last_published_at = datetime.now(UTC)  # type: ignore
+        db.add(page)
+        published_count += 1
+
+    await db.commit()
+
+    # Broadcast for each page
+    for page in pages:
+        await _broadcast_sections(page.id, db)  # type: ignore[arg-type]
+    await _broadcast_theme(
+        site_id,
+        None,
+        str(site.theme_slug) if site.theme_slug else None,
+        db,
+    )
+
+    return {"ok": True, "pages_published": published_count}
+
+
 @router.get(
     "/{site_id}/pages/{page_id}/versions",
     response_model=list[PageVersionResponse],

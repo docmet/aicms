@@ -140,16 +140,18 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 ---
 
-## Phase 12: Static Site Generation & Hosting
+## Phase 12: Static Site Generation & Hosting ✅ (partial)
 
 > **Architecture shift: published sites become static HTML served from CDN.**
 
-- On every publish: generate full static HTML snapshot (sections + theme + SEO)
-- Serve static output from Cloudflare R2/Pages — zero Next.js per user visit
-- Admin dashboard remains server-rendered (only public sites go static)
-- Custom domain support: CNAME → static site (SSL via Cloudflare proxy)
-- Groundwork for user site stacks on Coolify (containerized per-user, needed for contact forms / members / ecommerce backends per site)
-- Site-level publish ("publish all pages at once")
+- [x] Site-level publish: `POST /api/sites/{id}/publish-all` — publishes every page + theme in one call
+- [x] "Publish All Pages" button in admin Settings tab
+- [x] `publish_site` MCP tool (publishes entire site at once)
+- [x] Custom domain field: `domain` in Site model + SiteUpdate schema + Settings UI + MCP `update_site`
+- [ ] Static HTML snapshot generation on publish (requires SSR headless render or Python templates)
+- [ ] Serve static output from Cloudflare R2/Pages — zero Next.js per user visit
+- [ ] Custom domain routing in nginx (wildcard CNAME + Coolify proxy rules)
+- [ ] SSL via Cloudflare proxy for custom domains
 
 ---
 
@@ -208,7 +210,7 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 | Phase 9 — Media & Files | ✅ Done |
 | Phase 10 — Design System Expansion | ✅ Done |
 | Phase 11 — Blog, Forms & Rich Content | ✅ Done |
-| Phase 12 — Static Site Generation | Planned |
+| Phase 12 — Static Site Generation | 🔨 In progress |
 | Phase 13 — Growth & Analytics | Planned |
 
 ---

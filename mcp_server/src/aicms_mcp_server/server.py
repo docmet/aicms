@@ -301,9 +301,9 @@ class MCPServer:
         # ── update_site ───────────────────────────────────────────────────
         elif tool_name == "update_site":
             site_id = args["site_id"]
-            patch = {k: args[k] for k in ("name", "slug") if k in args}
+            patch = {k: args[k] for k in ("name", "slug", "domain") if k in args}
             if not patch:
-                return self._text("Nothing to update — provide name or slug. To change the theme, use apply_theme.")
+                return self._text("Nothing to update — provide name, slug, or domain. To change the theme, use apply_theme.")
             await self._make_request("PATCH", f"/sites/{site_id}", json=patch)
             changes = ", ".join(f"{k} → `{v}`" for k, v in patch.items())
             return self._text(f"Updated: {changes}.")
@@ -375,6 +375,16 @@ class MCPServer:
             return self._text(
                 f"**{page['title']}** published! {section_summary} are now live.{live_hint}\n\n"
                 f"Want to make any other tweaks?"
+            )
+
+        # ── publish_site ──────────────────────────────────────────────────
+        elif tool_name == "publish_site":
+            site_id = args["site_id"]
+            result = await self._make_request("POST", f"/sites/{site_id}/publish-all")
+            n = result.get("pages_published", 0)
+            return self._text(
+                f"All {n} page(s) published! The entire site is now live.\n\n"
+                f"Want to make any other changes?"
             )
 
         # ── get_page_content ──────────────────────────────────────────────
@@ -814,9 +824,10 @@ def _build_tools() -> list[Tool]:
         Tool(
             name="update_site",
             description=(
-                "Update the site's display name or URL slug. "
+                "Update the site's display name, URL slug, or custom domain. "
                 "To change the theme, use apply_theme instead — it goes through the draft workflow. "
-                "Confirm slug changes with the user since they change the public URL."
+                "Confirm slug changes with the user since they change the public URL. "
+                "domain: set a custom domain (e.g. 'www.example.com') — user must point DNS CNAME to the platform."
             ),
             inputSchema={
                 "type": "object",
@@ -824,6 +835,7 @@ def _build_tools() -> list[Tool]:
                     "site_id": {"type": "string"},
                     "name": {"type": "string", "description": "New display name"},
                     "slug": {"type": "string", "description": "New URL slug — confirm with user first"},
+                    "domain": {"type": "string", "description": "Custom domain e.g. www.example.com (null to remove)"},
                 },
                 "required": ["site_id"],
             },
@@ -907,9 +919,10 @@ def _build_tools() -> list[Tool]:
         Tool(
             name="publish_page",
             description=(
-                "Make all draft changes live — sections and any staged theme. "
+                "Make all draft changes live for a single page — sections and any staged theme. "
                 "Always call this after updating content, unless the user wants to keep it as a draft. "
-                "After publishing, share the live URL and ask if anything needs tweaking."
+                "After publishing, share the live URL and ask if anything needs tweaking. "
+                "To publish ALL pages at once, use publish_site instead."
             ),
             inputSchema={
                 "type": "object",
@@ -918,6 +931,22 @@ def _build_tools() -> list[Tool]:
                     "page_id": {"type": "string"},
                 },
                 "required": ["site_id", "page_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="publish_site",
+            description=(
+                "Publish ALL pages on a site at once — useful after a full site build or bulk edits. "
+                "Copies draft → live for every page and commits any pending theme change. "
+                "Use publish_page for single-page publishing."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                },
+                "required": ["site_id"],
             },
             annotations=ToolAnnotations(destructiveHint=False),
         ),

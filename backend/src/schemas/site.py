@@ -25,6 +25,7 @@ class SiteUpdate(BaseModel):
     slug: str | None = Field(None, min_length=1, max_length=255, pattern="^[a-z0-9-]+$")
     theme_slug: str | None = Field(None, max_length=50)
     theme_slug_draft: str | None = Field(None, max_length=50)
+    domain: str | None = Field(None, max_length=255)
 
 
 class SiteInDB(SiteBase):

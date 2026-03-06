@@ -68,6 +68,7 @@ interface Site {
   slug: string;
   theme_slug: string;
   theme_slug_draft: string | null;
+  domain: string | null;
 }
 
 interface Page {
@@ -565,7 +566,7 @@ export default function SiteEditorPage({
 
   // ── Site settings ────────────────────────────────────────────────────────
 
-  const handleUpdateSiteField = async (field: "name" | "slug", value: string) => {
+  const handleUpdateSiteField = async (field: "name" | "slug" | "domain", value: string) => {
     if (!site) return;
     try {
       await api.patch(`/sites/${site_id}`, { ...site, [field]: value });
@@ -1008,7 +1009,7 @@ export default function SiteEditorPage({
           <Card>
             <CardHeader>
               <CardTitle>Site Settings</CardTitle>
-              <CardDescription>Update your site name and public URL slug.</CardDescription>
+              <CardDescription>Update your site name, URL, and custom domain.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -1030,7 +1031,41 @@ export default function SiteEditorPage({
                   <span className="text-sm text-muted-foreground whitespace-nowrap">.aicms.docmet.systems</span>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Custom Domain</Label>
+                <Input
+                  defaultValue={site.domain ?? ""}
+                  onBlur={(e) => handleUpdateSiteField("domain", e.target.value.trim())}
+                  placeholder="www.yourdomain.com"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Point a CNAME DNS record for your domain to{" "}
+                  <code className="font-mono">{site.slug}.aicms.docmet.systems</code>, then enter the domain here.
+                </p>
+              </div>
               <p className="text-[11px] text-muted-foreground">Saves automatically on blur</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Publish Entire Site</CardTitle>
+              <CardDescription>Push all draft changes on every page live at once.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={async () => {
+                  try {
+                    const res = await api.post(`/sites/${site_id}/publish-all`);
+                    const n = (res.data as { pages_published: number }).pages_published;
+                    toast({ title: `Published ${n} page(s)`, description: "All pages are now live." });
+                  } catch {
+                    toast({ title: "Error", description: "Failed to publish all pages.", variant: "destructive" });
+                  }
+                }}
+              >
+                <Globe size={16} className="mr-2" /> Publish All Pages
+              </Button>
             </CardContent>
           </Card>
           <Card className="border-destructive/50">
