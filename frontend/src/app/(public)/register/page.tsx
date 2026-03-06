@@ -5,12 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Mail } from 'lucide-react';
 import { Suspense } from 'react';
 
-const planLabels: Record<string, { name: string; price: string; highlight: string }> = {
-  pro: { name: 'Pro', price: '$9.99/mo', highlight: '7-day free trial' },
-  agency: { name: 'Agency', price: '$99/mo', highlight: '7-day free trial' },
+const planLabels: Record<string, { name: string; price: string }> = {
+  pro: { name: 'Pro', price: '$9.99/mo' },
+  agency: { name: 'Agency', price: '$99/mo' },
 };
 
 function RegisterForm() {
@@ -18,6 +18,7 @@ function RegisterForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registered, setRegistered] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const plan = searchParams.get('plan') ?? 'free';
@@ -50,7 +51,7 @@ function RegisterForm() {
 
     try {
       await api.post('/auth/register', { email, password });
-      router.push('/login?registered=true');
+      setRegistered(true);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
       setError(e.response?.data?.detail || 'Could not create account. Try again.');
@@ -58,6 +59,39 @@ function RegisterForm() {
       setIsSubmitting(false);
     }
   };
+
+  if (registered) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="w-full max-w-sm text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-violet-100 flex items-center justify-center mx-auto">
+            <Mail className="w-7 h-7 text-violet-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Check your inbox</h1>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+          </p>
+          <p className="text-xs text-gray-400">
+            No email? Check your spam folder or{' '}
+            <button
+              className="text-violet-600 hover:text-violet-700 underline"
+              onClick={async () => {
+                await api.post('/auth/resend-verification', { email }).catch(() => {});
+              }}
+            >
+              resend the link
+            </button>.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mt-2"
+          >
+            Back to sign in <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -99,7 +133,7 @@ function RegisterForm() {
             <div className="mb-6 bg-violet-50 border border-violet-200 rounded-xl p-4 flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-violet-800">{planInfo.name} plan selected</p>
-                <p className="text-xs text-violet-500 mt-0.5">{planInfo.price} · {planInfo.highlight}</p>
+                <p className="text-xs text-violet-500 mt-0.5">{planInfo.price} · billed monthly after sign up</p>
               </div>
               <Link href="/register" className="text-xs text-violet-400 hover:text-violet-600 whitespace-nowrap mt-0.5">
                 Switch to Free

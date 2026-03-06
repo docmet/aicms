@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = "noreply@mystorey.io"
+    smtp_tls: bool = False  # True for port 587 STARTTLS (staging/prod)
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 

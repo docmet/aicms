@@ -36,7 +36,7 @@ async def _send(to: str, subject: str, html: str, text: str) -> None:
             port=settings.smtp_port,
             username=settings.smtp_user or None,
             password=settings.smtp_password or None,
-            start_tls=False,
+            start_tls=settings.smtp_tls,
         )
         logger.info("Email sent: %s → %s", subject, to)
     except Exception as exc:
@@ -164,3 +164,59 @@ Upgrade to create more sites: {upgrade_url}
 {public_url}
 """
         await _send(to, f"Published: {page_title}", html, text)
+
+    @staticmethod
+    async def send_verification_email(to: str, token: str) -> None:
+        """Email address confirmation link sent on registration."""
+        settings = get_settings()
+        verify_url = f"{settings.frontend_url}/verify-email?token={token}"
+
+        html = f"""
+        <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px 16px;">
+          <h1 style="font-size:24px;font-weight:700;color:#111;">Confirm your email</h1>
+          <p style="color:#555;">Thanks for signing up for MyStorey! Click the button below to confirm your email address and activate your account.</p>
+          <a href="{verify_url}" style="display:inline-block;margin:20px 0;background:#7c3aed;color:#fff;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">
+            Confirm email address
+          </a>
+          <p style="color:#999;font-size:13px;">This link expires in 24 hours. If you didn't sign up for MyStorey, ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+          <p style="color:#999;font-size:12px;">© 2026 MyStorey · hello@mystorey.io</p>
+        </div>
+        """
+
+        text = f"""Confirm your MyStorey email
+
+Click the link below to confirm your email address:
+{verify_url}
+
+This link expires in 24 hours. If you didn't sign up, ignore this email.
+"""
+        await _send(to, "Confirm your MyStorey email", html, text)
+
+    @staticmethod
+    async def send_password_reset(to: str, token: str) -> None:
+        """Password reset link."""
+        settings = get_settings()
+        reset_url = f"{settings.frontend_url}/reset-password?token={token}"
+
+        html = f"""
+        <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px 16px;">
+          <h1 style="font-size:24px;font-weight:700;color:#111;">Reset your password</h1>
+          <p style="color:#555;">We received a request to reset your MyStorey password. Click below to choose a new one.</p>
+          <a href="{reset_url}" style="display:inline-block;margin:20px 0;background:#7c3aed;color:#fff;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">
+            Reset password
+          </a>
+          <p style="color:#999;font-size:13px;">This link expires in 1 hour. If you didn't request a reset, ignore this email — your password won't change.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+          <p style="color:#999;font-size:12px;">© 2026 MyStorey · hello@mystorey.io</p>
+        </div>
+        """
+
+        text = f"""Reset your MyStorey password
+
+Click the link below to reset your password:
+{reset_url}
+
+This link expires in 1 hour. If you didn't request a reset, ignore this email.
+"""
+        await _send(to, "Reset your MyStorey password", html, text)

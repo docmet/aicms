@@ -9,6 +9,7 @@ interface User {
   email: string;
   is_admin: boolean;
   plan: 'free' | 'pro' | 'agency';
+  email_verified: boolean;
 }
 
 interface AuthContextType {

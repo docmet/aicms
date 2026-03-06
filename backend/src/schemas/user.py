@@ -31,6 +31,7 @@ class UserInDB(UserBase):
     id: UUID
     is_admin: bool
     plan: UserPlan
+    email_verified: bool
     created_at: datetime
     updated_at: datetime
 

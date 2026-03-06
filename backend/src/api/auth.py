@@ -1,9 +1,12 @@
 import asyncio
+import secrets
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +18,9 @@ from src.services.email import EmailService
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
+
+RESET_TOKEN_TTL_HOURS = 1
+VERIFY_TOKEN_BYTES = 32
 
 
 async def get_current_user(
@@ -36,19 +42,16 @@ async def get_current_user(
                 pass
 
     # If JWT failed, check if it's an MCP client token
-    # Import MCPClient model here to avoid circular imports
     from src.models import MCPClient
 
     result = await db.execute(select(MCPClient).where(MCPClient.token == token))
     mcp_client = result.scalar_one_or_none()
     if mcp_client:
-        # Get the user associated with this MCP client
         result = await db.execute(select(User).where(User.id == mcp_client.user_id))
         user = result.scalar_one_or_none()
         if user:
             return user
 
-    # If neither worked, raise 401
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -56,9 +59,10 @@ async def get_current_user(
     )
 
 
-@router.post(
-    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
-)
+# ── Register ───────────────────────────────────────────────────────────────────
+
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_in: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> User:
@@ -69,18 +73,24 @@ async def register(
             detail="User already exists",
         )
 
+    verification_token = secrets.token_urlsafe(VERIFY_TOKEN_BYTES)
     db_user = User(
         email=user_in.email,
         password_hash=AuthService.get_password_hash(user_in.password),
+        email_verified=False,
+        email_verification_token=verification_token,
     )
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
 
-    # Send welcome email (fire and forget — non-critical)
-    asyncio.create_task(EmailService.send_welcome(str(db_user.email), str(db_user.email)))
-
+    asyncio.create_task(
+        EmailService.send_verification_email(str(db_user.email), verification_token)
+    )
     return db_user
+
+
+# ── Login ──────────────────────────────────────────────────────────────────────
 
 
 @router.post("/login", response_model=Token)
@@ -107,3 +117,116 @@ async def login(
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: Annotated[User, Depends(get_current_user)]) -> User:
     return current_user
+
+
+# ── Email verification ─────────────────────────────────────────────────────────
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+@router.post("/verify-email", status_code=status.HTTP_200_OK)
+async def verify_email(
+    body: VerifyEmailRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    result = await db.execute(
+        select(User).where(User.email_verification_token == body.token)
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+
+    user.email_verified = True  # type: ignore[assignment]
+    user.email_verification_token = None  # type: ignore[assignment]
+    db.add(user)
+    await db.commit()
+    return {"message": "Email verified"}
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+@router.post("/resend-verification", status_code=status.HTTP_200_OK)
+async def resend_verification(
+    body: ResendVerificationRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    """Resend verification email. Always returns 200 (avoids email enumeration)."""
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if user and not user.email_verified:  # type: ignore[truthy-bool]
+        token = secrets.token_urlsafe(VERIFY_TOKEN_BYTES)
+        user.email_verification_token = token  # type: ignore[assignment]
+        db.add(user)
+        await db.commit()
+        asyncio.create_task(
+            EmailService.send_verification_email(str(user.email), token)
+        )
+
+    return {"message": "If that email is registered and unverified, a new link was sent"}
+
+
+# ── Password reset ─────────────────────────────────────────────────────────────
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    """Generate a password reset token and email it. Always returns 200."""
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if user:
+        token = secrets.token_urlsafe(VERIFY_TOKEN_BYTES)
+        user.reset_token = token  # type: ignore[assignment]
+        user.reset_token_expires_at = datetime.now(UTC) + timedelta(  # type: ignore[assignment]
+            hours=RESET_TOKEN_TTL_HOURS
+        )
+        db.add(user)
+        await db.commit()
+        asyncio.create_task(EmailService.send_password_reset(str(user.email), token))
+
+    return {"message": "If that email is registered, a reset link was sent"}
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(
+    body: ResetPasswordRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    result = await db.execute(select(User).where(User.reset_token == body.token))
+    user = result.scalar_one_or_none()
+
+    if not user or not user.reset_token_expires_at:  # type: ignore[truthy-bool]
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+
+    expires = user.reset_token_expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=UTC)
+    if datetime.now(UTC) > expires:
+        raise HTTPException(status_code=400, detail="Reset link has expired")
+
+    if len(body.password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
+
+    user.password_hash = AuthService.get_password_hash(body.password)  # type: ignore[assignment]
+    user.reset_token = None  # type: ignore[assignment]
+    user.reset_token_expires_at = None  # type: ignore[assignment]
+    db.add(user)
+    await db.commit()
+    return {"message": "Password updated"}

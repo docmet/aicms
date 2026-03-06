@@ -4,7 +4,7 @@ from enum import StrEnum
 from sqlalchemy import Boolean, Column, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from src.database import Base
 
@@ -37,6 +37,10 @@ class User(Base):
         nullable=False,
         server_default=UserPlan.free,
     )
+    email_verified = Column(Boolean, nullable=False, server_default=text("false"), default=False)
+    email_verification_token = Column(String(64), nullable=True, index=True)
+    reset_token = Column(String(64), nullable=True, index=True)
+    reset_token_expires_at = Column(DateTime(timezone=True), nullable=True)
     stripe_customer_id = Column(String(255), nullable=True, unique=True, index=True)
     stripe_subscription_id = Column(String(255), nullable=True)
     created_at = Column(
