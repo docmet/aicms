@@ -259,7 +259,8 @@ export default function SiteEditorPage({
       sections: overrideSections ?? sectionsRef.current,
       theme: overrideTheme ?? (siteRef.current?.theme_slug_draft ?? siteRef.current?.theme_slug ?? 'default'),
     });
-    ch.close();
+    // Delay close so the message is delivered before the channel is GC'd
+    setTimeout(() => ch.close(), 100);
   }, []); // stable — reads from refs at call time
 
   // ── Data fetching ────────────────────────────────────────────────────────
@@ -520,14 +521,17 @@ export default function SiteEditorPage({
   const handleDiscardThemeDraft = async () => {
     if (!site?.theme_slug_draft) return;
     const publishedTheme = site.theme_slug;
+    const previousSite = site;
     setSite({ ...site, theme_slug_draft: null });
     broadcastToPreview(undefined, publishedTheme);
     try {
       await api.patch(`/sites/${site_id}`, { theme_slug_draft: null });
+      // Re-broadcast after API confirms, in case the first broadcast was missed
+      broadcastToPreview(undefined, publishedTheme);
       toast({ title: "Theme restored", description: "Draft cleared — back to published theme." });
     } catch {
-      setSite(site);
-      broadcastToPreview(undefined, site.theme_slug_draft ?? site.theme_slug);
+      setSite(previousSite);
+      broadcastToPreview(undefined, previousSite.theme_slug_draft ?? previousSite.theme_slug);
       toast({ title: "Error", variant: "destructive" });
     }
   };
@@ -568,7 +572,7 @@ export default function SiteEditorPage({
           </Button>
           <Button
             onClick={handlePublish}
-            disabled={publishing || !currentPage}
+            disabled={publishing || !currentPage || !hasUnpublished}
             className="gap-2"
             variant={hasUnpublished ? "default" : "outline"}
           >
