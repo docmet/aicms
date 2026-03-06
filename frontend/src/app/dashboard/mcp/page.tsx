@@ -171,16 +171,15 @@ export default function AIToolsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Steps steps={[
-            <>Go to <strong>claude.ai</strong> → click your initials (top right) → <strong>Settings</strong></>,
-            <>Select <strong>Integrations</strong> in the left sidebar</>,
-            <>Under <em>Custom integrations</em>, click <strong>Add more</strong></>,
-            <>Paste the URL above → click <strong>Add</strong></>,
-            <>You&apos;ll be redirected to MyStorey — log in and click <strong>Approve</strong></>,
-            <>Done. In any new conversation, the MyStorey tools are automatically available — just ask Claude to work on your site.</>,
+            <>Go to <strong>claude.ai/customize/connectors</strong> (or open the link below)</>,
+            <>Click the <strong>+</strong> button (top right of the Connectors panel) → <strong>Add custom connector</strong></>,
+            <>Enter any <strong>Name</strong> (e.g. <em>MyStorey</em>) and paste the URL above into <strong>Remote MCP server URL</strong></>,
+            <>Click <strong>Add</strong> — you&apos;ll be redirected to MyStorey to log in and approve access</>,
+            <>Done. MyStorey tools are available in every Claude conversation automatically.</>,
           ]} />
-          <Button className="w-full gap-2" onClick={() => window.open('https://claude.ai/settings/integrations', '_blank')}>
+          <Button className="w-full gap-2" onClick={() => window.open('https://claude.ai/customize/connectors', '_blank')}>
             <ExternalLink size={14} />
-            Open Claude Integrations
+            Open Claude Connectors
           </Button>
           <p className="text-[11px] text-muted-foreground">
             💡 Once connected on claude.ai, the Claude desktop app picks up the same connector automatically — no extra setup.
