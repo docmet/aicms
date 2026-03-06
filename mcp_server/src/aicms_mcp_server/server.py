@@ -465,6 +465,55 @@ class MCPServer:
                 },
                 annotations=ToolAnnotations(destructiveHint=False),
             ),
+            Tool(
+                name="list_media",
+                description=(
+                    "List all media files (images and documents) uploaded to a site. "
+                    "Returns file URLs, types, sizes, and dimensions. "
+                    "Use to check what images are available before referencing them in content."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {"site_id": {"type": "string"}},
+                    "required": ["site_id"],
+                },
+                annotations=ToolAnnotations(readOnlyHint=True),
+            ),
+            Tool(
+                name="import_image_from_url",
+                description=(
+                    "Download an image from a public URL and save it to the site's media library. "
+                    "Returns the stored URL. Use when the user wants to add an image from the web, "
+                    "or when generating/sourcing images for the site. "
+                    "After importing, use update_section to reference the returned URL in content."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string"},
+                        "url": {"type": "string", "description": "Public URL of the image to import"},
+                        "alt_text": {"type": "string", "description": "Alt text for the image"},
+                    },
+                    "required": ["site_id", "url"],
+                },
+                annotations=ToolAnnotations(destructiveHint=False),
+            ),
+            Tool(
+                name="delete_media",
+                description=(
+                    "Permanently delete a media file from the site's media library and storage. "
+                    "Use the file ID from list_media. This cannot be undone."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "site_id": {"type": "string"},
+                        "media_id": {"type": "string"},
+                    },
+                    "required": ["site_id", "media_id"],
+                },
+                annotations=ToolAnnotations(destructiveHint=False),
+            ),
         ]
         return ListToolsResult(tools=tools)
 
@@ -840,6 +889,47 @@ class MCPServer:
                 f"It's visible in the preview right now. "
                 f"Call `publish_page` to make it live — this publishes all other pending changes too."
             )
+
+        # ── list_media ────────────────────────────────────────────────────
+        elif tool_name == "list_media":
+            site_id = args["site_id"]
+            files = await self._make_request("GET", f"/sites/{site_id}/media")
+            if not files:
+                return self._text("No media files uploaded yet for this site.")
+            lines = [f"**{len(files)} file(s)** in the media library:\n"]
+            for f in files:
+                dims = f" ({f['width']}×{f['height']}px)" if f.get("width") and f.get("height") else ""
+                size_kb = round(f["size_bytes"] / 1024, 1)
+                lines.append(
+                    f"- `{f['id']}` — **{f['original_filename']}** ({f['file_type']}{dims}, {size_kb} KB)\n"
+                    f"  URL: {f['url']}"
+                )
+            return self._text("\n".join(lines))
+
+        # ── import_image_from_url ─────────────────────────────────────────
+        elif tool_name == "import_image_from_url":
+            site_id = args["site_id"]
+            url = args["url"]
+            alt_text = args.get("alt_text")
+            payload: Dict[str, Any] = {"url": url}
+            if alt_text:
+                payload["alt_text"] = alt_text
+            result = await self._make_request("POST", f"/sites/{site_id}/media/import-url", json=payload)
+            return self._text(
+                f"Image imported successfully.\n"
+                f"- **File:** {result['original_filename']}\n"
+                f"- **URL:** {result['url']}\n"
+                f"- **ID:** `{result['id']}`\n\n"
+                f"Use this URL in `update_section` to add it to your content "
+                f"(e.g. as `background_image` in a hero section, or `image_url` in an about section)."
+            )
+
+        # ── delete_media ──────────────────────────────────────────────────
+        elif tool_name == "delete_media":
+            site_id = args["site_id"]
+            media_id = args["media_id"]
+            await self._make_request("DELETE", f"/sites/{site_id}/media/{media_id}")
+            return self._text(f"Media file `{media_id}` deleted permanently.")
 
         else:
             return CallToolResult(
