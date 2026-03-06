@@ -269,13 +269,14 @@ async def publish_page(
     latest_version = versions_result.scalar_one_or_none()
     next_version_number = (latest_version.version_number + 1) if latest_version else 1
 
-    # Build snapshot JSON
+    # Build snapshot JSON (theme_slug already reflects the just-committed draft)
     snapshot = json.dumps({
         "page": {
             "id": str(page.id),
             "title": page.title,
             "slug": page.slug,
         },
+        "theme_slug": str(site.theme_slug) if site.theme_slug else None,
         "sections": [
             {
                 "section_type": s.section_type,
@@ -369,7 +370,7 @@ async def revert_page_to_version(
     the user/AI still needs to call /publish to make the reverted content live.
     Sections in the snapshot that no longer exist are re-created.
     """
-    await get_site_owned_by_user(site_id, current_user, db)
+    site = await get_site_owned_by_user(site_id, current_user, db)
 
     # Load page
     page_result = await db.execute(
@@ -402,6 +403,12 @@ async def revert_page_to_version(
 
     snapshot = json.loads(str(version.snapshot))
     snapshot_sections = snapshot.get("sections", [])
+    snapshot_theme = snapshot.get("theme_slug")
+
+    # Restore theme as draft (preview only — not live until publish)
+    if snapshot_theme is not None:
+        site.theme_slug_draft = snapshot_theme  # type: ignore
+        db.add(site)
 
     # For each section in snapshot, upsert into content_draft
     for snap_sec in snapshot_sections:
@@ -435,7 +442,14 @@ async def revert_page_to_version(
     await db.commit()
     await db.refresh(page)
 
-    # Broadcast the reverted sections so admin editor and preview update instantly.
+    # Broadcast reverted sections + theme so admin editor and preview update instantly.
     await _broadcast_sections(page_id, db)
+    if snapshot_theme is not None:
+        await _broadcast_theme(
+            site_id,
+            snapshot_theme,  # theme_slug_draft
+            str(site.theme_slug) if site.theme_slug else None,
+            db,
+        )
 
     return page
