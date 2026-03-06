@@ -8,6 +8,7 @@ Routes mounted at /api/billing.
   POST /webhook           — Stripe webhook (checkout.session.completed, subscription events)
 """
 
+import asyncio
 from typing import Annotated
 
 import stripe
@@ -20,6 +21,7 @@ from src.api.auth import get_current_user
 from src.config import get_settings
 from src.database import get_db
 from src.models.user import User, UserPlan
+from src.services.email import EmailService
 
 router = APIRouter()
 
@@ -130,6 +132,9 @@ async def verify_payment(
 
     db.add(user)
     await db.commit()
+
+    asyncio.create_task(EmailService.send_plan_upgraded(str(user.email), plan))
+
     return VerifyResponse(success=True, plan=plan)
 
 

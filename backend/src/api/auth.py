@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated
 from uuid import UUID
 
@@ -10,6 +11,7 @@ from src.database import get_db
 from src.models.user import User
 from src.schemas.user import Token, UserCreate, UserResponse
 from src.services.auth import AuthService
+from src.services.email import EmailService
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
@@ -74,6 +76,10 @@ async def register(
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
+
+    # Send welcome email (fire and forget — non-critical)
+    asyncio.create_task(EmailService.send_welcome(str(db_user.email), str(db_user.email)))
+
     return db_user
 
 

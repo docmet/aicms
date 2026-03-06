@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     stripe_pro_price_id: str = ""
     stripe_agency_price_id: str = ""
 
+    # Email (SMTP)
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@mystorey.io"
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
 
