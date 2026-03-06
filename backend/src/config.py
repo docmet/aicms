@@ -33,6 +33,17 @@ class Settings(BaseSettings):
     smtp_from: str = "noreply@mystorey.io"
     smtp_tls: bool = False  # True for port 587 STARTTLS (staging/prod)
 
+    # Storage (media uploads)
+    storage_backend: str = "local"  # "local" | "r2"
+    local_upload_path: str = "/app/uploads"
+    upload_base_url: str = "http://localhost/uploads"  # URL prefix for local files
+    r2_account_id: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_bucket_name: str = ""
+    r2_public_url: str = ""  # e.g. https://media.mystorey.io
+    max_upload_size_mb: int = 10
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
 
