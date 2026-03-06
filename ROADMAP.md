@@ -96,36 +96,32 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 ---
 
-## Phase 9: Media & Files
+## Phase 9: Media & Files — COMPLETE
 
-> **Foundational — unblocks layouts, blog, logos, and documents.**
-
-- File upload API with pluggable storage: local volume (dev) + Cloudflare R2 (prod)
-- Image uploads per site: logo, hero background, section images, favicon
-- File attachments: PDFs, downloadable documents
-- Media library per site (grid view, reuse assets across sections)
-- nginx serves local uploads at `/uploads/`; R2 public URL in prod
-- Image fields added to content schemas: hero bg, logo, about image, feature/testimonial images
-- MCP tools: `list_media`, `import_image_from_url`, `delete_media`
-- Plan limits: Free (50MB / 20 files), Pro (500MB), Agency (5GB)
+- [x] File upload API with pluggable storage: local volume (dev) + Cloudflare R2 (prod)
+- [x] Image uploads per site: logo, hero background, section images, avatar
+- [x] Media library per site (grid view in admin, reuse across sections)
+- [x] nginx serves local uploads at `/uploads/`
+- [x] Image fields: hero `background_image`/`logo_url`, about `image_url`, testimonial `avatar_url`
+- [x] MCP tools: `list_media`, `import_image_from_url`, `delete_media` (23 tools total)
+- [x] MCP tool descriptions enriched with image dimension recommendations per field
+- [x] Plan limits: Free (50MB / 20 files), Pro (500MB), Agency (5GB)
 
 ---
 
-## Phase 10: Design System Expansion
+## Phase 10: Design System Expansion — COMPLETE
 
-> **Makes the builder feel like a real product. Section variants + more themes.**
-
-- Section layout variants:
-  - Hero: centered / image-left / image-right / fullscreen video
-  - Features: 2/3/4-col grid, icon list, alternating rows
-  - Testimonials: cards / carousel / masonry
-  - About: image-left / image-right / stats-only
-- Per-section background: white / gray / brand / image overlay
-- 5 new themes (10–12 total) with distinct layout personalities, not just color swaps
-- Font pairing selector: 5 curated heading+body combinations
-- Color accent customizer per site (primary / accent override)
-- Spacing/density control: compact / normal / spacious
-- MCP tool: `set_section_layout`
+- [x] 5 new themes: ocean (navy+cyan), rose (blush+serif), slate (indigo), forest (deep green), sunset (purple-magenta)
+- [x] Font pairing: Space Grotesk for ocean, Playfair Display for rose (via Google Fonts @import)
+- [x] Hero layout variants: `centered` / `split` / `fullscreen` — layout field in content JSON
+- [x] Features layout variants: `grid-3` (default) / `grid-2` / `grid-4` / `list`
+- [x] Features background field: `default` / `white` / `gray` / `brand` / `dark`
+- [x] Testimonials layout variants: `cards` (default) / `masonry` / `featured`
+- [x] Testimonials background field + avatar image support
+- [x] About layout variants: `image-right` (default) / `image-left` / `stats-only`
+- [x] MCP tool: `set_section_layout` — patches layout without overwriting content
+- [ ] Color accent customizer per site (primary/accent override) — deferred to Phase 12
+- [ ] Spacing/density control — deferred
 
 ---
 
