@@ -131,391 +131,8 @@ class MCPServer:
     # ── Tool definitions ───────────────────────────────────────────────────
 
     async def handle_list_tools(self, request: ListToolsRequest) -> ListToolsResult:
-        tools = [
-            # ── Sites ──────────────────────────────────────────────────────
-            Tool(
-                name="list_sites",
-                description=(
-                    "List all the user's sites. Use this at the start of a conversation to "
-                    "understand what they've already built. If they have sites, ask which one "
-                    "they want to work on, or offer a quick overview. If no sites exist, "
-                    "suggest creating one and ask about their business."
-                ),
-                inputSchema={"type": "object", "properties": {}},
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="create_site",
-                description=(
-                    "Create a new site. Before calling, ask: what is the site for, "
-                    "what industry/vibe, what URL slug? Good slugs are short, lowercase, no spaces "
-                    "(e.g. 'acme-coffee'). After creation, offer to build out the homepage."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string", "description": "Display name, e.g. 'Acme Coffee'"},
-                        "slug": {"type": "string", "description": "URL slug, e.g. 'acme-coffee'"},
-                        "theme_slug": {
-                            "type": "string",
-                            "description": (
-                                "Initial theme. Options: modern (blue, tech/SaaS), warm (orange, services/local), "
-                                "startup (emerald, growth), minimal (neutral, portfolio), dark (violet, agency). "
-                                "Pick based on the user's industry rather than defaulting to 'default'."
-                            ),
-                        },
-                    },
-                    "required": ["name", "slug"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            Tool(
-                name="get_site_info",
-                description=(
-                    "Get basic info about a site (name, slug, theme, pages). "
-                    "Use describe_site when you need to actually read section content."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string", "description": "UUID of the site"},
-                    },
-                    "required": ["site_id"],
-                },
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="describe_site",
-                description=(
-                    "Get a full snapshot of a site: theme (published + draft), all pages, "
-                    "and the draft content of every section. Always call this before suggesting "
-                    "improvements or making edits — you need to see what's already there. "
-                    "After reading, offer specific observations: what looks strong, what's missing, "
-                    "what copy could be stronger."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                    },
-                    "required": ["site_id"],
-                },
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="update_site",
-                description=(
-                    "Update the site's display name or URL slug. "
-                    "To change the theme, use apply_theme instead — it goes through the draft workflow. "
-                    "Confirm slug changes with the user since they change the public URL."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "name": {"type": "string", "description": "New display name"},
-                        "slug": {"type": "string", "description": "New URL slug — confirm with user first, changes public URL"},
-                    },
-                    "required": ["site_id"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            Tool(
-                name="delete_site",
-                description=(
-                    "Permanently delete a site and all its pages. "
-                    "Always confirm with the user before calling — this cannot be undone."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {"site_id": {"type": "string"}},
-                    "required": ["site_id"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            # ── Pages ──────────────────────────────────────────────────────
-            Tool(
-                name="list_pages",
-                description=(
-                    "List all pages on a site. Good for understanding structure. "
-                    "Common pages to suggest if missing: Home, About, Services/Pricing, Contact. "
-                    "Offer to help add any that are missing."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {"site_id": {"type": "string"}},
-                    "required": ["site_id"],
-                },
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="create_page",
-                description=(
-                    "Create a new page. After creating, offer to add sections right away. "
-                    "Suggest relevant section types based on the page purpose "
-                    "(About → about + contact; Pricing → pricing + cta; Home → hero + features + cta)."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "title": {"type": "string"},
-                        "slug": {"type": "string"},
-                        "is_published": {"type": "boolean", "description": "Default false"},
-                    },
-                    "required": ["site_id", "title", "slug"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            Tool(
-                name="update_page",
-                description="Update page title, slug, or publish status.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "page_id": {"type": "string"},
-                        "title": {"type": "string"},
-                        "slug": {"type": "string"},
-                        "is_published": {"type": "boolean"},
-                    },
-                    "required": ["site_id", "page_id"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            Tool(
-                name="delete_page",
-                description="Delete a page. Confirm with the user if the page has content.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "page_id": {"type": "string"},
-                    },
-                    "required": ["site_id", "page_id"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            Tool(
-                name="publish_page",
-                description=(
-                    "Make all draft changes live — sections and any staged theme. "
-                    "Always call this after updating content, unless the user wants to keep it as a draft. "
-                    "After publishing, share the live URL and ask if anything needs tweaking."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "page_id": {"type": "string"},
-                    },
-                    "required": ["site_id", "page_id"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            # ── Content sections ───────────────────────────────────────────
-            Tool(
-                name="get_page_content",
-                description=(
-                    "Get draft content for all sections on a page. "
-                    "Always call this before editing so you make targeted changes "
-                    "instead of accidentally overwriting fields the user hasn't asked to change."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "page_id": {"type": "string"},
-                    },
-                    "required": ["site_id", "page_id"],
-                },
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="update_section",
-                description=(
-                    "Create or update a content section (upsert by type — safe to call multiple times). "
-                    f"Valid section types: {', '.join(VALID_SECTION_TYPES)}. "
-                    "Read current content first (get_page_content) to preserve fields not being changed. "
-                    "Write copy that is specific, human, and relevant to the user's actual business — "
-                    "no generic filler. After updating, ask if the tone and wording feel right."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "page_id": {"type": "string"},
-                        "section_type": {
-                            "type": "string",
-                            "enum": VALID_SECTION_TYPES,
-                        },
-                        "content_json": {
-                            "type": "object",
-                            "description": "Full content object for this section type",
-                        },
-                        "order": {
-                            "type": "integer",
-                            "description": "Display order (0 = top). Typical: hero(0), features(1), testimonials(2), about(3), cta(4).",
-                        },
-                    },
-                    "required": ["site_id", "page_id", "section_type", "content_json"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False, idempotentHint=True),
-            ),
-            Tool(
-                name="generate_section",
-                description=(
-                    "Get the default content structure for a section type — useful for "
-                    "understanding available fields before writing real content."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "section_type": {
-                            "type": "string",
-                            "enum": VALID_SECTION_TYPES,
-                        },
-                    },
-                    "required": ["section_type"],
-                },
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="delete_section",
-                description=(
-                    "Delete a section by its ID. Get the ID from get_page_content. "
-                    "Confirm before deleting sections that contain real content."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "page_id": {"type": "string"},
-                        "section_id": {"type": "string", "description": "UUID from get_page_content"},
-                    },
-                    "required": ["site_id", "page_id", "section_id"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            # ── Versions ───────────────────────────────────────────────────
-            Tool(
-                name="list_versions",
-                description=(
-                    "List the published version history for a page (newest first, up to 5). "
-                    "Call this before reverting so you can show the user their options "
-                    "and let them choose which version to restore."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "page_id": {"type": "string"},
-                    },
-                    "required": ["site_id", "page_id"],
-                },
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="revert_to_version",
-                description=(
-                    "Revert all draft content (sections + theme) back to a previously published version. "
-                    "Always call list_versions first to show the user their options and confirm which version. "
-                    "This updates the draft — call publish_page after to make the reverted content live."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "page_id": {"type": "string"},
-                        "version_id": {"type": "string", "description": "Version UUID from list_versions"},
-                    },
-                    "required": ["site_id", "page_id", "version_id"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            # ── Themes ─────────────────────────────────────────────────────
-            Tool(
-                name="list_themes",
-                description=(
-                    "List available themes with their visual personality. "
-                    "Use when the user wants to change the look, or proactively suggest a theme "
-                    "that fits their industry (e.g. warm for a coffee shop, startup for SaaS, dark for an agency)."
-                ),
-                inputSchema={"type": "object", "properties": {}},
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="apply_theme",
-                description=(
-                    "Stage a theme as a draft — immediately visible in preview, not live until publish_page. "
-                    "Suggest a theme based on the user's industry/vibe if they haven't specified one. "
-                    "Available: modern (blue, tech), warm (orange, services), startup (emerald, growth), "
-                    "minimal (neutral, portfolio), dark (violet, agency)."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "theme_slug": {
-                            "type": "string",
-                            "enum": ["modern", "warm", "startup", "minimal", "dark", "default"],
-                        },
-                    },
-                    "required": ["site_id", "theme_slug"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            Tool(
-                name="list_media",
-                description=(
-                    "List all media files (images and documents) uploaded to a site. "
-                    "Returns file URLs, types, sizes, and dimensions. "
-                    "Use to check what images are available before referencing them in content."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {"site_id": {"type": "string"}},
-                    "required": ["site_id"],
-                },
-                annotations=ToolAnnotations(readOnlyHint=True),
-            ),
-            Tool(
-                name="import_image_from_url",
-                description=(
-                    "Download an image from a public URL and save it to the site's media library. "
-                    "Returns the stored URL. Use when the user wants to add an image from the web, "
-                    "or when generating/sourcing images for the site. "
-                    "After importing, use update_section to reference the returned URL in content."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "url": {"type": "string", "description": "Public URL of the image to import"},
-                        "alt_text": {"type": "string", "description": "Alt text for the image"},
-                    },
-                    "required": ["site_id", "url"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-            Tool(
-                name="delete_media",
-                description=(
-                    "Permanently delete a media file from the site's media library and storage. "
-                    "Use the file ID from list_media. This cannot be undone."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "site_id": {"type": "string"},
-                        "media_id": {"type": "string"},
-                    },
-                    "required": ["site_id", "media_id"],
-                },
-                annotations=ToolAnnotations(destructiveHint=False),
-            ),
-        ]
-        return ListToolsResult(tools=tools)
+        return ListToolsResult(tools=_build_tools())
+
 
     # ── Tool implementations ───────────────────────────────────────────────
 
@@ -1007,6 +624,390 @@ class MCPServer:
             description=name,
             messages=[PromptMessage(role="user", content=TextContent(type="text", text=name))],
         )
+
+
+def _build_tools() -> list[Tool]:
+    """Single source of truth for all MCP tool definitions."""
+    return [
+        # ── Sites ──────────────────────────────────────────────────────────
+        Tool(
+            name="list_sites",
+            description=(
+                "List all the user's sites. Use this at the start of a conversation to "
+                "understand what they've already built. If they have sites, ask which one "
+                "they want to work on, or offer a quick overview. If no sites exist, "
+                "suggest creating one and ask about their business."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="create_site",
+            description=(
+                "Create a new site. Before calling, ask: what is the site for, "
+                "what industry/vibe, what URL slug? Good slugs are short, lowercase, no spaces "
+                "(e.g. 'acme-coffee'). After creation, offer to build out the homepage."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Display name, e.g. 'Acme Coffee'"},
+                    "slug": {"type": "string", "description": "URL slug, e.g. 'acme-coffee'"},
+                    "theme_slug": {
+                        "type": "string",
+                        "description": (
+                            "Initial theme. Options: modern (blue, tech/SaaS), warm (orange, services/local), "
+                            "startup (emerald, growth), minimal (neutral, portfolio), dark (violet, agency). "
+                            "Pick based on the user's industry rather than defaulting to 'default'."
+                        ),
+                    },
+                },
+                "required": ["name", "slug"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="get_site_info",
+            description=(
+                "Get basic info about a site (name, slug, theme, pages). "
+                "Use describe_site when you need to actually read section content."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {"site_id": {"type": "string", "description": "UUID of the site"}},
+                "required": ["site_id"],
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="describe_site",
+            description=(
+                "Get a full snapshot of a site: theme (published + draft), all pages, "
+                "and the draft content of every section. Always call this before suggesting "
+                "improvements or making edits — you need to see what's already there. "
+                "After reading, offer specific observations: what looks strong, what's missing, "
+                "what copy could be stronger."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {"site_id": {"type": "string"}},
+                "required": ["site_id"],
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="update_site",
+            description=(
+                "Update the site's display name or URL slug. "
+                "To change the theme, use apply_theme instead — it goes through the draft workflow. "
+                "Confirm slug changes with the user since they change the public URL."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "name": {"type": "string", "description": "New display name"},
+                    "slug": {"type": "string", "description": "New URL slug — confirm with user first"},
+                },
+                "required": ["site_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="delete_site",
+            description=(
+                "Permanently delete a site and all its pages. "
+                "Always confirm with the user before calling — this cannot be undone."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {"site_id": {"type": "string"}},
+                "required": ["site_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        # ── Pages ──────────────────────────────────────────────────────────
+        Tool(
+            name="list_pages",
+            description=(
+                "List all pages on a site. Good for understanding structure. "
+                "Common pages to suggest if missing: Home, About, Services/Pricing, Contact."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {"site_id": {"type": "string"}},
+                "required": ["site_id"],
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="create_page",
+            description=(
+                "Create a new page. After creating, offer to add sections right away. "
+                "Suggest relevant section types based on the page purpose "
+                "(About → about + contact; Pricing → pricing + cta; Home → hero + features + cta)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "slug": {"type": "string"},
+                    "is_published": {"type": "boolean", "description": "Default false"},
+                },
+                "required": ["site_id", "title", "slug"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="update_page",
+            description="Update page title, slug, or publish status.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "slug": {"type": "string"},
+                    "is_published": {"type": "boolean"},
+                },
+                "required": ["site_id", "page_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="delete_page",
+            description="Delete a page. Confirm with the user if the page has content.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                },
+                "required": ["site_id", "page_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="publish_page",
+            description=(
+                "Make all draft changes live — sections and any staged theme. "
+                "Always call this after updating content, unless the user wants to keep it as a draft. "
+                "After publishing, share the live URL and ask if anything needs tweaking."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                },
+                "required": ["site_id", "page_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        # ── Content sections ───────────────────────────────────────────────
+        Tool(
+            name="get_page_content",
+            description=(
+                "Get draft content for all sections on a page. "
+                "Always call this before editing so you make targeted changes "
+                "instead of accidentally overwriting fields the user hasn't asked to change."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                },
+                "required": ["site_id", "page_id"],
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="update_section",
+            description=(
+                "Create or update a content section (upsert by type — safe to call multiple times). "
+                f"Valid section types: {', '.join(VALID_SECTION_TYPES)}. "
+                "Read current content first (get_page_content) to preserve fields not being changed. "
+                "Write copy that is specific, human, and relevant to the user's actual business — "
+                "no generic filler. After updating, ask if the tone and wording feel right."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                    "section_type": {"type": "string", "enum": VALID_SECTION_TYPES},
+                    "content_json": {"type": "object", "description": "Full content object for this section type"},
+                    "order": {"type": "integer", "description": "Display order (0=top). Typical: hero(0), features(1), testimonials(2), about(3), cta(4)."},
+                },
+                "required": ["site_id", "page_id", "section_type", "content_json"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False, idempotentHint=True),
+        ),
+        Tool(
+            name="generate_section",
+            description=(
+                "Get the default content structure for a section type — useful for "
+                "understanding available fields before writing real content."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {"section_type": {"type": "string", "enum": VALID_SECTION_TYPES}},
+                "required": ["section_type"],
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="delete_section",
+            description=(
+                "Delete a section by its ID. Get the ID from get_page_content. "
+                "Confirm before deleting sections that contain real content."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                    "section_id": {"type": "string", "description": "UUID from get_page_content"},
+                },
+                "required": ["site_id", "page_id", "section_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        # ── Versions ───────────────────────────────────────────────────────
+        Tool(
+            name="list_versions",
+            description=(
+                "List the published version history for a page (newest first, up to 5). "
+                "Call this before reverting so you can show the user their options "
+                "and let them choose which version to restore."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                },
+                "required": ["site_id", "page_id"],
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="revert_to_version",
+            description=(
+                "Revert all draft content (sections + theme) back to a previously published version. "
+                "Always call list_versions first to show the user their options and confirm which version. "
+                "This updates the draft — call publish_page after to make the reverted content live."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                    "version_id": {"type": "string", "description": "Version UUID from list_versions"},
+                },
+                "required": ["site_id", "page_id", "version_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        # ── Themes ─────────────────────────────────────────────────────────
+        Tool(
+            name="list_themes",
+            description=(
+                "List available themes with their visual personality. "
+                "Use when the user wants to change the look, or proactively suggest a theme "
+                "that fits their industry (e.g. warm for a coffee shop, startup for SaaS, dark for an agency)."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="apply_theme",
+            description=(
+                "Stage a theme as a draft — immediately visible in preview, not live until publish_page. "
+                "Suggest a theme based on the user's industry/vibe if they haven't specified one. "
+                "Available: modern (blue, tech), warm (orange, services), startup (emerald, growth), "
+                "minimal (neutral, portfolio), dark (violet, agency)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "theme_slug": {
+                        "type": "string",
+                        "enum": ["modern", "warm", "startup", "minimal", "dark", "default"],
+                    },
+                },
+                "required": ["site_id", "theme_slug"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        # ── Media ──────────────────────────────────────────────────────────
+        Tool(
+            name="list_media",
+            description=(
+                "List all media files (images and documents) uploaded to a site. "
+                "Returns file URLs, types, sizes, and dimensions. "
+                "Use to check what images are available before referencing them in content."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {"site_id": {"type": "string"}},
+                "required": ["site_id"],
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="import_image_from_url",
+            description=(
+                "Download an image from a public URL and save it to the site's media library. "
+                "Returns the stored URL. Use when the user wants to add an image from the web, "
+                "or when generating/sourcing images for the site. "
+                "After importing, use update_section to reference the returned URL in content."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "url": {"type": "string", "description": "Public URL of the image to import"},
+                    "alt_text": {"type": "string", "description": "Alt text for the image"},
+                },
+                "required": ["site_id", "url"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="delete_media",
+            description=(
+                "Permanently delete a media file from the site's media library and storage. "
+                "Use the file ID from list_media. This cannot be undone."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "media_id": {"type": "string"},
+                },
+                "required": ["site_id", "media_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+    ]
+
+
+def get_tool_dicts() -> list[dict]:
+    """Return tools as serializable dicts for HTTP MCP responses.
+
+    Adds ``x-openai-is-consequential: false`` so ChatGPT skips confirmation
+    dialogs. This is the single export used by main.py's HTTP handlers.
+    """
+    result = []
+    for tool in _build_tools():
+        d = tool.model_dump(exclude_none=True)
+        d["x-openai-is-consequential"] = False
+        result.append(d)
+    return result
 
 
 def create_server(api_url: str, api_token: str, app_url: str = "") -> MCPServer:

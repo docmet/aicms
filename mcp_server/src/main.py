@@ -749,49 +749,9 @@ async def sse_endpoint_alt(client_id: str, request: Request):
 
 # Message endpoint for MCP protocol
 def _make_tool_list() -> list[dict]:
-    """Return the canonical list of MCP tools.
-
-    Every tool carries:
-      - x-openai-is-consequential: false  → ChatGPT skips the confirmation dialog
-      - annotations.destructiveHint: false → MCP spec signal that the tool is safe
-    Read-only tools additionally set readOnlyHint: true.
-    """
-    READ  = {"x-openai-is-consequential": False, "annotations": {"readOnlyHint": True,  "destructiveHint": False}}
-    WRITE = {"x-openai-is-consequential": False, "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True}}
-
-    def t(name: str, description: str, schema: dict, flags: dict = WRITE) -> dict:
-        return {"name": name, "description": description, "inputSchema": schema, **flags}
-
-    return [
-        # ── Sites ──────────────────────────────────────────────────────────
-        t("list_sites",    "List all the user's sites. Use this at the start of a conversation to understand what they've already built.", {"type": "object", "properties": {}}, READ),
-        t("create_site",   "Create a new site. Ask what the site is for, the industry/vibe, and a URL slug (short, lowercase, no spaces e.g. 'acme-coffee').", {"type": "object", "properties": {"name": {"type": "string"}, "slug": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["name", "slug"]}),
-        t("get_site_info", "Get detailed information about a site including pages and theme.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}, READ),
-        t("describe_site", "Get a full snapshot of a site: theme (published + draft), all pages, section types and their draft content. Call this before editing so you make targeted changes.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}, READ),
-        t("update_site",   "Update site name or slug.", {"type": "object", "properties": {"site_id": {"type": "string"}, "name": {"type": "string"}, "slug": {"type": "string"}}, "required": ["site_id"]}),
-        t("delete_site",   "Permanently delete a site. Always confirm with the user before calling.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}),
-        # ── Pages ──────────────────────────────────────────────────────────
-        t("list_pages",    "List all pages for a site.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}, READ),
-        t("create_page",   "Create a new page on a site.", {"type": "object", "properties": {"site_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "title", "slug"]}),
-        t("update_page",   "Update page title, slug, or publish status.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "title": {"type": "string"}, "slug": {"type": "string"}, "is_published": {"type": "boolean"}}, "required": ["site_id", "page_id"]}),
-        t("delete_page",   "Delete a page. Always confirm with the user first.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}),
-        t("publish_page",  "Make all draft changes live — sections and any staged theme. Always call this after updating content unless the user wants to keep it as a draft.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}),
-        # ── Version history / rollback ─────────────────────────────────────
-        t("list_versions",     "List published version history for a page (newest first, up to 5). Call this when the user wants to undo changes, roll back, or restore a previous version.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}, READ),
-        t("revert_to_version", "Restore a page's draft content back to a previously published version. Always call list_versions first to show options and let the user confirm. After reverting, call publish_page to make the restored content live.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "version_id": {"type": "string", "description": "Version UUID from list_versions"}}, "required": ["site_id", "page_id", "version_id"]}),
-        # ── Content sections ───────────────────────────────────────────────
-        t("get_page_content", "Get draft content for all sections on a page. Always call this before editing so you make targeted changes instead of accidentally overwriting fields.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}}, "required": ["site_id", "page_id"]}, READ),
-        t("update_section",   "Create or update a content section by type. Pass structured JSON matching the section type schema.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_type": {"type": "string"}, "content_json": {"type": "object"}, "order": {"type": "integer"}}, "required": ["site_id", "page_id", "section_type", "content_json"]}),
-        t("generate_section", "Get the default JSON structure for a section type to use as a starting point for update_section.", {"type": "object", "properties": {"section_type": {"type": "string"}}, "required": ["section_type"]}, READ),
-        t("delete_section",   "Delete a content section.", {"type": "object", "properties": {"site_id": {"type": "string"}, "page_id": {"type": "string"}, "section_id": {"type": "string"}}, "required": ["site_id", "page_id", "section_id"]}),
-        # ── Themes ─────────────────────────────────────────────────────────
-        t("list_themes",  "List available themes with their visual style. Use when the user wants to change the look, or proactively suggest a theme that fits their industry.", {"type": "object", "properties": {}}, READ),
-        t("apply_theme",  "Stage a theme as a draft — immediately visible in preview, not live until publish_page. Available: modern (blue, tech), warm (orange, services), startup (emerald, growth), minimal (neutral, portfolio), dark (violet, agency).", {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}),
-        # ── Media ──────────────────────────────────────────────────────────
-        t("list_media",            "List all media files (images and documents) uploaded to a site. Returns file URLs, types, sizes, and dimensions. Use to check what images are available before referencing them in content.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}, READ),
-        t("import_image_from_url", "Download an image from a public URL and save it to the site's media library. Returns the stored URL. After importing, use update_section to reference the returned URL in content (e.g. background_image in hero, image_url in about).", {"type": "object", "properties": {"site_id": {"type": "string"}, "url": {"type": "string"}, "alt_text": {"type": "string"}}, "required": ["site_id", "url"]}),
-        t("delete_media",          "Permanently delete a media file from the site's media library. Use the file ID from list_media.", {"type": "object", "properties": {"site_id": {"type": "string"}, "media_id": {"type": "string"}}, "required": ["site_id", "media_id"]}),
-    ]
+    """Delegate to server.py — single source of truth for all tool definitions."""
+    from .aicms_mcp_server.server import get_tool_dicts
+    return get_tool_dicts()
 
 
 async def _get_mcp_server_for_client(client_id: str) -> MCPServer:
