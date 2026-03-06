@@ -1,5 +1,6 @@
 """SQLAlchemy models."""
 
+from src.models.blog import BlogPost
 from src.models.content import ContentSection
 from src.models.mcp_client import MCPClient
 from src.models.media import MediaFile
@@ -18,4 +19,5 @@ __all__ = [
     "Theme",
     "MCPClient",
     "MediaFile",
+    "BlogPost",
 ]

@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
+from src.models.blog import BlogPost
 from src.models.content import ContentSection
 from src.models.page import Page
 from src.models.site import Site
@@ -149,4 +150,64 @@ async def get_public_site_page(
         "page_slug": page.slug,
         "sections": _sections_payload(sections),
         "show_badge": show_badge,
+    }
+
+
+# ── Public blog endpoints (no auth, published-only) ──────────────────────────
+
+def _post_summary(post: BlogPost) -> dict[str, Any]:
+    return {
+        "id": str(post.id),
+        "slug": post.slug,
+        "title": post.title,
+        "excerpt": post.excerpt,
+        "author_name": post.author_name,
+        "cover_image_url": post.cover_image_url,
+        "tags": post.tags or [],
+        "published_at": post.published_at.isoformat() if post.published_at else None,
+    }
+
+
+@router.get("/{site_slug}/blog", response_model=list[dict[str, Any]])
+async def get_public_blog_index(
+    site_slug: str,
+    db: AsyncSession = Depends(get_db),
+) -> list[dict[str, Any]]:
+    """List all published blog posts for a site (newest first)."""
+    site = await _get_site_or_404(site_slug, db)
+
+    result = await db.execute(
+        select(BlogPost)
+        .where(BlogPost.site_id == site.id, BlogPost.published_at.isnot(None))
+        .order_by(BlogPost.published_at.desc())
+    )
+    posts = list(result.scalars().all())
+    return [_post_summary(p) for p in posts]
+
+
+@router.get("/{site_slug}/blog/{slug}", response_model=dict[str, Any])
+async def get_public_blog_post(
+    site_slug: str,
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Get a single published blog post by slug."""
+    site = await _get_site_or_404(site_slug, db)
+
+    result = await db.execute(
+        select(BlogPost).where(
+            BlogPost.site_id == site.id,
+            BlogPost.slug == slug,
+            BlogPost.published_at.isnot(None),
+        )
+    )
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    return {
+        **_post_summary(post),
+        "body": post.body,
+        "created_at": post.created_at.isoformat(),
+        "updated_at": post.updated_at.isoformat(),
     }

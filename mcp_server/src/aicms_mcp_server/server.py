@@ -569,6 +569,69 @@ class MCPServer:
             await self._make_request("DELETE", f"/sites/{site_id}/media/{media_id}")
             return self._text(f"Media file `{media_id}` deleted permanently.")
 
+        # ── Blog tools ────────────────────────────────────────────────────
+        elif tool_name == "create_post":
+            site_id = args["site_id"]
+            payload: Dict[str, Any] = {
+                "title": args["title"],
+                "body": args.get("body", ""),
+            }
+            for opt in ("slug", "excerpt", "author_name", "cover_image_url", "tags"):
+                if opt in args:
+                    payload[opt] = args[opt]
+            result = await self._make_request("POST", f"/sites/{site_id}/posts", json=payload)
+            return self._text(
+                f"**Blog post created** (draft).\n"
+                f"- Title: {result['title']}\n"
+                f"- Slug: `{result['slug']}`\n"
+                f"- ID: `{result['id']}`\n\n"
+                f"Use `publish_post` with the post ID to make it live."
+            )
+
+        elif tool_name == "list_posts":
+            site_id = args["site_id"]
+            published_only = args.get("published_only", False)
+            posts = await self._make_request(
+                "GET", f"/sites/{site_id}/posts",
+                params={"published_only": str(published_only).lower()}
+            )
+            if not posts:
+                return self._text("No blog posts found for this site.")
+            lines = [f"**{len(posts)} post(s)**:\n"]
+            for p in posts:
+                status = "published" if p.get("published_at") else "draft"
+                date = (p.get("published_at") or p.get("created_at") or "")[:10]
+                lines.append(f"- `{p['id']}` — **{p['title']}** ({status}, {date}) slug=`{p['slug']}`")
+            return self._text("\n".join(lines))
+
+        elif tool_name == "update_post":
+            site_id = args["site_id"]
+            post_id = args["post_id"]
+            payload = {k: v for k, v in args.items() if k not in ("site_id", "post_id")}
+            result = await self._make_request("PATCH", f"/sites/{site_id}/posts/{post_id}", json=payload)
+            return self._text(
+                f"**Post updated**: {result['title']} (slug=`{result['slug']}`)\n\n"
+                f"Use `publish_post` to publish it."
+            )
+
+        elif tool_name == "publish_post":
+            site_id = args["site_id"]
+            post_id = args["post_id"]
+            result = await self._make_request("POST", f"/sites/{site_id}/posts/{post_id}/publish")
+            pub_date = (result.get("published_at") or "")[:10]
+            return self._text(
+                f"**Post published** on {pub_date}.\n"
+                f"- Title: {result['title']}\n"
+                f"- URL: /{result.get('site_slug', '...')}/blog/{result['slug']}\n\n"
+                f"The post is now live on the public blog."
+            )
+
+        elif tool_name == "delete_post":
+            site_id = args["site_id"]
+            post_id = args["post_id"]
+            await self._make_request("DELETE", f"/sites/{site_id}/posts/{post_id}")
+            return self._text(f"Blog post `{post_id}` deleted.")
+
         # ── set_section_layout ────────────────────────────────────────────
         elif tool_name == "set_section_layout":
             site_id = args["site_id"]
@@ -1067,6 +1130,102 @@ def _build_tools() -> list[Tool]:
                 "required": ["site_id", "media_id"],
             },
             annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        # ── Blog ───────────────────────────────────────────────────────────
+        Tool(
+            name="create_post",
+            description=(
+                "Create a new blog post (starts as draft). "
+                "Body is markdown — use double newlines for paragraphs, `# Heading` for h2, `## Heading` for h3. "
+                "cover_image_url accepts any image URL from the media library (see list_media). "
+                "After creating, call publish_post to make it live."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "body": {"type": "string", "description": "Post body in markdown. Double newline = paragraph break."},
+                    "slug": {"type": "string", "description": "URL slug (auto-derived from title if omitted)"},
+                    "excerpt": {"type": "string", "description": "Short summary shown in blog index (1–2 sentences)"},
+                    "author_name": {"type": "string"},
+                    "cover_image_url": {"type": "string", "description": "Cover image URL. Recommended 1200×630 px (OG image size)."},
+                    "tags": {"type": "array", "items": {"type": "string"}, "description": "Topic tags, e.g. [\"news\", \"product\"]"},
+                },
+                "required": ["site_id", "title"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="list_posts",
+            description=(
+                "List all blog posts for a site. Returns id, title, slug, status (draft/published), "
+                "published_at, and excerpt. Use published_only=true to see only live posts."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "published_only": {"type": "boolean", "description": "If true, only return published posts"},
+                },
+                "required": ["site_id"],
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="update_post",
+            description=(
+                "Update a blog post's fields. Only provide fields you want to change — "
+                "omitted fields are preserved. Use list_posts to get the post_id."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "post_id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "body": {"type": "string"},
+                    "excerpt": {"type": "string"},
+                    "author_name": {"type": "string"},
+                    "cover_image_url": {"type": "string"},
+                    "tags": {"type": "array", "items": {"type": "string"}},
+                    "slug": {"type": "string"},
+                },
+                "required": ["site_id", "post_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="publish_post",
+            description=(
+                "Publish a blog post — sets published_at to now and makes it visible at "
+                "/[site_slug]/blog/[slug]. Call list_posts to get the post_id."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "post_id": {"type": "string"},
+                },
+                "required": ["site_id", "post_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="delete_post",
+            description=(
+                "Permanently delete a blog post. This cannot be undone. "
+                "Use list_posts to get the post_id."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "post_id": {"type": "string"},
+                },
+                "required": ["site_id", "post_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=True),
         ),
         # ── Layout ─────────────────────────────────────────────────────────
         Tool(

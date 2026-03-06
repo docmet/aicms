@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from src.api.admin import router as admin_router
 from src.api.auth import router as auth_router
 from src.api.billing import router as billing_router
+from src.api.blog import router as blog_router
 from src.api.content import router as content_router
 from src.api.mcp import router as mcp_router
 from src.api.media import router as media_router
@@ -62,6 +63,7 @@ app.include_router(sites_router, prefix="/api/sites", tags=["sites"])
 app.include_router(pages_router, prefix="/api/sites", tags=["pages"])
 app.include_router(content_router, prefix="/api/sites", tags=["content"])
 app.include_router(media_router, prefix="/api/sites", tags=["media"])
+app.include_router(blog_router, prefix="/api/sites", tags=["blog"])
 app.include_router(themes_router, prefix="/api/themes", tags=["themes"])
 app.include_router(public_router, prefix="/api/public/sites", tags=["public"])
 app.include_router(mcp_router, prefix="/api/mcp", tags=["mcp"])

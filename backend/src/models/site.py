@@ -41,6 +41,7 @@ class Site(Base):
     user = relationship("User", back_populates="sites")
     pages = relationship("Page", back_populates="site", cascade="all, delete-orphan")
     media_files = relationship("MediaFile", back_populates="site", cascade="all, delete-orphan")
+    blog_posts = relationship("BlogPost", back_populates="site", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Site(id={self.id}, slug={self.slug}, name={self.name})>"
