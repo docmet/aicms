@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.admin import router as admin_router
 from src.api.auth import router as auth_router
+from src.api.billing import router as billing_router
 from src.api.content import router as content_router
 from src.api.mcp import router as mcp_router
 from src.api.oauth import router as oauth_router
@@ -61,3 +62,4 @@ app.include_router(public_router, prefix="/api/public/sites", tags=["public"])
 app.include_router(mcp_router, prefix="/api/mcp", tags=["mcp"])
 app.include_router(oauth_router, tags=["oauth"])
 app.include_router(preview_router, prefix="/api/preview", tags=["preview"])
+app.include_router(billing_router, prefix="/api/billing", tags=["billing"])

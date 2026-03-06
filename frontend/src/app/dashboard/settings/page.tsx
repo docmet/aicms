@@ -13,7 +13,7 @@ const PLAN_CONFIG = {
     customDomain: false,
     upgradeMsg: 'Upgrade to Pro for 3 sites, custom domains, and no MyStorey badge.',
     upgradeCta: 'Upgrade to Pro — $9.99/mo',
-    upgradeHref: '/#pricing',
+    upgradeHref: '/dashboard/billing?plan=pro',
   },
   pro: {
     label: 'Pro',
@@ -23,7 +23,7 @@ const PLAN_CONFIG = {
     customDomain: true,
     upgradeMsg: 'Upgrade to Agency for 15 sites and upcoming AI automation features.',
     upgradeCta: 'Upgrade to Agency — $99/mo',
-    upgradeHref: '/#pricing',
+    upgradeHref: '/dashboard/billing?plan=agency',
   },
   agency: {
     label: 'Agency',

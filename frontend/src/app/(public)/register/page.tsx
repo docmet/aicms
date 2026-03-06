@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { ArrowRight, Check } from 'lucide-react';
@@ -21,6 +22,26 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const plan = searchParams.get('plan') ?? 'free';
   const planInfo = planLabels[plan];
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      // Already logged in — go to billing if a paid plan was selected, else dashboard
+      if (plan !== 'free') {
+        router.push(`/dashboard/billing?plan=${plan}`);
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  }, [loading, user, plan, router]);
+
+  if (loading || user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
