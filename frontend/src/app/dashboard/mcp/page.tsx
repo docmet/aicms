@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Check, RefreshCw, ExternalLink, Eye, EyeOff, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Copy, Check, RefreshCw, ExternalLink, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
 
@@ -136,14 +136,14 @@ export default function AIToolsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              1. Open Claude.ai connector settings and click <strong>Add custom connector</strong>
+              1. Click the button below to open Claude.ai connector settings
             </p>
             <p className="text-sm text-muted-foreground">
-              2. Paste the server URL below — Claude will handle the rest automatically
+              2. Click <strong>Add custom connector</strong> and paste this URL:
             </p>
-            <CopyField label="MCP Server URL — paste this into Claude.ai" value={mcpUrl} />
+            <CopyField label="Connection URL" value={mcpUrl} />
             <p className="text-sm text-muted-foreground">
-              3. Click <strong>Add</strong> — you&apos;ll be redirected to sign in and approve the connection
+              3. Click <strong>Add</strong> — you&apos;ll be taken to MyStorey to approve the connection
             </p>
           </div>
 
@@ -151,11 +151,6 @@ export default function AIToolsPage() {
             <ExternalLink size={15} />
             Open Claude.ai Connectors
           </Button>
-
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-            <AlertCircle size={13} className="shrink-0 mt-0.5" />
-            <span>Claude.ai requires a public HTTPS URL. Works automatically in production; for local dev, use Claude Desktop below.</span>
-          </div>
         </CardContent>
       </Card>
 
@@ -168,9 +163,9 @@ export default function AIToolsPage() {
           <p className="text-sm text-muted-foreground">
             Open Claude Desktop → menu → <strong>Settings</strong> → <strong>Integrations</strong> → <strong>Add custom integration</strong>, then paste:
           </p>
-          <CopyField label="MCP Server URL" value={mcpUrl} />
+          <CopyField label="Connection URL" value={mcpUrl} />
           <p className="text-xs text-muted-foreground">
-            Claude Desktop will open our sign-in page to complete the connection — no extra steps.
+            Claude Desktop will open a MyStorey sign-in page to complete the connection.
           </p>
         </CardContent>
       </Card>
@@ -181,26 +176,26 @@ export default function AIToolsPage() {
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground w-full justify-center"
       >
         {showManual ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        {showManual ? 'Hide' : 'Trouble connecting? Manual setup'}
+        {showManual ? 'Hide' : 'Trouble connecting? Other AI tools'}
       </button>
 
       {showManual && (
         <Card className="border-dashed">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Advanced — manual setup</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Other AI tools</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Paste the URL below into your tool&apos;s MCP server field. You&apos;ll be redirected to sign in
-              and approve the connection — no extra credentials needed.
+              Any AI tool that supports MCP can connect using the URL below. You&apos;ll be redirected
+              to approve the connection — no extra credentials needed.
             </p>
-            <CopyField label="MCP Server URL" value={mcpUrl} />
+            <CopyField label="Connection URL" value={mcpUrl} />
           </CardContent>
         </Card>
       )}
 
       <p className="text-xs text-muted-foreground text-center pb-2">
-        Keep your connection key private. Use <strong>Regenerate</strong> to invalidate it if needed.
+        Keep your connection key private. Use <strong>Regenerate</strong> if you ever need to revoke access.
       </p>
 
     </div>
