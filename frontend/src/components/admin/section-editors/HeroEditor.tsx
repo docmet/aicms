@@ -3,6 +3,7 @@
 import { ImagePicker } from "@/components/admin/ImagePicker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 interface CtaButton {
@@ -18,6 +19,7 @@ interface HeroContent {
   cta_secondary?: CtaButton;
   background_image?: string | null;
   logo_url?: string | null;
+  layout?: "centered" | "split" | "fullscreen";
 }
 
 interface Props {
@@ -33,6 +35,19 @@ export function HeroEditor({ siteId, content, onChange }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Layout</Label>
+        <Select value={content.layout ?? "centered"} onValueChange={(v) => set({ layout: v as HeroContent["layout"] })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="centered">Centered — full-width gradient with text in the middle</SelectItem>
+            <SelectItem value="split">Split — text on left, image on right</SelectItem>
+            <SelectItem value="fullscreen">Fullscreen — 100vh with background image overlay</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="space-y-1.5">
         <Label>Headline *</Label>
         <Input value={content.headline || ""} onChange={(e) => set({ headline: e.target.value })} placeholder="Your main headline" />
@@ -62,7 +77,7 @@ export function HeroEditor({ siteId, content, onChange }: Props) {
         value={content.background_image}
         onChange={(url) => set({ background_image: url })}
         label="Background Image"
-        hint="Displayed as a full-bleed hero background."
+        hint="Full-bleed background (centered/fullscreen) or right-side image (split). Recommended: 1920×1080 px."
       />
       <ImagePicker
         siteId={siteId}

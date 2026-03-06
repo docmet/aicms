@@ -23,11 +23,16 @@ from src.models import Theme
 # Changes to config/name will be applied on the next deploy.
 
 THEMES = [
-    ("Modern Blue",  "modern",  {"primary": "#3b82f6", "accent": "#1d4ed8"}),
-    ("Warm Amber",   "warm",    {"primary": "#f97316", "accent": "#c2410c"}),
-    ("Startup Green","startup", {"primary": "#10b981", "accent": "#065f46"}),
-    ("Minimal Zinc", "minimal", {"primary": "#71717a", "accent": "#27272a"}),
-    ("Dark Mode",    "dark",    {"primary": "#a78bfa", "accent": "#7c3aed"}),
+    ("Modern Blue",   "modern",  {"primary": "#3b82f6", "accent": "#1d4ed8"}),
+    ("Warm Amber",    "warm",    {"primary": "#f97316", "accent": "#c2410c"}),
+    ("Startup Green", "startup", {"primary": "#10b981", "accent": "#065f46"}),
+    ("Minimal Zinc",  "minimal", {"primary": "#71717a", "accent": "#27272a"}),
+    ("Dark Mode",     "dark",    {"primary": "#a78bfa", "accent": "#7c3aed"}),
+    ("Ocean",         "ocean",   {"primary": "#0ea5e9", "accent": "#0369a1"}),
+    ("Rose",          "rose",    {"primary": "#f43f5e", "accent": "#be123c"}),
+    ("Slate",         "slate",   {"primary": "#6366f1", "accent": "#4338ca"}),
+    ("Forest",        "forest",  {"primary": "#16a34a", "accent": "#166534"}),
+    ("Sunset",        "sunset",  {"primary": "#d946ef", "accent": "#a21caf"}),
 ]
 
 

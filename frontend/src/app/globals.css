@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700;900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -121,6 +123,113 @@
   --color-gradient-text-to: #38bdf8;
   --color-dark-section: #18181b;
   --color-dark-section-text: #fafafa;
+}
+
+/* ── Ocean (navy + cyan) ─────────────────────────────────────────────────── */
+[data-theme="ocean"] {
+  --color-bg: #f0f9ff;
+  --color-text: #0c1a2e;
+  --color-text-muted: #0e4d6e;
+  --color-heading: #0c1a2e;
+  --color-primary: #0ea5e9;
+  --color-primary-hover: #0284c7;
+  --color-accent: #0369a1;
+  --color-card: #e0f2fe;
+  --color-card-border: #bae6fd;
+  --color-hero-from: #0f172a;
+  --color-hero-to: #0c4a6e;
+  --color-cta-from: #0369a1;
+  --color-cta-to: #0ea5e9;
+  --color-gradient-text-from: #38bdf8;
+  --color-gradient-text-to: #818cf8;
+  --color-dark-section: #0c1a2e;
+  --color-dark-section-text: #f0f9ff;
+  --font-heading: "Space Grotesk", var(--font-sora, "Sora"), system-ui, sans-serif;
+}
+
+/* ── Rose (blush + serif) ────────────────────────────────────────────────── */
+[data-theme="rose"] {
+  --color-bg: #fff1f2;
+  --color-text: #1c0a0a;
+  --color-text-muted: #9f1239;
+  --color-heading: #1c0a0a;
+  --color-primary: #f43f5e;
+  --color-primary-hover: #e11d48;
+  --color-accent: #be123c;
+  --color-card: #ffe4e6;
+  --color-card-border: #fecdd3;
+  --color-hero-from: #fff1f2;
+  --color-hero-to: #ffe4e6;
+  --color-cta-from: #be123c;
+  --color-cta-to: #f43f5e;
+  --color-gradient-text-from: #f43f5e;
+  --color-gradient-text-to: #fb923c;
+  --color-dark-section: #1c0a0a;
+  --color-dark-section-text: #fff1f2;
+  --font-heading: "Playfair Display", Georgia, "Times New Roman", serif;
+}
+
+/* ── Slate (indigo) ──────────────────────────────────────────────────────── */
+[data-theme="slate"] {
+  --color-bg: #f8fafc;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-heading: #0f172a;
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-accent: #4338ca;
+  --color-card: #f1f5f9;
+  --color-card-border: #e2e8f0;
+  --color-hero-from: #eef2ff;
+  --color-hero-to: #e0e7ff;
+  --color-cta-from: #4338ca;
+  --color-cta-to: #6366f1;
+  --color-gradient-text-from: #6366f1;
+  --color-gradient-text-to: #8b5cf6;
+  --color-dark-section: #0f172a;
+  --color-dark-section-text: #f8fafc;
+}
+
+/* ── Forest (deep green) ─────────────────────────────────────────────────── */
+[data-theme="forest"] {
+  --color-bg: #f0fdf4;
+  --color-text: #052e16;
+  --color-text-muted: #14532d;
+  --color-heading: #052e16;
+  --color-primary: #16a34a;
+  --color-primary-hover: #15803d;
+  --color-accent: #166534;
+  --color-card: #dcfce7;
+  --color-card-border: #bbf7d0;
+  --color-hero-from: #14532d;
+  --color-hero-to: #052e16;
+  --color-cta-from: #14532d;
+  --color-cta-to: #16a34a;
+  --color-gradient-text-from: #4ade80;
+  --color-gradient-text-to: #86efac;
+  --color-dark-section: #052e16;
+  --color-dark-section-text: #f0fdf4;
+}
+
+/* ── Sunset (purple-magenta) ─────────────────────────────────────────────── */
+[data-theme="sunset"] {
+  --color-bg: #fdf4ff;
+  --color-text: #1a0a1e;
+  --color-text-muted: #86198f;
+  --color-heading: #1a0a1e;
+  --color-primary: #d946ef;
+  --color-primary-hover: #c026d3;
+  --color-accent: #a21caf;
+  --color-card: #fae8ff;
+  --color-card-border: #f5d0fe;
+  --color-hero-from: #4a044e;
+  --color-hero-to: #701a75;
+  --color-cta-from: #a21caf;
+  --color-cta-to: #d946ef;
+  --color-gradient-text-from: #e879f9;
+  --color-gradient-text-to: #fb7185;
+  --color-dark-section: #1a0a1e;
+  --color-dark-section-text: #fdf4ff;
 }
 
 /* ── Legacy theme aliases (backward compat for existing sites) ───────────── */
