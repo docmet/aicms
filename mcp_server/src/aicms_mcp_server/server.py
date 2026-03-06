@@ -564,6 +564,38 @@ class MCPServer:
             await self._make_request("DELETE", f"/sites/{site_id}/media/{media_id}")
             return self._text(f"Media file `{media_id}` deleted permanently.")
 
+        # ── set_section_layout ────────────────────────────────────────────
+        elif tool_name == "set_section_layout":
+            site_id = args["site_id"]
+            page_id = args["page_id"]
+            section_type = args["section_type"]
+            layout = args["layout"]
+
+            # Fetch current draft content and merge the layout field
+            sections = await self._make_request("GET", f"/sites/{site_id}/pages/{page_id}/content")
+            current_draft: Dict[str, Any] = {}
+            for s in sections:
+                if s.get("section_type") == section_type:
+                    raw = s.get("content_draft") or "{}"
+                    try:
+                        current_draft = json.loads(raw)
+                    except Exception:
+                        current_draft = {}
+                    break
+
+            current_draft["layout"] = layout
+            await self._make_request(
+                "PUT",
+                f"/sites/{site_id}/pages/{page_id}/content/by-type/{section_type}",
+                json={"content_draft": json.dumps(current_draft)},
+            )
+            preview_url = self._preview_url(site_id, page_id)
+            preview_hint = f" Preview: {preview_url}" if preview_url else ""
+            return self._text(
+                f"**{section_type}** section layout set to **{layout}**.{preview_hint}\n\n"
+                f"Call `publish_page` when you're happy with the result."
+            )
+
         else:
             return CallToolResult(
                 content=[TextContent(type="text", text=f"Unknown tool: {tool_name}")],
@@ -1030,6 +1062,33 @@ def _build_tools() -> list[Tool]:
                 "required": ["site_id", "media_id"],
             },
             annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        # ── Layout ─────────────────────────────────────────────────────────
+        Tool(
+            name="set_section_layout",
+            description=(
+                "Change the layout variant of a section without overwriting its content. "
+                "Reads current draft content, patches the layout field, and saves. "
+                "Currently supported for the hero section:\n"
+                "• centered — full-width gradient, text centred (default)\n"
+                "• split — text on left, background_image on right — ideal for product shots\n"
+                "• fullscreen — 100vh height with strong background image overlay\n\n"
+                "After setting layout, call publish_page to make the change live."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string"},
+                    "page_id": {"type": "string"},
+                    "section_type": {"type": "string", "enum": VALID_SECTION_TYPES},
+                    "layout": {
+                        "type": "string",
+                        "description": "Layout variant. For hero: centered | split | fullscreen",
+                    },
+                },
+                "required": ["site_id", "page_id", "section_type", "layout"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False, idempotentHint=True),
         ),
     ]
 
