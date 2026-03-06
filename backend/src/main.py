@@ -1,11 +1,15 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from src.api.admin import router as admin_router
 from src.api.auth import router as auth_router
 from src.api.billing import router as billing_router
 from src.api.content import router as content_router
 from src.api.mcp import router as mcp_router
+from src.api.media import router as media_router
 from src.api.oauth import router as oauth_router
 from src.api.pages import router as pages_router
 from src.api.preview import router as preview_router
@@ -57,9 +61,19 @@ app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(sites_router, prefix="/api/sites", tags=["sites"])
 app.include_router(pages_router, prefix="/api/sites", tags=["pages"])
 app.include_router(content_router, prefix="/api/sites", tags=["content"])
+app.include_router(media_router, prefix="/api/sites", tags=["media"])
 app.include_router(themes_router, prefix="/api/themes", tags=["themes"])
 app.include_router(public_router, prefix="/api/public/sites", tags=["public"])
 app.include_router(mcp_router, prefix="/api/mcp", tags=["mcp"])
 app.include_router(oauth_router, tags=["oauth"])
 app.include_router(preview_router, prefix="/api/preview", tags=["preview"])
 app.include_router(billing_router, prefix="/api/billing", tags=["billing"])
+
+# Serve local uploads (dev only; in production, R2 serves files directly)
+if settings.storage_backend == "local":
+    upload_dir = Path(settings.local_upload_path)
+    try:
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        app.mount("/uploads", StaticFiles(directory=str(upload_dir)), name="uploads")
+    except OSError:
+        pass  # Skip in test environments where the upload path may not be writable
