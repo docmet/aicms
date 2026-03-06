@@ -214,18 +214,20 @@ export default function AIToolsPage() {
         <CardContent className="space-y-4">
           <Steps steps={[
             <>Go to <strong>chatgpt.com</strong> → click your profile picture (top right) → <strong>Settings</strong></>,
-            <>Select <strong>Connectors</strong> in the left sidebar</>,
-            <>Click <strong>Add connector</strong> → <strong>Add custom connector</strong></>,
-            <>Paste the URL above → click <strong>Save</strong></>,
-            <>Click <strong>Connect</strong> → you&apos;ll be redirected to MyStorey to approve</>,
-            <>In any conversation, click the <strong>tools icon</strong> (⊕ next to the message box) → enable <em>MyStorey</em> to activate it</>,
+            <>Select <strong>Apps</strong> in the left sidebar</>,
+            <>Scroll to <strong>Advanced settings</strong> → enable <strong>Developer mode</strong> (required for custom MCP apps)</>,
+            <>Click <strong>Create app</strong> (top right, now active)</>,
+            <>Fill in the form: give it a name (e.g. <em>MyStorey</em>), paste the URL above into <strong>MCP Server URL</strong>, leave Authentication as <strong>OAuth</strong></>,
+            <>Check <em>&quot;I understand and want to continue&quot;</em> → click <strong>Create</strong></>,
+            <>You&apos;ll be redirected to MyStorey — log in and click <strong>Approve</strong></>,
+            <>The app appears under <strong>Drafts</strong> in your Apps settings. In any conversation, enable it via the <strong>Apps</strong> button (⊕) next to the message box.</>,
           ]} />
-          <Button variant="outline" className="w-full gap-2" onClick={() => window.open('https://chatgpt.com', '_blank')}>
+          <Button variant="outline" className="w-full gap-2" onClick={() => window.open('https://chatgpt.com/#settings/Apps/Advanced', '_blank')}>
             <ExternalLink size={14} />
-            Open ChatGPT
+            Open ChatGPT Advanced Settings
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            ⚠️ If you already added the connector with an old URL, remove it and re-add with the URL above to pick up the latest tools.
+            Note: Developer mode disables ChatGPT&apos;s memory while active. If you already added MyStorey with an old URL, remove it under Drafts and re-add with the URL above.
           </p>
         </CardContent>
       </Card>
