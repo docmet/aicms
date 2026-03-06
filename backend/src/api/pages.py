@@ -25,6 +25,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.auth import get_current_user
+from src.api.content import _broadcast_sections, _broadcast_theme
 from src.database import get_db
 from src.models.content import ContentSection
 from src.models.page import Page
@@ -315,6 +316,17 @@ async def publish_page(
 
     await db.commit()
     await db.refresh(page)
+
+    # Broadcast updated sections (all has_unpublished_changes now False) and
+    # cleared theme draft so the admin editor and preview update instantly.
+    await _broadcast_sections(page_id, db)
+    await _broadcast_theme(
+        site_id,
+        None,  # theme_slug_draft is cleared on publish
+        str(site.theme_slug) if site.theme_slug else None,
+        db,
+    )
+
     return page
 
 
