@@ -7,6 +7,7 @@ from src.models.media import MediaFile
 from src.models.page import Page
 from src.models.page_version import PageVersion
 from src.models.site import Site
+from src.models.submission import FormSubmission
 from src.models.theme import Theme
 from src.models.user import User
 
@@ -20,4 +21,5 @@ __all__ = [
     "MCPClient",
     "MediaFile",
     "BlogPost",
+    "FormSubmission",
 ]

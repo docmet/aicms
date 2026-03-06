@@ -119,6 +119,9 @@ export function SiteRenderer({ siteSlug, pageSlug }: SiteRendererProps) {
         .filter((s) => s.content && s.content.trim().length > 0)
         .map((section) => {
           const Component = SECTION_COMPONENTS[section.section_type] || CustomSection;
+          if (section.section_type === "contact") {
+            return <ContactSection key={section.id} content={section.content} siteSlug={siteSlug} />;
+          }
           return <Component key={section.id} content={section.content} />;
         })}
 

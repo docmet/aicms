@@ -16,6 +16,8 @@ from src.api.pages import router as pages_router
 from src.api.preview import router as preview_router
 from src.api.public import router as public_router
 from src.api.sites import router as sites_router
+from src.api.submissions import private_router as submissions_router
+from src.api.submissions import public_router as submissions_public_router
 from src.api.themes import router as themes_router
 from src.config import get_settings
 
@@ -64,6 +66,8 @@ app.include_router(pages_router, prefix="/api/sites", tags=["pages"])
 app.include_router(content_router, prefix="/api/sites", tags=["content"])
 app.include_router(media_router, prefix="/api/sites", tags=["media"])
 app.include_router(blog_router, prefix="/api/sites", tags=["blog"])
+app.include_router(submissions_router, prefix="/api/sites", tags=["submissions"])
+app.include_router(submissions_public_router, prefix="/api/public/sites", tags=["public"])
 app.include_router(themes_router, prefix="/api/themes", tags=["themes"])
 app.include_router(public_router, prefix="/api/public/sites", tags=["public"])
 app.include_router(mcp_router, prefix="/api/mcp", tags=["mcp"])

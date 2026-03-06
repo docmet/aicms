@@ -194,6 +194,45 @@ This link expires in 24 hours. If you didn't sign up, ignore this email.
         await _send(to, "Confirm your MyStorey email", html, text)
 
     @staticmethod
+    async def send_contact_notification(
+        to: str,
+        site_name: str,
+        visitor_name: str,
+        visitor_email: str,
+        subject: str | None,
+        message: str,
+    ) -> None:
+        """Notify site owner of a new contact form submission."""
+        subject_line = f"New message on {site_name}"
+        display_subject = subject or "(no subject)"
+
+        html = f"""
+        <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px 16px;">
+          <h1 style="font-size:22px;font-weight:700;color:#111;">New contact form submission</h1>
+          <p style="color:#555;">You received a new message on <strong>{site_name}</strong>.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+            <tr><td style="padding:8px 0;color:#999;width:100px;">From</td><td style="padding:8px 0;color:#111;">{visitor_name} &lt;{visitor_email}&gt;</td></tr>
+            <tr><td style="padding:8px 0;color:#999;">Subject</td><td style="padding:8px 0;color:#111;">{display_subject}</td></tr>
+          </table>
+          <div style="background:#f5f5f5;border-radius:8px;padding:16px;margin:16px 0;">
+            <p style="color:#333;margin:0;white-space:pre-wrap;">{message}</p>
+          </div>
+          <p style="color:#555;font-size:14px;">Reply directly to this email or visit your <a href="#" style="color:#7c3aed;">MyStorey dashboard</a> to view all submissions.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+          <p style="color:#999;font-size:12px;">© 2026 MyStorey · hello@mystorey.io</p>
+        </div>
+        """
+
+        text = f"""New contact form submission on {site_name}
+
+From: {visitor_name} <{visitor_email}>
+Subject: {display_subject}
+
+{message}
+"""
+        await _send(to, subject_line, html, text)
+
+    @staticmethod
     async def send_password_reset(to: str, token: str) -> None:
         """Password reset link."""
         settings = get_settings()
