@@ -15,33 +15,18 @@ interface Credential {
   created_at: string;
 }
 
-// ── Provider SVG icons ────────────────────────────────────────────────────────
+// ── Provider icons ────────────────────────────────────────────────────────────
 
 function ClaudeIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="24" height="24" rx="6" fill="#D97757" />
-      <path d="M9.5 7L6 17h2l.8-2.5h4.4l.8 2.5h2L12.5 7H9.5zm-.3 5.5L10.9 9h.2l1.7 3.5H9.2z" fill="white" />
-    </svg>
-  );
+  return <img src="/icons/claude.svg" width={size} height={size} alt="Claude" />;
 }
 
 function ChatGPTIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="24" height="24" rx="6" fill="#10A37F" />
-      <path d="M12 4.5a4.5 4.5 0 00-4.242 6.004A4.5 4.5 0 0012 19.5a4.5 4.5 0 004.242-8.996A4.5 4.5 0 0012 4.5zm0 1.5a3 3 0 012.83 2h-5.66A3 3 0 0112 6zm-3 3.5h6a3 3 0 010 5H9a3 3 0 010-5z" fill="white" fillOpacity="0.9" />
-    </svg>
-  );
+  return <img src="/icons/openai.svg" width={size} height={size} alt="ChatGPT" />;
 }
 
 function PerplexityIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="24" height="24" rx="6" fill="#6B7280" />
-      <path d="M12 5l2 4h4l-3 3 1 4-4-2.5L8 16l1-4-3-3h4l2-4z" fill="white" fillOpacity="0.7" />
-    </svg>
-  );
+  return <img src="/icons/perplexity.svg" width={size} height={size} alt="Perplexity" />;
 }
 
 // ── Copy field ────────────────────────────────────────────────────────────────
