@@ -247,20 +247,31 @@ export default function SiteEditorPage({
   const currentPageRef = useRef<Page | null>(currentPage);
   currentPageRef.current = currentPage;
 
+  // Persistent channel — created once per page, kept open while editor is mounted.
+  // Avoids the timing issue of creating+closing a channel on every broadcast.
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const currentPageId = currentPage?.id;
+  useEffect(() => {
+    if (!currentPageId) return;
+    broadcastChannelRef.current?.close();
+    broadcastChannelRef.current = new BroadcastChannel(`preview-${currentPageId}`);
+    return () => {
+      broadcastChannelRef.current?.close();
+      broadcastChannelRef.current = null;
+    };
+  }, [currentPageId]);
+
   const broadcastToPreview = useCallback((
     overrideSections?: ContentSection[],
     overrideTheme?: string,
   ) => {
-    const page = currentPageRef.current;
-    if (!page) return;
-    const ch = new BroadcastChannel(`preview-${page.id}`);
+    const ch = broadcastChannelRef.current;
+    if (!ch) return;
     ch.postMessage({
       type: 'preview_updated',
       sections: overrideSections ?? sectionsRef.current,
       theme: overrideTheme ?? (siteRef.current?.theme_slug_draft ?? siteRef.current?.theme_slug ?? 'default'),
     });
-    // Delay close so the message is delivered before the channel is GC'd
-    setTimeout(() => ch.close(), 100);
   }, []); // stable — reads from refs at call time
 
   // ── Data fetching ────────────────────────────────────────────────────────
@@ -526,8 +537,6 @@ export default function SiteEditorPage({
     broadcastToPreview(undefined, publishedTheme);
     try {
       await api.patch(`/sites/${site_id}`, { theme_slug_draft: null });
-      // Re-broadcast after API confirms, in case the first broadcast was missed
-      broadcastToPreview(undefined, publishedTheme);
       toast({ title: "Theme restored", description: "Draft cleared — back to published theme." });
     } catch {
       setSite(previousSite);

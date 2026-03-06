@@ -154,21 +154,13 @@ export default function AIToolsPage() {
         </CardContent>
       </Card>
 
-      {/* Claude Desktop */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Claude Desktop</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Open Claude Desktop → menu → <strong>Settings</strong> → <strong>Integrations</strong> → <strong>Add custom integration</strong>, then paste:
-          </p>
-          <CopyField label="Connection URL" value={mcpUrl} />
-          <p className="text-xs text-muted-foreground">
-            Claude Desktop will open a MyStorey sign-in page to complete the connection.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Claude Desktop note */}
+      <div className="flex items-start gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <span className="shrink-0">💡</span>
+        <span>
+          <strong className="text-foreground">Using Claude Desktop?</strong> Once connected on Claude.ai, the same connector is automatically available in the desktop app — no separate setup needed.
+        </span>
+      </div>
 
       {/* Manual fallback */}
       <button
