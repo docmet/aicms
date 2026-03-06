@@ -17,6 +17,8 @@ interface HeroContent {
   badge?: string;
   cta_primary?: CtaButton;
   cta_secondary?: CtaButton;
+  background_image?: string | null;
+  logo_url?: string | null;
 }
 
 function parseContent(raw: string): HeroContent {
@@ -46,24 +48,40 @@ export function HeroSection({ content }: { content: string }) {
     <section
       ref={sectionRef}
       className="relative min-h-[85vh] flex items-center overflow-hidden animate-on-scroll"
-      style={{
-        background:
-          "linear-gradient(135deg, var(--color-hero-from), var(--color-hero-to))",
-      }}
+      style={
+        data.background_image
+          ? { backgroundImage: `url(${data.background_image})`, backgroundSize: "cover", backgroundPosition: "center" }
+          : { background: "linear-gradient(135deg, var(--color-hero-from), var(--color-hero-to))" }
+      }
     >
-      {/* Decorative blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-        <div
-          className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-3xl opacity-25"
-          style={{ background: "var(--color-primary)" }}
-        />
-        <div
-          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-3xl opacity-15"
-          style={{ background: "var(--color-accent)" }}
-        />
-      </div>
+      {/* Dark overlay when background image is set */}
+      {data.background_image && (
+        <div className="absolute inset-0 bg-black/50" aria-hidden />
+      )}
+
+      {/* Decorative blobs (only when no bg image) */}
+      {!data.background_image && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+          <div
+            className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-3xl opacity-25"
+            style={{ background: "var(--color-primary)" }}
+          />
+          <div
+            className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-3xl opacity-15"
+            style={{ background: "var(--color-accent)" }}
+          />
+        </div>
+      )}
 
       <div className="relative max-w-6xl mx-auto px-6 py-28 text-center">
+        {data.logo_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={data.logo_url}
+            alt="Logo"
+            className="h-16 mx-auto mb-8 object-contain"
+          />
+        )}
         {data.badge && (
           <span
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold text-white mb-8"

@@ -11,6 +11,7 @@ interface AboutContent {
   headline: string;
   body: string;
   stats?: StatItem[];
+  image_url?: string | null;
 }
 
 function parseContent(raw: string): AboutContent {
@@ -66,7 +67,15 @@ export function AboutSection({ content }: { content: string }) {
             </div>
           </div>
 
-          {data.stats && data.stats.length > 0 && (
+          {data.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={data.image_url}
+              alt=""
+              className="w-full rounded-2xl object-cover shadow-lg"
+              style={{ maxHeight: "480px" }}
+            />
+          ) : data.stats && data.stats.length > 0 ? (
             <div className="grid grid-cols-2 gap-8">
               {data.stats.map((stat, i) => (
                 <div
@@ -92,7 +101,7 @@ export function AboutSection({ content }: { content: string }) {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </section>

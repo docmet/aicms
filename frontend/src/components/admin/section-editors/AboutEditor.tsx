@@ -1,5 +1,6 @@
 "use client";
 
+import { ImagePicker } from "@/components/admin/ImagePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,14 +16,16 @@ interface AboutContent {
   headline: string;
   body: string;
   stats?: StatItem[];
+  image_url?: string | null;
 }
 
 interface Props {
+  siteId: string;
   content: AboutContent;
   onChange: (content: AboutContent) => void;
 }
 
-export function AboutEditor({ content, onChange }: Props) {
+export function AboutEditor({ siteId, content, onChange }: Props) {
   const set = (patch: Partial<AboutContent>) => onChange({ ...content, ...patch });
   const stats = content.stats || [];
 
@@ -42,6 +45,13 @@ export function AboutEditor({ content, onChange }: Props) {
         <Label>Body Text *</Label>
         <Textarea value={content.body || ""} onChange={(e) => set({ body: e.target.value })} placeholder="Your story..." rows={5} />
       </div>
+      <ImagePicker
+        siteId={siteId}
+        value={content.image_url}
+        onChange={(url) => set({ image_url: url })}
+        label="Section Image"
+        hint="Displayed alongside your about text in a two-column layout."
+      />
       <div>
         <div className="flex items-center justify-between mb-2">
           <Label>Stats (optional)</Label>

@@ -1,5 +1,6 @@
 "use client";
 
+import { ImagePicker } from "@/components/admin/ImagePicker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,14 +16,17 @@ interface HeroContent {
   badge?: string;
   cta_primary?: CtaButton;
   cta_secondary?: CtaButton;
+  background_image?: string | null;
+  logo_url?: string | null;
 }
 
 interface Props {
+  siteId: string;
   content: HeroContent;
   onChange: (content: HeroContent) => void;
 }
 
-export function HeroEditor({ content, onChange }: Props) {
+export function HeroEditor({ siteId, content, onChange }: Props) {
   const set = (patch: Partial<HeroContent>) => onChange({ ...content, ...patch });
   const setCta = (key: "cta_primary" | "cta_secondary", patch: Partial<CtaButton>) =>
     set({ [key]: { ...content[key], ...patch } as CtaButton });
@@ -53,6 +57,20 @@ export function HeroEditor({ content, onChange }: Props) {
           <Input value={content.cta_secondary?.href || ""} onChange={(e) => setCta("cta_secondary", { href: e.target.value })} placeholder="URL or #anchor" />
         </div>
       </div>
+      <ImagePicker
+        siteId={siteId}
+        value={content.background_image}
+        onChange={(url) => set({ background_image: url })}
+        label="Background Image"
+        hint="Displayed as a full-bleed hero background."
+      />
+      <ImagePicker
+        siteId={siteId}
+        value={content.logo_url}
+        onChange={(url) => set({ logo_url: url })}
+        label="Logo"
+        hint="Optional logo shown in the hero area."
+      />
     </div>
   );
 }

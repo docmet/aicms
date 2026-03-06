@@ -193,6 +193,7 @@ function SectionEditorDispatch({
   );
 
   const editorProps = { content: data as never, onChange: handleChange as never };
+  const imageEditorProps = { ...editorProps, siteId };
 
   return (
     <div className="relative">
@@ -201,10 +202,10 @@ function SectionEditorDispatch({
           saving…
         </span>
       )}
-      {section.section_type === "hero" && <HeroEditor {...editorProps} />}
+      {section.section_type === "hero" && <HeroEditor {...imageEditorProps} />}
       {section.section_type === "features" && <FeaturesEditor {...editorProps} />}
       {section.section_type === "testimonials" && <TestimonialsEditor {...editorProps} />}
-      {section.section_type === "about" && <AboutEditor {...editorProps} />}
+      {section.section_type === "about" && <AboutEditor {...imageEditorProps} />}
       {section.section_type === "contact" && <ContactEditor {...editorProps} />}
       {section.section_type === "cta" && <CtaEditor {...editorProps} />}
       {section.section_type === "pricing" && <PricingEditor {...editorProps} />}
