@@ -122,7 +122,7 @@ async def oauth_server_info(request: Request):
         "registration_endpoint": f"{base_url}/oauth/register",
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code"],
-        "scopes_supported": ["mcp"],
+        "scopes_supported": ["mcp", "openid", "profile", "offline_access"],
         "code_challenge_methods_supported": ["S256", "plain"],
         "token_endpoint_auth_methods_supported": ["none", "client_secret_post", "client_secret_basic"],
     }
@@ -221,13 +221,17 @@ async def token(request: Request):
     grant_type = data.get("grant_type", "")
     client_id_param = data.get("client_id", "")
     redirect_uri_param = data.get("redirect_uri", "")
-    print(f"[token] grant_type={grant_type} code={'present' if code else 'absent'} client_id={client_id_param} redirect_uri={redirect_uri_param} client_secret={'present' if client_secret else 'absent'}")
+    code_verifier = data.get("code_verifier", "")
+    print(f"[token] grant_type={grant_type} code={'present' if code else 'absent'} client_id={client_id_param} redirect_uri={redirect_uri_param} client_secret={'present' if client_secret else 'absent'} code_verifier={'present' if code_verifier else 'absent'}")
 
     # Authorization code flow: exchange code via backend
     if code:
         api_url = os.getenv("API_URL", "http://backend:8000/api")
+        exchange_params: dict = {"code": code}
+        if code_verifier:
+            exchange_params["code_verifier"] = code_verifier
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{api_url}/mcp/exchange-code", params={"code": code})
+            resp = await client.get(f"{api_url}/mcp/exchange-code", params=exchange_params)
             print(f"[token] exchange-code response: status={resp.status_code} body={resp.text[:200]}")
             if resp.status_code == 200:
                 mcp_token = resp.json()["token"]

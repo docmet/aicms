@@ -8,6 +8,8 @@ function ConnectContent() {
   const searchParams = useSearchParams();
   const redirectUri = searchParams.get('redirect_uri') ?? '';
   const state = searchParams.get('state') ?? '';
+  const codeChallenge = searchParams.get('code_challenge') ?? '';
+  const codeChallengeMethod = searchParams.get('code_challenge_method') ?? '';
 
   const [step, setStep] = useState<'loading' | 'login' | 'allow' | 'done' | 'error'>('loading');
   const [email, setEmail] = useState('');
@@ -47,7 +49,9 @@ function ConnectContent() {
   const handleAllow = async () => {
     setSubmitting(true);
     try {
-      const res = await api.post<{ code: string }>('/mcp/oauth-authorize');
+      const res = await api.post<{ code: string }>('/mcp/oauth-authorize', {
+        ...(codeChallenge ? { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod || 'S256' } : {}),
+      });
       const code = res.data.code;
       const sep = redirectUri.includes('?') ? '&' : '?';
       const url = `${redirectUri}${sep}code=${encodeURIComponent(code)}${state ? `&state=${encodeURIComponent(state)}` : ''}`;

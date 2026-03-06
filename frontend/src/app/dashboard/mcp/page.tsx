@@ -154,6 +154,60 @@ export default function AIToolsPage() {
         </CardContent>
       </Card>
 
+      {/* Secondary: ChatGPT */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            ChatGPT
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              1. Open ChatGPT and go to <strong>Settings → Connectors</strong>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              2. Click <strong>Add connector</strong> and paste this URL:
+            </p>
+            <CopyField label="Connection URL" value={mcpUrl} />
+            <p className="text-sm text-muted-foreground">
+              3. Click <strong>Connect</strong> — you&apos;ll be taken to MyStorey to approve the connection
+            </p>
+          </div>
+          <Button variant="outline" className="w-full gap-2" onClick={() => window.open('https://chatgpt.com', '_blank')}>
+            <ExternalLink size={15} />
+            Open ChatGPT
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Secondary: Perplexity */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            Perplexity
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              1. Open Perplexity and go to <strong>Settings → AI Tools</strong>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              2. Click <strong>Add MCP server</strong> and paste this URL:
+            </p>
+            <CopyField label="Connection URL" value={mcpUrl} />
+            <p className="text-sm text-muted-foreground">
+              3. Click <strong>Connect</strong> — you&apos;ll be taken to MyStorey to approve the connection
+            </p>
+          </div>
+          <Button variant="outline" className="w-full gap-2" onClick={() => window.open('https://perplexity.ai', '_blank')}>
+            <ExternalLink size={15} />
+            Open Perplexity
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Claude Desktop note */}
       <div className="flex items-start gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
         <span className="shrink-0">💡</span>
