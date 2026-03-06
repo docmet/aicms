@@ -380,6 +380,70 @@ async def mcp_generic_endpoint(
         return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
 
 
+@app.get("/mcp")
+async def mcp_generic_sse(
+    http_req: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """GET /mcp — SSE stream for server-to-client messages (MCP Streamable HTTP spec).
+    Required by Perplexity, ChatGPT, and any compliant MCP client.
+    """
+    scheme = http_req.headers.get("x-forwarded-proto", http_req.url.scheme)
+    host = http_req.headers.get("host", "localhost")
+    resource_metadata = f"{scheme}://{host}/.well-known/oauth-protected-resource"
+
+    auth_header = http_req.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"error": "unauthorized"},
+            headers={"WWW-Authenticate": f'Bearer resource_metadata="{resource_metadata}"'},
+        )
+
+    token = auth_header[7:]
+    result = await db.execute(
+        select(MCPClient)
+        .where(MCPClient.token == token)
+        .where(MCPClient.expires_at > datetime.utcnow())
+    )
+    authed_client = result.scalar_one_or_none()
+    if not authed_client:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "invalid_token"},
+            headers={"WWW-Authenticate": f'Bearer error="invalid_token", resource_metadata="{resource_metadata}"'},
+        )
+
+    client_key = str(authed_client.id)
+    queue: asyncio.Queue = asyncio.Queue()
+    _sse_queues[client_key] = queue
+
+    async def event_stream():
+        try:
+            while True:
+                if await http_req.is_disconnected():
+                    break
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield f"event: message\ndata: {json.dumps(msg)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            _sse_queues.pop(client_key, None)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @app.post("/mcp/{client_id}")
 async def mcp_endpoint(
     client_id: str,
