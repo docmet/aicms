@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from src.api.admin import router as admin_router
+from src.api.analytics import private_router as analytics_router
+from src.api.analytics import public_router as analytics_public_router
 from src.api.auth import router as auth_router
 from src.api.billing import router as billing_router
 from src.api.blog import router as blog_router
@@ -15,6 +17,8 @@ from src.api.oauth import router as oauth_router
 from src.api.pages import router as pages_router
 from src.api.preview import router as preview_router
 from src.api.public import router as public_router
+from src.api.share import private_router as share_router
+from src.api.share import public_router as share_public_router
 from src.api.sites import router as sites_router
 from src.api.submissions import private_router as submissions_router
 from src.api.submissions import public_router as submissions_public_router
@@ -68,6 +72,10 @@ app.include_router(media_router, prefix="/api/sites", tags=["media"])
 app.include_router(blog_router, prefix="/api/sites", tags=["blog"])
 app.include_router(submissions_router, prefix="/api/sites", tags=["submissions"])
 app.include_router(submissions_public_router, prefix="/api/public/sites", tags=["public"])
+app.include_router(analytics_router, prefix="/api/sites", tags=["analytics"])
+app.include_router(analytics_public_router, prefix="/api/public/sites", tags=["public"])
+app.include_router(share_router, prefix="/api/sites", tags=["share"])
+app.include_router(share_public_router, prefix="/api/share", tags=["share"])
 app.include_router(themes_router, prefix="/api/themes", tags=["themes"])
 app.include_router(public_router, prefix="/api/public/sites", tags=["public"])
 app.include_router(mcp_router, prefix="/api/mcp", tags=["mcp"])

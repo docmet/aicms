@@ -61,7 +61,18 @@ export function SiteRenderer({ siteSlug, pageSlug }: SiteRendererProps) {
 
     api
       .get(endpoint)
-      .then((r) => setData(r.data as SiteData))
+      .then((r) => {
+        setData(r.data as SiteData);
+        // Fire-and-forget pageview — privacy-first (no cookies, no PII)
+        void fetch(`/api/public/sites/${siteSlug}/pageview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            page_path: pageSlug ? `/${pageSlug}` : "/",
+            referrer: document.referrer || null,
+          }),
+        }).catch(() => {/* non-fatal */});
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [siteSlug, pageSlug]);

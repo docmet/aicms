@@ -155,14 +155,20 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 ---
 
-## Phase 13: Growth & Analytics
+## Phase 13: Growth & Analytics ✅ (partial)
 
-- Self-hosted site analytics: pageviews, referrers, top pages (privacy-first, no cookies)
-- AI-powered SEO suggestions per section
-- Shareable preview URLs (token-protected, 24hr expiry)
-- Scheduled publishing (publish at specific datetime)
-- Diff view between page versions
-- Industry-specific starter templates: Restaurant, Portfolio, Agency/SaaS, Freelancer
+- [x] Self-hosted site analytics: pageviews, referrers, top pages (privacy-first, no cookies)
+  - Backend: `POST /api/public/sites/{slug}/pageview` + `GET /api/sites/{id}/analytics`
+  - Frontend: Analytics dashboard at `/dashboard/sites/{id}/analytics` with daily chart, top pages, top referrers
+  - Tracking call in SiteRenderer (fire-and-forget, no cookies)
+- [x] Shareable preview URLs (token-protected, 24h expiry)
+  - Backend: `POST /api/sites/{id}/share` → token, `GET /api/share/{token}` → draft content
+  - Frontend: `/share/{token}` preview page with expired/error states + draft banner
+  - "Share Draft" button in admin header — copies URL to clipboard
+- [ ] AI-powered SEO suggestions per section
+- [ ] Scheduled publishing (publish at specific datetime)
+- [ ] Diff view between page versions
+- [ ] Industry-specific starter templates: Restaurant, Portfolio, Agency/SaaS, Freelancer
 
 ---
 
@@ -211,7 +217,7 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 | Phase 10 — Design System Expansion | ✅ Done |
 | Phase 11 — Blog, Forms & Rich Content | ✅ Done |
 | Phase 12 — Static Site Generation | 🔨 In progress |
-| Phase 13 — Growth & Analytics | Planned |
+| Phase 13 — Growth & Analytics | 🔨 In progress |
 
 ---
 

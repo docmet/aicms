@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -47,6 +48,8 @@ import {
   RotateCcw,
   Mail,
   Inbox,
+  BarChart2,
+  Share2,
 } from "lucide-react";
 import {
   HeroEditor,
@@ -621,6 +624,30 @@ export default function SiteEditorPage({
           <h1 className="text-2xl font-bold">{site.name}</h1>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/dashboard/sites/${site_id}/analytics`}>
+              <BarChart2 size={16} className="mr-1.5" /> Analytics
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                const res = await api.post(`/sites/${site_id}/share`, {
+                  page_id: currentPage?.id ?? null,
+                });
+                const { url } = res.data as { url: string };
+                const full = `${window.location.origin}${url}`;
+                await navigator.clipboard.writeText(full);
+                toast({ title: "Share link copied!", description: "Link expires in 24 hours." });
+              } catch {
+                toast({ title: "Error", description: "Failed to create share link.", variant: "destructive" });
+              }
+            }}
+          >
+            <Share2 size={14} className="mr-1.5" /> Share Draft
+          </Button>
           <Button variant="outline" asChild>
             <a
               href={currentPage ? `/preview/${site_id}/${currentPage.id}` : `/${site.slug}`}
