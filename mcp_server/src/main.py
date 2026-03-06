@@ -787,6 +787,10 @@ def _make_tool_list() -> list[dict]:
         # ── Themes ─────────────────────────────────────────────────────────
         t("list_themes",  "List available themes with their visual style. Use when the user wants to change the look, or proactively suggest a theme that fits their industry.", {"type": "object", "properties": {}}, READ),
         t("apply_theme",  "Stage a theme as a draft — immediately visible in preview, not live until publish_page. Available: modern (blue, tech), warm (orange, services), startup (emerald, growth), minimal (neutral, portfolio), dark (violet, agency).", {"type": "object", "properties": {"site_id": {"type": "string"}, "theme_slug": {"type": "string"}}, "required": ["site_id", "theme_slug"]}),
+        # ── Media ──────────────────────────────────────────────────────────
+        t("list_media",            "List all media files (images and documents) uploaded to a site. Returns file URLs, types, sizes, and dimensions. Use to check what images are available before referencing them in content.", {"type": "object", "properties": {"site_id": {"type": "string"}}, "required": ["site_id"]}, READ),
+        t("import_image_from_url", "Download an image from a public URL and save it to the site's media library. Returns the stored URL. After importing, use update_section to reference the returned URL in content (e.g. background_image in hero, image_url in about).", {"type": "object", "properties": {"site_id": {"type": "string"}, "url": {"type": "string"}, "alt_text": {"type": "string"}}, "required": ["site_id", "url"]}),
+        t("delete_media",          "Permanently delete a media file from the site's media library. Use the file ID from list_media.", {"type": "object", "properties": {"site_id": {"type": "string"}, "media_id": {"type": "string"}}, "required": ["site_id", "media_id"]}),
     ]
 
 
