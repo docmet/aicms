@@ -128,6 +128,12 @@ async def oauth_server_info(request: Request):
     }
 
 
+@app.get("/mcp/.well-known/oauth-protected-resource")
+async def mcp_scoped_protected_resource(request: Request):
+    """Some clients (e.g. Perplexity) look for resource metadata scoped to /mcp/."""
+    return await oauth_protected_resource(request)
+
+
 @app.get("/.well-known/oauth-protected-resource")
 async def oauth_protected_resource(request: Request):
     """OAuth protected resource endpoint"""
@@ -367,6 +373,11 @@ async def mcp_generic_endpoint(
             "serverInfo": {"name": "aicms-mcp-server", "version": "1.0.0"},
         })
     elif method == "notifications/initialized":
+        # Push tools/list_changed so clients that do lazy discovery (e.g. Perplexity)
+        # know to call tools/list immediately after initialization.
+        sse_queue = _sse_queues.get(str(authed_client.id))
+        if sse_queue:
+            await sse_queue.put({"jsonrpc": "2.0", "method": "notifications/tools/list_changed"})
         return {}
     elif method == "tools/list":
         return ok({"tools": _make_tool_list()})
