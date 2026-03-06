@@ -39,13 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Failed to fetch user', error);
         localStorage.removeItem('token');
+        router.push('/login');
       } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, []);
+  }, [router]);
 
   const login = (token: string) => {
     localStorage.setItem('token', token);
