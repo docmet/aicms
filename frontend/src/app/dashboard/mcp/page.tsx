@@ -222,12 +222,12 @@ export default function AIToolsPage() {
             <>You&apos;ll be redirected to MyStorey — log in and click <strong>Approve</strong></>,
             <>The app appears under <strong>Drafts</strong> in your Apps settings. In any conversation, enable it via the <strong>Apps</strong> button (⊕) next to the message box.</>,
           ]} />
-          <Button variant="outline" className="w-full gap-2" onClick={() => window.open('https://chatgpt.com/#settings/Apps/Advanced', '_blank')}>
+          <Button variant="outline" className="w-full gap-2" onClick={() => window.open('https://chatgpt.com/#settings/Connectors/Advanced', '_blank')}>
             <ExternalLink size={14} />
             Open ChatGPT Advanced Settings
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Note: Developer mode disables ChatGPT&apos;s memory while active. If you already added MyStorey with an old URL, remove it under Drafts and re-add with the URL above.
+            Note: Developer mode disables ChatGPT&apos;s memory while active.
           </p>
         </CardContent>
       </Card>
