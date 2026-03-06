@@ -125,18 +125,18 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 ---
 
-## Phase 11: Blog, Forms & Rich Content
+## Phase 11: Blog, Forms & Rich Content ✅
 
 > **Content marketing + lead capture for every site on the platform.**
 
-- Blog post system: title, slug, excerpt, body (rich text JSON), author, tags, cover image, published_at
-- Blog index section + individual post pages at `/[site_slug]/blog/[slug]`
-- RSS feed at `/[site_slug]/feed.xml`
-- Contact form: real submissions with email notifications to site owner
-- Form submission inbox in admin dashboard (read/unread, delete)
-- Rich text body section (headings, lists, links, inline images)
-- Custom HTML/embed section (advanced users)
-- MCP tools: `create_post`, `list_posts`, `update_post`, `publish_post`, `delete_post`
+- [x] Blog post system: title, slug, excerpt, body, author, tags, cover image, published_at
+- [x] Blog index section + individual post pages at `/[site_slug]/blog/[slug]`
+- [x] RSS feed at `/[site_slug]/feed.xml`
+- [x] Contact form: real submissions with email notifications to site owner
+- [x] Form submission inbox in admin dashboard (read/unread, delete)
+- [x] Rich text body section: custom section with `render_mode: "markdown"` — headings, bold, lists, links, inline code
+- [x] Custom HTML/embed section: custom section with `render_mode: "html"` — raw HTML/iframes for maps, videos, widgets
+- [x] MCP tools: `create_post`, `list_posts`, `update_post`, `publish_post`, `delete_post`
 
 ---
 
@@ -205,9 +205,9 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 | Content Architecture + Renderer | ✅ Done |
 | Growth Features | ✅ Done |
 | Admin + Billing (Stripe + Email) | ✅ Done |
-| Phase 9 — Media & Files | 🔨 In progress |
-| Phase 10 — Design System Expansion | Planned |
-| Phase 11 — Blog, Forms & Rich Content | Planned |
+| Phase 9 — Media & Files | ✅ Done |
+| Phase 10 — Design System Expansion | ✅ Done |
+| Phase 11 — Blog, Forms & Rich Content | ✅ Done |
 | Phase 12 — Static Site Generation | Planned |
 | Phase 13 — Growth & Analytics | Planned |
 

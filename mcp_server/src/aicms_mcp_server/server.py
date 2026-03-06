@@ -96,7 +96,7 @@ SECTION_DEFAULTS: Dict[str, Any] = {
             {"name": "Pro", "price": "$29", "period": "/month", "features": ["Unlimited sites", "Priority support", "Analytics"], "cta_label": "Start free trial", "highlighted": True},
         ],
     },
-    "custom": {"title": "Custom Section", "content": ""},
+    "custom": {"title": "Custom Section", "content": "", "render_mode": "text"},
 }
 
 VALID_SECTION_TYPES = list(SECTION_DEFAULTS.keys())
@@ -957,7 +957,9 @@ def _build_tools() -> list[Tool]:
                 "• contact: {headline, subheadline?, email?, phone?, address?, hours?}\n"
                 "• cta: {headline, subheadline?, button_label?, button_href?}\n"
                 "• pricing: {headline, subheadline?, plans: [{name, price, period?, features: [string], cta_label?, highlighted?}]}\n"
-                "• custom: {title?, content} — raw HTML/text\n\n"
+                "• custom: {title?, content, render_mode?: 'text'|'markdown'|'html'} — "
+                "render_mode='text' (default): plain paragraphs; 'markdown': rich text with # headings, "
+                "**bold**, - lists, [links](url), `code` inline; 'html': raw HTML/iframes for embeds\n\n"
                 "Call generate_section to get a filled-in default structure for any type."
             ),
             inputSchema={
