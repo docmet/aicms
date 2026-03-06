@@ -209,6 +209,7 @@ async def seed_database() -> None:
                 email="norbi@docmet.com",
                 password_hash=await hash_password("password123"),
                 is_admin=True,
+                email_verified=True,
             )
             session.add(admin_user)
             await session.flush()
@@ -226,6 +227,7 @@ async def seed_database() -> None:
                 email="client@docmet.com",
                 password_hash=await hash_password("password123"),
                 is_admin=False,
+                email_verified=True,
             )
             session.add(client_user)
             await session.flush()
