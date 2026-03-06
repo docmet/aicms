@@ -24,7 +24,7 @@ from src.database import get_db
 from src.models import Site
 from src.models.content import ContentSection
 from src.models.page import Page
-from src.models.user import User
+from src.models.user import User, UserPlan
 from src.schemas.user import UserResponse
 from src.services.auth import AuthService
 
@@ -47,6 +47,7 @@ class UserWithStats(BaseModel):
     id: UUID
     email: str
     is_admin: bool
+    plan: str
     site_count: int
     created_at: datetime
 
@@ -64,6 +65,7 @@ class AdminUserUpdate(BaseModel):
     email: EmailStr | None = None
     password: str | None = None
     is_admin: bool | None = None
+    plan: UserPlan | None = None
 
 
 class ImpersonateResponse(BaseModel):
@@ -127,6 +129,7 @@ async def list_users(
                 id=user.id,
                 email=str(user.email),
                 is_admin=bool(user.is_admin),
+                plan=str(user.plan),
                 site_count=int(site_count),
                 created_at=user.created_at,  # type: ignore[arg-type]
             )
@@ -153,6 +156,8 @@ async def update_user(
         user.password_hash = AuthService.get_password_hash(update.password)  # type: ignore[assignment]
     if update.is_admin is not None:
         user.is_admin = update.is_admin  # type: ignore[assignment]
+    if update.plan is not None:
+        user.plan = update.plan  # type: ignore[assignment]
 
     db.add(user)
     await db.commit()

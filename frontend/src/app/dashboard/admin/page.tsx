@@ -14,6 +14,7 @@ interface UserWithStats {
   id: string;
   email: string;
   is_admin: boolean;
+  plan: 'free' | 'pro' | 'agency';
   site_count: number;
   created_at: string;
 }
@@ -96,6 +97,16 @@ export default function AdminPage() {
     }
   };
 
+  const handleChangePlan = async (userId: string, plan: string) => {
+    try {
+      await api.patch(`/admin/users/${userId}`, { plan });
+      toast({ title: `Plan updated to ${plan}` });
+      fetchData();
+    } catch {
+      toast({ title: "Plan update failed", variant: "destructive" });
+    }
+  };
+
   if (!user?.is_admin) return null;
 
   if (loading) {
@@ -154,6 +165,7 @@ export default function AdminPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Role</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Plan</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Sites</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Joined</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500">Actions</th>
@@ -172,6 +184,17 @@ export default function AdminPage() {
                       <Badge variant={u.is_admin ? "default" : "secondary"}>
                         {u.is_admin ? "Admin" : "User"}
                       </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={u.plan}
+                        onChange={(e) => handleChangePlan(u.id, e.target.value)}
+                        className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer"
+                      >
+                        <option value="free">Free</option>
+                        <option value="pro">Pro</option>
+                        <option value="agency">Agency</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{u.site_count}</td>
                     <td className="px-4 py-3 text-gray-500">

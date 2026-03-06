@@ -26,7 +26,7 @@ const tiers = [
     price: '0',
     period: 'forever',
     highlight: false,
-    description: 'Perfect to try it out',
+    description: 'Everything you need to get started',
     features: [
       '1 website',
       'Free mystorey.io subdomain',
@@ -51,9 +51,9 @@ const tiers = [
       'Priority support',
       'Early access to new features',
     ],
-    cta: 'Start 7-day free trial',
+    cta: 'Get Pro',
     href: '/register?plan=pro',
-    note: 'No credit card required',
+    note: null,
   },
   {
     name: 'Agency',
@@ -69,9 +69,9 @@ const tiers = [
       'Bulk site generation',
       'Dedicated support',
     ],
-    cta: 'Start 7-day free trial',
+    cta: 'Get Agency',
     href: '/register?plan=agency',
-    note: 'No credit card required',
+    note: null,
   },
 ];
 
@@ -147,7 +147,7 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        <p className="mt-4 text-xs text-gray-400">No credit card required · Free forever plan</p>
+        <p className="mt-4 text-xs text-gray-400">Free plan available · No credit card required to start</p>
 
         {/* Hero visual */}
         <div className="mt-16 mx-auto max-w-4xl rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-violet-50/30 shadow-xl overflow-hidden">
@@ -234,7 +234,7 @@ export default function LandingPage() {
             <p className="mt-3 text-gray-500 text-lg">Start free. Upgrade when you&apos;re ready.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-start">
             {tiers.map((tier) => (
               <div
                 key={tier.name}
@@ -297,6 +297,25 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Custom development */}
+      <div className="max-w-5xl mx-auto px-6 pb-8">
+        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-violet-600 mb-1">Custom development</p>
+            <h3 className="text-lg font-bold text-gray-900">Need something tailored?</h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-md">
+              Custom integrations, bespoke AI workflows, white-label solutions, or anything beyond the standard plans — we scope it and price it individually.
+            </p>
+          </div>
+          <a
+            href="mailto:hello@mystorey.io"
+            className="shrink-0 inline-flex items-center gap-2 border border-gray-300 hover:border-violet-400 hover:text-violet-700 text-gray-700 font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap"
+          >
+            Contact us
+          </a>
+        </div>
+      </div>
 
       {/* Final CTA */}
       <section className="py-24 max-w-3xl mx-auto px-6 text-center">
