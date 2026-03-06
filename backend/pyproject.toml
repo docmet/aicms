@@ -17,6 +17,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "httpx>=0.28.0",
     "bcrypt<4.1.0",
+    "stripe>=14.4.0",
 ]
 
 [project.optional-dependencies]

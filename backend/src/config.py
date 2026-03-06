@@ -19,10 +19,11 @@ class Settings(BaseSettings):
     backend_url: str = "http://localhost:8000"
     domain: str = "aicms.docmet.systems"
 
-    # Revolut Merchant (billing)
-    revolut_merchant_api_key: str = ""
-    revolut_webhook_secret: str = ""
-    revolut_sandbox: bool = True
+    # Stripe (billing)
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_pro_price_id: str = ""
+    stripe_agency_price_id: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 

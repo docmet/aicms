@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
-import { Check, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { Check, Sparkles, ArrowRight, Loader2, Settings } from 'lucide-react';
 
 const PLANS = {
   pro: {
@@ -32,22 +32,24 @@ function BillingContent() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const plan = (searchParams.get('plan') ?? 'pro') as 'pro' | 'agency';
-  const paymentComplete = searchParams.get('payment_complete') === 'true';
+  const sessionId = searchParams.get('session_id');
 
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   const planInfo = PLANS[plan] ?? PLANS.pro;
-  const alreadyOnPlan = user?.plan === plan || user?.plan === 'agency';
+  const alreadyOnPlan = user?.plan === plan || (plan === 'pro' && user?.plan === 'agency');
+  const hasPaidPlan = user?.plan === 'pro' || user?.plan === 'agency';
 
-  // After Revolut redirects back, verify the payment
+  // After Stripe redirects back with session_id, verify the payment
   useEffect(() => {
-    if (!paymentComplete) return;
+    if (!sessionId) return;
     setVerifying(true);
     api
-      .post(`/billing/verify?order_id=redirect&plan=${plan}`)
+      .post(`/billing/verify?session_id=${sessionId}&plan=${plan}`)
       .then(async (res) => {
         if (res.data.success) {
           await refreshUser();
@@ -71,6 +73,17 @@ function BillingContent() {
       const e = err as { response?: { data?: { detail?: string } } };
       setError(e.response?.data?.detail || 'Could not start checkout. Try again.');
       setLoading(false);
+    }
+  };
+
+  const handlePortal = async () => {
+    setPortalLoading(true);
+    try {
+      const res = await api.get('/billing/portal');
+      window.location.href = res.data.portal_url;
+    } catch {
+      setError('Could not open subscription portal. Contact support.');
+      setPortalLoading(false);
     }
   };
 
@@ -147,12 +160,25 @@ function BillingContent() {
       )}
 
       {alreadyOnPlan ? (
-        <button
-          onClick={() => router.push('/dashboard/settings')}
-          className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl text-sm transition-colors"
-        >
-          Back to Settings
-        </button>
+        <div className="space-y-3">
+          <button
+            onClick={handlePortal}
+            disabled={portalLoading}
+            className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+          >
+            {portalLoading ? (
+              <><Loader2 size={15} className="animate-spin" /> Opening portal…</>
+            ) : (
+              <><Settings size={15} /> Manage subscription</>
+            )}
+          </button>
+          <button
+            onClick={() => router.push('/dashboard/settings')}
+            className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl text-sm transition-colors"
+          >
+            Back to Settings
+          </button>
+        </div>
       ) : (
         <button
           onClick={handlePay}
@@ -162,13 +188,13 @@ function BillingContent() {
           {loading ? (
             <><Loader2 size={15} className="animate-spin" /> Redirecting to payment…</>
           ) : (
-            <>Pay with Revolut — {planInfo.price}/mo <ArrowRight size={14} /></>
+            <>Upgrade to {planInfo.name} — {planInfo.price}/mo <ArrowRight size={14} /></>
           )}
         </button>
       )}
 
       <p className="text-xs text-gray-400 text-center">
-        Secure payment via Revolut. Cancel anytime by contacting support.
+        Secure payment via Stripe.{hasPaidPlan ? ' Manage or cancel anytime via the subscription portal.' : ' Cancel anytime.'}
       </p>
     </div>
   );

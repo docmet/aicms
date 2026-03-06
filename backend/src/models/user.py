@@ -37,6 +37,8 @@ class User(Base):
         nullable=False,
         server_default=UserPlan.free,
     )
+    stripe_customer_id = Column(String(255), nullable=True, unique=True, index=True)
+    stripe_subscription_id = Column(String(255), nullable=True)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

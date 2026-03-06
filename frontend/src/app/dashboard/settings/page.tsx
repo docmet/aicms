@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { ArrowRight, Sparkles, Check } from 'lucide-react';
+import api from '@/lib/api';
+import { ArrowRight, Sparkles, Check, Loader2, Settings } from 'lucide-react';
 
 const PLAN_CONFIG = {
   free: {
@@ -41,6 +43,20 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const plan = user?.plan ?? 'free';
   const config = PLAN_CONFIG[plan];
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState('');
+
+  const handlePortal = async () => {
+    setPortalLoading(true);
+    setPortalError('');
+    try {
+      const res = await api.get('/billing/portal');
+      window.location.href = res.data.portal_url;
+    } catch {
+      setPortalError('Could not open subscription portal. Contact support.');
+      setPortalLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -99,11 +115,25 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {plan === 'agency' && (
-          <div className="border-t border-gray-100 pt-4">
-            <p className="text-xs text-gray-500">
-              You&apos;re on the Agency plan. AI automation features are coming soon.
-            </p>
+        {(plan === 'pro' || plan === 'agency') && (
+          <div className="border-t border-gray-100 pt-4 space-y-2">
+            {plan === 'agency' && (
+              <p className="text-xs text-gray-500">AI automation features are coming soon.</p>
+            )}
+            {portalError && (
+              <p className="text-xs text-red-600">{portalError}</p>
+            )}
+            <button
+              onClick={handlePortal}
+              disabled={portalLoading}
+              className="inline-flex items-center gap-2 border border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-900 text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {portalLoading ? (
+                <><Loader2 size={12} className="animate-spin" /> Opening…</>
+              ) : (
+                <><Settings size={12} /> Manage subscription</>
+              )}
+            </button>
           </div>
         )}
       </div>
