@@ -1,140 +1,164 @@
-# AI CMS Roadmap
+# MyStorey Roadmap
 
-Development roadmap: from MVP proof-of-concept to a production-ready freemium SaaS.
+Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS.
 
 ---
 
-## Completed Phases
+## Completed
 
-### Phase 1: Foundation
+### Foundation (Phase 1)
 - Project structure, Docker Compose (dev + prod), GitHub Actions CI/CD
-- Git hooks (lefthook + pre-commit: format, lint, test)
-- SQLAlchemy models and Alembic migrations
-- Seed data (admin + client user, 5 themes)
-- `cli.sh` development CLI
+- Git hooks (lefthook: format, lint, test on commit)
+- SQLAlchemy models + Alembic migrations
+- Seed data (admin + client user, themes)
+- `cli.sh` development CLI (30+ commands)
 
-### Phase 2: Backend
-- FastAPI application with JWT authentication
-- User registration/login endpoints
-- Site, Page, ContentSection CRUD (multi-tenant, scoped to user)
-- Theme service
+### Backend (Phase 2)
+- FastAPI + JWT authentication
+- User registration/login
+- Site, Page, ContentSection CRUD (multi-tenant, user-scoped)
+- Theme service (7 themes)
 - Integration tests: auth, data isolation, theme switching
 
-### Phase 3: Frontend
-- Next.js 15+ with App Router
+### Frontend (Phase 3)
+- Next.js 15 App Router
 - Login/register pages
-- Admin dashboard with shadcn/ui
-- Site editor: name, slug, theme selector, content sections
-- Public site rendering (`[site_slug]/page.tsx`)
-- TailwindCSS theme variants (5 themes)
+- Admin dashboard (shadcn/ui)
+- Site editor: name, slug, theme, sections
+- Public site renderer (`[site_slug]/page.tsx`)
+- TailwindCSS CSS-variable themes
 
-### Phase 4: Integration & Testing
+### Integration & Testing (Phase 4)
 - Frontend ↔ backend fully connected
 - Multi-user isolation tested
-- Instant save (Mac-style auto-save on blur)
+- Instant save (auto-save on blur)
 - Local Docker stack verified end-to-end
 
-### Phase 5: MCP Server
-- FastAPI-based MCP server with HTTP+SSE transport
-- 13 MCP tools: site, page, content, theme management
-- OAuth 2.0 / token-based authentication per AI client
-- Working with: Claude Desktop ✅, Claude mobile app via ngrok ✅
+### MCP Server (Phase 5)
+- FastAPI HTTP+SSE MCP server
+- OAuth 2.0 + token auth per AI client
+- 17 tools: sites, pages, content, themes, versions
+- Working with Claude.ai, Claude Desktop, ChatGPT (Developer mode), Claude Code
+
+### Content Architecture + Renderer (Phase 6)
+- Structured JSON content schemas per section type
+- Draft/publish split (`content_draft` vs `content_published`)
+- Last 5 versions per page with AI-triggered rollback
+- Real-time SSE preview
+- 8 section types: Hero, Features, Testimonials, About, Contact, CTA, Pricing, Custom
+- 7 themes: modern, warm, startup, minimal, dark + default/nature aliases
+- Admin structured editors + live preview pane
+- Full SEO: meta tags, OG, JSON-LD
+
+### Growth Features (Phase 7)
+- Onboarding wizard: industry picker → starter site → connect AI (6 industry templates)
+- Site navigation (multi-page sites with nav bar)
+- Mobile-responsive admin (hamburger + slide-down drawer)
+- Sitemap.xml + robots.txt per site
+- Landing page with pricing, features, testimonials, custom dev block
+- AI tool connection guide (Claude.ai, ChatGPT, Perplexity) with brand icons
+- Auth UX: expired session redirect, login auto-redirect, register plan redirect
+- `NavAuthButtons` — smart nav (logged-in vs logged-out state)
+
+### Admin + Billing Foundation (Phase 8 — partial)
+- Admin panel: user management, impersonation, platform stats
+- Admin: inline plan management (Free / Pro / Agency) per user
+- Plan enforcement: site creation limits per plan
+- "Made with MyStorey" badge on free plan public sites
+- Billing UI: `/dashboard/billing` upgrade page
+- Billing backend: checkout/verify/webhook endpoints (Revolut stub — to be replaced with Stripe)
+- Payment + tax research: Stripe preferred, EU VAT OSS, US sales tax documented
 
 ---
 
-## Current Work (Phase 6: Quality + Architecture)
+## Up Next
 
-**Goal: Staging deployment live at aicms.docmet.systems by end of day**
+### Stripe Integration
+- Replace Revolut billing stub with Stripe Checkout
+- Stripe webhook: handle `checkout.session.completed`, `customer.subscription.deleted`
+- Customer portal link (manage/cancel subscription)
+- Stripe Tax (automatic EU VAT calculation)
+- Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_AGENCY_PRICE_ID`
 
-- [x] **0a: Documentation overhaul** — all docs updated to reflect vision and new architecture
-- [x] **0b: Claude Code skills** — 6 project slash commands in `.claude/commands/`
-- [x] **1: Content model** — structured JSON schemas per section type, draft/publish split, versioning, SSE preview
-- [x] **2: Framer-level renderer** — section components (Hero, Features, Testimonials, etc.), SEO, animations
-- [x] **3: Admin editor** — structured field inputs + live SSE preview pane + publish/rollback UI
-- [x] **4: Smarter MCP tools** — describe_site, generate_section, smart_find, publish_page, versioning tools
-- [x] **5: Admin panel** — user management, impersonation, platform stats
-- [x] **6: Staging deploy** — Coolify config, wildcard DNS, security headers, landing page
+### Email Service
+- Mailpit container for local dev (port 8025, web UI)
+- Mail-in-a-Box (docmet.systems) for staging/prod SMTP
+- Transactional emails: welcome, plan upgrade confirmation, plan limit reached, publish confirmation
+- Backend: `src/services/email.py` using SMTP (aiosmtplib or similar)
 
----
-
-## Phase 7: Growth (Post-Launch)
-
-### Core Experience
-- [x] Onboarding wizard: industry picker → starter site generated → connect AI
-- [ ] Industry-specific templates: Restaurant, Portfolio, Agency/SaaS, Services
-- [x] Site navigation (multi-page sites with proper nav bar)
-- [ ] Mobile-responsive admin dashboard
-
-### Content
-- [ ] Image upload and CDN hosting
-- [ ] Rich text sections (headings, lists, links in body)
-- [ ] Blog/posts system with date + author
-- [ ] Custom HTML/embed sections (for advanced users)
-
-### Distribution
-- [ ] Custom domain support (CNAME + SSL via Let's Encrypt)
-- [x] Sitemap.xml per site
-- [x] robots.txt per site
-- [ ] Site analytics: pageviews, referrers, top pages
+### WordPress Plugin (parallel track)
+- WP plugin: connects WP sites to MyStorey MCP
+- Sync posts/pages → MyStorey content sections
+- Paid from day one ($X/mo, managed WP hosting pitch)
+- 2-3 day build: plugin scaffold → MCP bridge → payment
+- `/wordpress` landing page with Matrix pill angle ("stay in WordPress, add AI superpowers")
+- See `.planning/research/wordpress-mcp-plugin-opportunity.md`
 
 ---
 
-## Phase 8: Scale
+## Phase 9: Content Expansion
 
-### Platform
-- [ ] Stripe integration: free → pro upgrade flow
-- [ ] Email notifications (publish confirmation, limits reached, etc.)
-- [ ] Scheduled publishing (publish at specific datetime)
-- [ ] A/B testing (serve version A to 50% of visitors)
-- [ ] Shareable preview URLs (token-protected, 24hr expiry)
-
-### AI
-- [ ] AI-powered SEO suggestions ("Your about section is missing keywords")
-- [ ] AI translation for multilingual sites
-- [ ] AI image generation integration (DALL-E, etc.)
-- [ ] Bulk site generation from a document/spreadsheet
+- Image upload + CDN hosting (Cloudflare R2 or S3-compatible)
+- Rich text sections (headings, lists, links in body)
+- Blog/posts system (date, author, slug, RSS)
+- Custom HTML/embed sections (advanced users)
+- Custom domain support (CNAME + SSL via Let's Encrypt)
 
 ---
 
-## Future Ideas (Backlog)
+## Phase 10: Growth & Analytics
 
-**Versioning:**
-- Diff view between page versions
-- Site-level publish ("deploy all pages at once")
+- Site analytics: pageviews, referrers, top pages (self-hosted, privacy-first)
+- AI-powered SEO suggestions ("Your about section is missing keywords")
+- Shareable preview URLs (token-protected, 24hr expiry)
+- Scheduled publishing (publish at specific datetime)
+- Industry-specific templates: Restaurant, Portfolio, Agency/SaaS, Services
 
-**Security:**
+---
+
+## Backlog
+
+**AI:**
+- AI translation for multilingual sites
+- AI image generation (DALL-E, Flux)
+- Bulk site generation from document/spreadsheet
+- A/B testing (serve version A to 50% of visitors)
+
+**Platform:**
 - 2FA for admin users
-- Penetration testing
-- IP allowlist for admin routes
-- Security.txt at `/.well-known/security.txt`
-
-**Admin:**
 - Multiple admin roles: `super_admin`, `support`, `billing_admin`
-- Bulk email to users
 - Feature flags per user or globally
 - Content moderation queue
+- Bulk email to users
 
 **Sites:**
-- Password-protected pages (coming soon, members-only)
+- Password-protected pages (members-only)
 - Contact form builder with email notifications
-- eCommerce product pages (read-only, links to external cart)
+- eCommerce product pages (links to external cart)
 - Multilingual content with language switcher
+- Site-level publish ("deploy all pages at once")
+- Diff view between page versions
 
 ---
 
-## Progress Tracker
+## Progress
 
-| Phase | Status | Notes |
-|-------|--------|-------|
-| Foundation | ✅ Done | |
-| Backend | ✅ Done | |
-| Frontend | ✅ Done | Basic implementation |
-| Integration | ✅ Done | |
-| MCP Server | ✅ Done | Proven on desktop + mobile |
-| Quality + Architecture | 🔄 In Progress | Today's work |
-| Growth | ⏳ Planned | Post-launch |
-| Scale | ⏳ Planned | Post-growth |
+| Phase | Status |
+|-------|--------|
+| Foundation | Done |
+| Backend | Done |
+| Frontend | Done |
+| Integration | Done |
+| MCP Server | Done |
+| Content Architecture + Renderer | Done |
+| Growth Features | Done |
+| Admin + Billing Foundation | Partial (Stripe pending) |
+| Stripe Integration | Next |
+| Email Service | Next |
+| WordPress Plugin | Parallel track |
+| Content Expansion | Planned |
+| Growth & Analytics | Planned |
 
 ---
 
-**Last updated:** 2026-03-05
+**Last updated:** 2026-03-06

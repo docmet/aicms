@@ -1,102 +1,61 @@
-# AI CMS
+# MyStorey
 
-A multi-tenant website platform where non-technical users build and edit their sites
-by talking to their own AI tools — Claude, ChatGPT, Perplexity, or any MCP-compatible assistant.
+Build and manage websites by talking to your AI assistant. Connect Claude or ChatGPT once — then just describe what you want and it happens live.
 
-**Core idea:** You already pay for Claude or ChatGPT. Connect it once to your site, then just
-talk to it to update your content. No technical knowledge needed. No extra AI costs on our end.
+**Product:** mystorey.io · **Staging:** mystorey-staging (Coolify, Hetzner)
 
 ---
 
 ## How It Works
 
-1. **Sign up** — create your account, get a free site at `[yourname].aicms.docmet.systems`
-2. **Connect your AI** — paste the MCP config into Claude Desktop, ChatGPT, or any AI tool
-3. **Talk to edit** — ask your AI "update my hero headline to say X" and it happens live
-
-The AI talks to our MCP server, which updates your site. You preview changes in real-time
-before publishing. Your site is public, SEO-optimized, and looks great out of the box.
+1. **Sign up** — get a free site at `[yourname].mystorey.io`
+2. **Connect your AI** — paste your MCP URL into Claude.ai or ChatGPT (one-time setup)
+3. **Talk to edit** — "update my hero headline", "switch to the dark theme", "add a pricing section" — it happens live with real-time preview
 
 ---
 
 ## Features
 
 ### For Users
-- Beautiful, responsive site templates (Framer-level quality)
-- 5 themes: Modern, Startup, Warm, Minimal, Dark
-- Multiple pages per site
-- Draft → preview → publish workflow with rollback (last 5 versions)
-- Real-time preview: see changes as your AI edits them (SSE push, no polling)
-- Instant save in web admin dashboard
-- SEO-optimized: meta tags, OG tags, JSON-LD structured data, semantic HTML
+- 8 section types: Hero, Features, Testimonials, About, Contact, CTA, Pricing, Custom
+- 7 themes: Modern, Startup, Warm, Minimal, Dark + default/nature aliases
+- Multi-page sites with automatic site navigation
+- Draft → preview → publish workflow
+- Last 5 versions per page with AI-triggered rollback
+- Real-time preview via SSE (see changes as AI types them)
+- Free plan: 1 site, mystorey.io subdomain, "Made with MyStorey" badge
+- Pro ($9.99/mo): 3 sites, custom domains, no badge
+- Agency ($99/mo): 15 sites, custom domains, AI automations (coming)
+- SEO: meta tags, OG, JSON-LD, sitemap.xml, robots.txt per site
 
-### AI Integration (MCP)
-Connect any MCP-compatible AI tool. Full list of tools available:
+### AI Integration (MCP) — 19 tools
+| Group | Tools |
+|-------|-------|
+| Sites | `list_sites` `create_site` `get_site_info` `describe_site` `update_site` `delete_site` |
+| Pages | `list_pages` `create_page` `update_page` `delete_page` `publish_page` |
+| Content | `get_page_content` `update_section` `generate_section` `delete_section` |
+| Themes | `list_themes` `apply_theme` |
+| Versions | `list_versions` `revert_to_version` |
 
-**Site Management:** `list_sites`, `create_site`, `get_site_info`, `update_site`, `delete_site`, `restore_site`
-
-**Page Management:** `list_pages`, `create_page`, `get_page_content`, `update_page`, `delete_page`, `restore_page`
-
-**Content:** `update_page_content`, `delete_section`, `restore_section`, `reorder_sections`, `set_section_order`
-
-**Themes:** `list_themes`, `apply_theme`
-
-**AI-Friendly Tools:** `describe_site` (full narrative in 1 call), `generate_section` (scaffold JSON for AI to fill), `smart_find` (find by name, not UUID), `publish_page`, `get_versions`, `revert_to_version`
+Works with: Claude.ai ✅ · ChatGPT (Apps/developer mode) ✅ · Claude Desktop ✅ · Any MCP-compatible tool ✅
 
 ### Admin (Platform Owner)
-- User management: list, suspend, tier management
-- Impersonation: see exactly what any user sees for support
-- Platform stats dashboard
-- Audit log for all admin actions
-
----
-
-## Content Section Types
-
-Each page is built from sections. Sections store structured JSON content:
-
-| Type | Fields |
-|------|--------|
-| `hero` | headline, subheadline, badge, cta_primary, cta_secondary |
-| `features` | headline, subheadline, items (icon, title, description) |
-| `testimonials` | headline, items (quote, name, role, company) |
-| `about` | headline, body, stats (number, label) |
-| `contact` | headline, email, phone, address, hours |
-| `cta` | headline, subheadline, button_label, button_href |
-| `pricing` | headline, plans (name, price, features, cta) |
-| `custom` | title, content — fallback for any type AI invents |
-
-See [docs/content-schema.md](docs/content-schema.md) for complete JSON schemas.
+- Platform stats: users, sites, pages, sections
+- User management: list, delete, toggle admin, set plan manually
+- Impersonate any user for support (restore button included)
 
 ---
 
 ## Tech Stack
 
-### Frontend
-- **Next.js 15+** with App Router (SSR for public sites)
-- **TypeScript** strict mode
-- **TailwindCSS** + CSS variables for theming
-- **shadcn/ui** components
-- **pnpm** package manager
+| Layer | Tech |
+|-------|------|
+| Frontend | Next.js 15, TypeScript, TailwindCSS, shadcn/ui, pnpm |
+| Backend | Python 3.13+, FastAPI, SQLAlchemy async, PostgreSQL 16, Alembic, uv |
+| MCP Server | FastAPI, HTTP+SSE, OAuth 2.0 |
+| Infra | Docker Compose, Nginx, GitHub Actions CI/CD, Coolify on Hetzner |
 
-### Backend
-- **Python 3.13+** with FastAPI
-- **SQLAlchemy** async ORM
-- **PostgreSQL 16**
-- **Alembic** migrations
-- **uv** package manager
-
-### MCP Server
-- FastAPI-based MCP server
-- HTTP + SSE transport
-- Token-based auth (one token per connected AI tool)
-
-### Infrastructure
-- Docker Compose (dev + production)
-- Nginx reverse proxy
-- GitHub Actions CI/CD
-- Coolify on Hetzner for deployment
-- `./cli.sh` — unified development CLI
+5 Docker services: `nginx` · `frontend` · `backend` · `mcp_server` · `postgres`
 
 ---
 
@@ -105,62 +64,42 @@ See [docs/content-schema.md](docs/content-schema.md) for complete JSON schemas.
 ### Prerequisites
 
 ```bash
-# Docker
-brew install docker
-
-# Node.js 22+
-brew install node@22
+brew install docker node@22
 npm install -g pnpm
-
-# Python 3.13+
 brew install python@3.13
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# GitHub CLI (optional)
-brew install gh
 ```
 
 ### Quick Start
 
 ```bash
-git clone git@github.com:docmet/aicms.git
-cd aicms
-./cli.sh init    # sets up .env, git hooks, deps, DB
-./cli.sh start   # starts all 5 services
+git clone git@github.com:docmet/aicms.git mystorey
+cd mystorey
+./cli.sh init     # sets up .env, git hooks, deps, DB
+./cli.sh start    # starts all services
 ```
 
-Access:
-- **Frontend:** http://localhost:3000
-- **Admin:** http://localhost:3000/dashboard
-- **Backend API:** http://localhost:8000/docs
-- **MCP Server:** http://localhost:8001
+| Service | URL |
+|---------|-----|
+| App | http://localhost:3000 |
+| Dashboard | http://localhost:3000/dashboard |
+| API docs | http://localhost:8000/docs |
+| MCP server | http://localhost:8001 |
+| Mail (dev) | http://localhost:8025 (Mailpit) |
 
 ### Test Credentials
 
-| User | Email | Password | Role |
-|------|-------|----------|------|
-| Admin | norbi@docmet.com | password123 | Admin + client |
-| Client | client@docmet.com | password123 | Regular user |
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | norbi@docmet.com | password123 |
+| User | client@docmet.com | password123 |
 
-### Mobile Testing via ngrok
-
-To test from a mobile device (including Claude mobile app):
+### ngrok (mobile / AI tool testing)
 
 ```bash
-# In a separate terminal, after ./cli.sh start
 ngrok http 80
-# Use the https://xxxx.ngrok.io URL in Claude mobile app MCP config
+# Use the https://xxxx.ngrok-free.app URL in Claude.ai or ChatGPT
 ```
-
-### Connect Claude Desktop
-
-1. Go to http://localhost:3000/dashboard/mcp
-2. Register a new AI tool (Claude Desktop)
-3. Copy the generated config
-4. Paste into `~/Library/Application Support/Claude/claude_desktop_config.json`
-5. Restart Claude Desktop
-
-See [docs/ai-platforms.md](docs/ai-platforms.md) for all platform setup guides.
 
 ---
 
@@ -168,30 +107,29 @@ See [docs/ai-platforms.md](docs/ai-platforms.md) for all platform setup guides.
 
 ```bash
 ./cli.sh start            # Start all services
-./cli.sh stop             # Stop all services
-./cli.sh restart          # Restart all services
+./cli.sh stop             # Stop
+./cli.sh restart          # Restart
 ./cli.sh lint             # Run all linters
 ./cli.sh format           # Format all code
 ./cli.sh test             # Run all tests
-./cli.sh typecheck        # Type check
-./cli.sh db:migrate       # Run migrations
+./cli.sh typecheck        # Type check (frontend + backend)
+./cli.sh db:migrate       # Run Alembic migrations
 ./cli.sh db:seed          # Seed database
 ./cli.sh db:reset         # Wipe + migrate + seed
 ./cli.sh logs             # View all service logs
-./cli.sh mcp:run          # Run MCP server manually
-./cli.sh verify           # Check all tools installed
-./cli.sh help             # Full command reference
+./cli.sh deploy:prod      # Deploy to production
+./cli.sh help             # Full command list
 ```
 
-### Claude Code Skills (slash commands)
+### Claude Code Skills
 
 ```
-/check-stack      Check Docker services health
-/db-reset         Reset and reseed the database
-/test-mcp         Test all MCP tools via curl
-/new-section-type Guide to add a new section type end-to-end
-/deploy-check     Check CI status and staging health
-/seed-demo        Reseed with rich structured demo content
+/check-stack        Check all Docker services are healthy
+/db-reset           Reset and reseed the database
+/test-mcp           Test MCP tools via curl
+/new-section-type   Guide to add a new section type end-to-end
+/deploy-check       Check CI status and staging health
+/seed-demo          Reseed with rich demo content
 ```
 
 ---
@@ -199,45 +137,32 @@ See [docs/ai-platforms.md](docs/ai-platforms.md) for all platform setup guides.
 ## Project Structure
 
 ```
-mcp_cms/
-├── cli.sh                    # Development CLI (30+ commands)
-├── docker-compose.yml        # Production Docker Compose
-├── docker-compose.dev.yml    # Dev (5 services: nginx, frontend, backend, mcp_server, postgres)
-├── env.example              # Environment template
-├── lefthook.yml             # Git hooks config (lint+typecheck+test on commit)
-├── frontend/                # Next.js 15+ application
+mystorey/
+├── cli.sh                      # Dev CLI (30+ commands)
+├── docker-compose.dev.yml      # Dev stack (with hot-reload)
+├── docker-compose.prod.yml     # Production stack
+├── nginx/                      # Reverse proxy configs
+├── .env.example                # Environment template
+├── frontend/                   # Next.js 15
 │   └── src/
 │       ├── app/
-│       │   ├── (public)/    # Landing page, login, register
-│       │   ├── (dashboard)/ # Admin dashboard (auth required)
-│       │   └── [site_slug]/ # Public site renderer (SSR, no auth)
+│       │   ├── (public)/       # Landing, login, register
+│       │   ├── dashboard/      # Admin dashboard (auth required)
+│       │   └── [site_slug]/    # Public site renderer (SSR)
 │       ├── components/
-│       │   ├── sections/    # Public site section components (Hero, Features, etc.)
-│       │   ├── admin/       # Dashboard components
-│       │   └── ui/          # shadcn/ui primitives
-│       └── styles/          # Themes (CSS variables)
-├── backend/                 # Python FastAPI
+│       │   ├── sections/       # Hero, Features, Testimonials, etc.
+│       │   ├── admin/          # Dashboard + section editors
+│       │   └── ui/             # shadcn/ui primitives
+│       └── public/icons/       # Brand icons (Claude, OpenAI, Perplexity)
+├── backend/                    # FastAPI
 │   └── src/
-│       ├── models/          # User, Site, Page, ContentSection, PageVersion, MCPClient
-│       ├── schemas/         # Pydantic schemas + content section schemas
-│       ├── api/             # Routes: auth, sites, pages, content, themes, mcp, admin
-│       └── tests/           # Unit + integration tests
-├── mcp_server/              # MCP server (FastAPI + SSE)
-│   └── src/
-│       └── aicms_mcp_server/server.py  # All MCP tool implementations
-├── nginx/                   # Reverse proxy config + security headers
-├── docs/                    # Documentation
-│   ├── development.md       # Dev setup and workflows
-│   ├── deployment.md        # Staging + production deployment
-│   ├── mcp-integration.md   # MCP tools reference
-│   ├── content-schema.md    # Content JSON schemas reference
-│   ├── versioning.md        # Draft/preview/publish/rollback system
-│   ├── admin.md             # Admin features and impersonation
-│   ├── security.md          # Security principles and implementation
-│   └── ai-platforms.md      # Platform-specific setup guides
-└── .github/
-    └── workflows/
-        └── deploy.yml       # CI (lint+typecheck+test) + deploy to staging
+│       ├── models/             # User, Site, Page, ContentSection, PageVersion, MCPClient
+│       ├── schemas/            # Pydantic schemas
+│       ├── api/                # auth, sites, pages, content, themes, mcp, admin, billing
+│       └── tests/              # Unit + integration tests
+├── mcp_server/                 # MCP server (FastAPI + SSE)
+├── docs/                       # Extended documentation
+└── .planning/research/         # Research documents (payment, WP plugin, etc.)
 ```
 
 ---
@@ -245,40 +170,38 @@ mcp_cms/
 ## Deployment
 
 ### Staging
-- Domain: `aicms.docmet.systems`
-- User sites: `[site-slug].aicms.docmet.systems`
-- Platform: Coolify on Hetzner
-- Auto-deploys on push to `main` after CI passes
+- Deployed via Coolify on Hetzner (auto-deploy on `main` after CI passes)
+- GitHub Actions: lint → typecheck → test → Coolify webhook
 
-### Production (future)
-- Custom domains per user site
-- CDN integration
-- See [docs/deployment.md](docs/deployment.md)
+### Production
+- Same stack, production Docker targets
+- `backend/start.sh` runs `alembic upgrade head` then uvicorn on every deploy
+- Env vars: see `.env.example`
 
----
-
-## Pricing (Freemium)
-
-| Plan | Sites | Domain | Pages | Versions |
-|------|-------|--------|-------|---------|
-| Free | 1 | subdomain only | 5/site | 1 (previous) |
-| Pro | Unlimited | Custom domain | Unlimited | Last 5 |
+### Key env vars
+```bash
+JWT_SECRET=                     # openssl rand -hex 32
+STRIPE_SECRET_KEY=              # sk_live_... (or sk_test_... for staging)
+STRIPE_WEBHOOK_SECRET=          # whsec_...
+STRIPE_PRO_PRICE_ID=            # price_...
+STRIPE_AGENCY_PRICE_ID=         # price_...
+REVOLUT_MERCHANT_API_KEY=       # (currently unused, Stripe preferred)
+SMTP_HOST=                      # mail-in-a-box or mailpit for dev
+SMTP_USER=
+SMTP_PASSWORD=
+```
 
 ---
 
 ## Documentation
 
-- [Development Guide](docs/development.md) — setup, workflows, conventions
-- [Content Schema](docs/content-schema.md) — all section type JSON schemas
-- [Versioning](docs/versioning.md) — draft/preview/publish/rollback
-- [MCP Integration](docs/mcp-integration.md) — all MCP tools reference
-- [AI Platforms](docs/ai-platforms.md) — Claude, ChatGPT, Perplexity setup
-- [Admin Guide](docs/admin.md) — admin features, impersonation
-- [Security](docs/security.md) — security model and practices
-- [Deployment](docs/deployment.md) — staging and production
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE)
+- [Development Guide](docs/development.md)
+- [Content Schema](docs/content-schema.md)
+- [MCP Integration](docs/mcp-integration.md)
+- [AI Platforms Setup](docs/ai-platforms.md)
+- [Versioning](docs/versioning.md)
+- [Admin Guide](docs/admin.md)
+- [Deployment](docs/deployment.md)
+- [Security](docs/security.md)
+- [Payment & Tax Research](.planning/research/payment-tax-research.md)
+- [WordPress Plugin Plan](.planning/research/wordpress-mcp-plugin-opportunity.md)
