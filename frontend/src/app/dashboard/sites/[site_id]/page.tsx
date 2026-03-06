@@ -80,6 +80,7 @@ interface Page {
   slug: string;
   is_published: boolean;
   last_published_at?: string;
+  scheduled_at?: string | null;
 }
 
 interface ContentSection {
@@ -783,11 +784,50 @@ export default function SiteEditorPage({
                   </span>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 {versions.length > 0 && (
                   <Button variant="ghost" size="sm" onClick={() => setShowVersions((v) => !v)}>
                     <History size={14} className="mr-1.5" /> History ({versions.length})
                   </Button>
+                )}
+                {currentPage.scheduled_at ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>⏰ Scheduled: {new Date(currentPage.scheduled_at).toLocaleString()}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={async () => {
+                        await api.delete(`/sites/${site_id}/pages/${currentPage.id}/schedule`);
+                        setCurrentPage({ ...currentPage, scheduled_at: null });
+                        toast({ title: "Schedule cancelled" });
+                      }}
+                    >
+                      <X size={12} className="mr-1" /> Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="datetime-local"
+                      className="h-8 text-xs border rounded-md px-2 bg-background"
+                      min={new Date().toISOString().slice(0, 16)}
+                      onChange={async (e) => {
+                        if (!e.target.value) return;
+                        const dt = new Date(e.target.value).toISOString();
+                        try {
+                          const res = await api.post(`/sites/${site_id}/pages/${currentPage.id}/schedule?scheduled_at=${encodeURIComponent(dt)}`);
+                          const updated = res.data as Page;
+                          setCurrentPage({ ...currentPage, scheduled_at: updated.scheduled_at });
+                          toast({ title: "Scheduled!", description: `Will publish at ${new Date(dt).toLocaleString()}` });
+                        } catch {
+                          toast({ title: "Error", description: "Failed to schedule.", variant: "destructive" });
+                        }
+                        e.target.value = "";
+                      }}
+                      title="Schedule publish"
+                    />
+                  </div>
                 )}
                 <Button size="sm" onClick={handlePublish} disabled={publishing || !hasUnpublished}>
                   <Send size={14} className="mr-1.5" />

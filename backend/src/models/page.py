@@ -29,6 +29,7 @@ class Page(Base):
     slug = Column(String(255), nullable=False)
     is_published = Column(Boolean, default=False, nullable=False)
     last_published_at = Column(DateTime(timezone=True), nullable=True)  # set on each publish
+    scheduled_at = Column(DateTime(timezone=True), nullable=True)  # future publish datetime (UTC)
     order = Column(Integer, default=0, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False, index=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)

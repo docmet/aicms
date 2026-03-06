@@ -11,8 +11,12 @@ Standard CRUD:
 
 Publish / versioning:
   POST   /{site_id}/pages/{page_id}/publish          — publish draft (copies draft→published, creates PageVersion)
+  POST   /{site_id}/pages/{page_id}/schedule         — schedule a future publish datetime
   GET    /{site_id}/pages/{page_id}/versions         — list version history (max 5)
   POST   /{site_id}/pages/{page_id}/revert/{ver_id}  — revert draft to a saved version
+
+Site-level:
+  POST   /{site_id}/publish-all                      — publish all pages at once
 """
 
 import json
@@ -389,6 +393,65 @@ async def publish_all_pages(
     )
 
     return {"ok": True, "pages_published": published_count}
+
+
+@router.post("/{site_id}/pages/{page_id}/schedule", response_model=PageResponse)
+async def schedule_publish(
+    site_id: UUID,
+    page_id: UUID,
+    scheduled_at: datetime,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Page:
+    """Set or clear a scheduled publish datetime for a page.
+
+    Pass `scheduled_at` in ISO 8601 UTC format. To cancel, set to a past date
+    or simply call publish directly.
+    """
+    await get_site_owned_by_user(site_id, current_user, db)
+    result = await db.execute(
+        select(Page).where(
+            Page.id == page_id,
+            Page.site_id == site_id,
+            Page.is_deleted.is_(False),
+        )
+    )
+    page = result.scalar_one_or_none()
+    if not page:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
+
+    page.scheduled_at = scheduled_at  # type: ignore[assignment]
+    db.add(page)
+    await db.commit()
+    await db.refresh(page)
+    return page
+
+
+@router.delete("/{site_id}/pages/{page_id}/schedule", response_model=PageResponse)
+async def cancel_schedule(
+    site_id: UUID,
+    page_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Page:
+    """Cancel a scheduled publish."""
+    await get_site_owned_by_user(site_id, current_user, db)
+    result = await db.execute(
+        select(Page).where(
+            Page.id == page_id,
+            Page.site_id == site_id,
+            Page.is_deleted.is_(False),
+        )
+    )
+    page = result.scalar_one_or_none()
+    if not page:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
+
+    page.scheduled_at = None  # type: ignore[assignment]
+    db.add(page)
+    await db.commit()
+    await db.refresh(page)
+    return page
 
 
 @router.get(

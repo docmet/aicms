@@ -165,10 +165,12 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
   - Backend: `POST /api/sites/{id}/share` → token, `GET /api/share/{token}` → draft content
   - Frontend: `/share/{token}` preview page with expired/error states + draft banner
   - "Share Draft" button in admin header — copies URL to clipboard
+- [x] Scheduled publishing: `scheduled_at` on Page + background scheduler (checks every 60s)
+  - `POST /api/sites/{id}/pages/{id}/schedule?scheduled_at=<ISO8601>` + `DELETE .../schedule`
+  - Admin: datetime-local picker in publish bar; shows scheduled time + cancel button
+- [x] Industry-specific starter templates: Restaurant, Portfolio, SaaS, Services, Boutique, Other (6 templates in onboarding wizard)
 - [ ] AI-powered SEO suggestions per section
-- [ ] Scheduled publishing (publish at specific datetime)
 - [ ] Diff view between page versions
-- [ ] Industry-specific starter templates: Restaurant, Portfolio, Agency/SaaS, Freelancer
 
 ---
 
@@ -217,7 +219,7 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 | Phase 10 — Design System Expansion | ✅ Done |
 | Phase 11 — Blog, Forms & Rich Content | ✅ Done |
 | Phase 12 — Static Site Generation | 🔨 In progress |
-| Phase 13 — Growth & Analytics | 🔨 In progress |
+| Phase 13 — Growth & Analytics | ✅ Done |
 
 ---
 
