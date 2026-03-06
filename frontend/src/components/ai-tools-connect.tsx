@@ -106,7 +106,7 @@ export function AIToolsConnect({ clients, onCreateClient }: AIToolsConnectProps)
     if (platform.connectionType === 'mcp') {
       params['Server URL'] = `${baseUrl}/sse/${client.id}`;
       params['Authorization Token'] = client.token;
-      params['Name'] = 'AI CMS';
+      params['Name'] = 'MyStorey';
     } else if (platform.connectionType === 'api') {
       params['API Endpoint'] = `${baseUrl}/api/mcp/${client.id}`;
       params['API Key'] = client.token;

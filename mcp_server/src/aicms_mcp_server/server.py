@@ -23,6 +23,7 @@ from mcp.types import (
     Resource,
     TextContent,
     Tool,
+    ToolAnnotations,
 )
 from pydantic import BaseModel, Field
 
@@ -141,6 +142,7 @@ class MCPServer:
                     "suggest creating one and ask about their business."
                 ),
                 inputSchema={"type": "object", "properties": {}},
+                annotations=ToolAnnotations(readOnlyHint=True),
             ),
             Tool(
                 name="create_site",
@@ -165,6 +167,7 @@ class MCPServer:
                     },
                     "required": ["name", "slug"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             Tool(
                 name="get_site_info",
@@ -179,6 +182,7 @@ class MCPServer:
                     },
                     "required": ["site_id"],
                 },
+                annotations=ToolAnnotations(readOnlyHint=True),
             ),
             Tool(
                 name="describe_site",
@@ -196,6 +200,7 @@ class MCPServer:
                     },
                     "required": ["site_id"],
                 },
+                annotations=ToolAnnotations(readOnlyHint=True),
             ),
             Tool(
                 name="update_site",
@@ -213,6 +218,7 @@ class MCPServer:
                     },
                     "required": ["site_id"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             Tool(
                 name="delete_site",
@@ -225,6 +231,7 @@ class MCPServer:
                     "properties": {"site_id": {"type": "string"}},
                     "required": ["site_id"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             # ── Pages ──────────────────────────────────────────────────────
             Tool(
@@ -239,6 +246,7 @@ class MCPServer:
                     "properties": {"site_id": {"type": "string"}},
                     "required": ["site_id"],
                 },
+                annotations=ToolAnnotations(readOnlyHint=True),
             ),
             Tool(
                 name="create_page",
@@ -257,6 +265,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "title", "slug"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             Tool(
                 name="update_page",
@@ -272,6 +281,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "page_id"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             Tool(
                 name="delete_page",
@@ -284,6 +294,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "page_id"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             Tool(
                 name="publish_page",
@@ -300,6 +311,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "page_id"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             # ── Content sections ───────────────────────────────────────────
             Tool(
@@ -317,6 +329,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "page_id"],
                 },
+                annotations=ToolAnnotations(readOnlyHint=True),
             ),
             Tool(
                 name="update_section",
@@ -347,6 +360,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "page_id", "section_type", "content_json"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False, idempotentHint=True),
             ),
             Tool(
                 name="generate_section",
@@ -364,6 +378,7 @@ class MCPServer:
                     },
                     "required": ["section_type"],
                 },
+                annotations=ToolAnnotations(readOnlyHint=True),
             ),
             Tool(
                 name="delete_section",
@@ -380,6 +395,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "page_id", "section_id"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             # ── Versions ───────────────────────────────────────────────────
             Tool(
@@ -397,6 +413,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "page_id"],
                 },
+                annotations=ToolAnnotations(readOnlyHint=True),
             ),
             Tool(
                 name="revert_to_version",
@@ -414,6 +431,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "page_id", "version_id"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
             # ── Themes ─────────────────────────────────────────────────────
             Tool(
@@ -424,6 +442,7 @@ class MCPServer:
                     "that fits their industry (e.g. warm for a coffee shop, startup for SaaS, dark for an agency)."
                 ),
                 inputSchema={"type": "object", "properties": {}},
+                annotations=ToolAnnotations(readOnlyHint=True),
             ),
             Tool(
                 name="apply_theme",
@@ -444,6 +463,7 @@ class MCPServer:
                     },
                     "required": ["site_id", "theme_slug"],
                 },
+                annotations=ToolAnnotations(destructiveHint=False),
             ),
         ]
         return ListToolsResult(tools=tools)

@@ -168,7 +168,7 @@ export default function DraftPreviewPage({
       >
         <p className="text-sm">
           &copy; {new Date().getFullYear()} {site.name}. Powered by{' '}
-          <span style={{ color: 'var(--color-primary)' }}>AI CMS</span>
+          <span style={{ color: 'var(--color-primary)' }}>MyStorey</span>
         </p>
       </footer>
     </div>

@@ -40,8 +40,8 @@ DEMO_SECTIONS = [
     (
         "hero",
         json.dumps({
-            "headline": "Coffee That Wakes Your Soul",
-            "subheadline": "Specialty beans, expert roasting, and baristas who care. Visit us at the heart of downtown.",
+            "headline": "Specialty Coffee & Fresh-Roasted Beans",
+            "subheadline": "Enjoy specialty coffee, fresh-roasted beans, espresso drinks, and pastries served by expert baristas in the heart of downtown.",
             "badge": "Now open 7 days a week",
             "cta_primary": {"label": "See Our Menu", "href": "#menu"},
             "cta_secondary": {"label": "Our Story", "href": "#about"},
@@ -52,27 +52,27 @@ DEMO_SECTIONS = [
         "features",
         json.dumps({
             "headline": "Why Coffee Lovers Choose Us",
-            "subheadline": "From farm to cup, we obsess over every detail.",
+            "subheadline": "From farm to cup, we carefully source, roast, and brew every coffee bean for exceptional flavor.",
             "items": [
                 {
                     "icon": "☕",
-                    "title": "Single-Origin Beans",
-                    "description": "Sourced directly from small farms in Ethiopia, Colombia, and Guatemala.",
+                    "title": "Single-Origin Specialty Beans",
+                    "description": "We source specialty-grade coffee beans directly from farms in Ethiopia, Colombia, and Guatemala to ensure exceptional flavor and ethical sourcing.",
                 },
                 {
                     "icon": "🔥",
-                    "title": "Fresh-Roasted Daily",
-                    "description": "We roast every morning. What you drink was roasted hours ago, not months.",
+                    "title": "Fresh Coffee Roasted Daily",
+                    "description": "Our beans are roasted fresh every morning so your espresso, cappuccino, or latte is brewed from coffee roasted hours ago.",
                 },
                 {
                     "icon": "🌱",
-                    "title": "Sustainably Sourced",
-                    "description": "Fair trade certified. We pay farmers above-market prices and visit our partners.",
+                    "title": "Sustainably Sourced Coffee",
+                    "description": "We partner with ethical farms and fair-trade producers to support sustainable coffee growing and better farmer livelihoods.",
                 },
                 {
                     "icon": "🎓",
-                    "title": "Expert Baristas",
-                    "description": "Our team trains 40+ hours before their first shift. Coffee is a craft.",
+                    "title": "Expert Coffee Baristas",
+                    "description": "Our baristas train extensively in espresso extraction, milk steaming, and coffee brewing to deliver consistently excellent drinks.",
                 },
             ],
         }),
@@ -170,8 +170,8 @@ DEMO_SECTIONS = [
     (
         "cta",
         json.dumps({
-            "headline": "Ready for the Best Coffee of Your Day?",
-            "subheadline": "Walk in or order online. We're open 7am–7pm every day.",
+            "headline": "Visit Our Downtown Coffee Shop Today",
+            "subheadline": "Stop by for fresh-roasted specialty coffee, espresso drinks, and pastries. Open daily from 7am–7pm.",
             "button_label": "Get Directions",
             "button_href": "https://maps.google.com",
         }),
@@ -184,7 +184,7 @@ DEMO_SECTIONS = [
             "email": "hello@brewandbean.co",
             "phone": "+1 (555) 234-5678",
             "address": "42 Maple Street, Downtown, CA 94103",
-            "hours": "Mon–Fri 7am–7pm · Sat–Sun 8am–6pm",
+            "hours": "Mon–Fri 7am–7pm · Sat–Sun 9am–5pm",
         }),
         6,
     ),
@@ -210,6 +210,7 @@ async def seed_database() -> None:
                 password_hash=await hash_password("password123"),
                 is_admin=True,
                 email_verified=True,
+                plan="agency",
             )
             session.add(admin_user)
             await session.flush()

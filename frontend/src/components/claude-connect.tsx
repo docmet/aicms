@@ -39,7 +39,7 @@ export function ClaudeConnect({ token, clientId }: ClaudeConnectProps) {
   }
 
   const connectionParams = {
-    Name: 'AI CMS',
+    Name: 'MyStorey',
     'Server URL': clientId
       ? `${window.location.origin}/sse/${clientId}`
       : `${window.location.origin}/sse`,
