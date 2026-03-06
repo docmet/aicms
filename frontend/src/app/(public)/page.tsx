@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Check, Sparkles, Globe, Zap, ArrowRight, Star } from 'lucide-react';
+import { NavAuthButtons } from '@/components/nav-auth-buttons';
 
 const features = [
   {
@@ -106,15 +107,7 @@ export default function LandingPage() {
             <a href="#pricing" className="hover:text-gray-900 transition-colors">Pricing</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors px-3 py-1.5">
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              Get started free
-            </Link>
+            <NavAuthButtons />
           </div>
         </div>
       </header>
