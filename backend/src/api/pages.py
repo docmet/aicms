@@ -434,4 +434,8 @@ async def revert_page_to_version(
 
     await db.commit()
     await db.refresh(page)
+
+    # Broadcast the reverted sections so admin editor and preview update instantly.
+    await _broadcast_sections(page_id, db)
+
     return page
