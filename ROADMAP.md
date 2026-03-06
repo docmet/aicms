@@ -96,23 +96,75 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 ---
 
-## Phase 9: Content Expansion
+## Phase 9: Media & Files
 
-- Image upload + CDN hosting (Cloudflare R2 or S3-compatible)
-- Rich text sections (headings, lists, links in body)
-- Blog/posts system (date, author, slug, RSS)
-- Custom HTML/embed sections (advanced users)
-- Custom domain support (CNAME + SSL via Let's Encrypt)
+> **Foundational — unblocks layouts, blog, logos, and documents.**
+
+- File upload API with pluggable storage: local volume (dev) + Cloudflare R2 (prod)
+- Image uploads per site: logo, hero background, section images, favicon
+- File attachments: PDFs, downloadable documents
+- Media library per site (grid view, reuse assets across sections)
+- nginx serves local uploads at `/uploads/`; R2 public URL in prod
+- Image fields added to content schemas: hero bg, logo, about image, feature/testimonial images
+- MCP tools: `list_media`, `import_image_from_url`, `delete_media`
+- Plan limits: Free (50MB / 20 files), Pro (500MB), Agency (5GB)
 
 ---
 
-## Phase 10: Growth & Analytics
+## Phase 10: Design System Expansion
 
-- Site analytics: pageviews, referrers, top pages (self-hosted, privacy-first)
-- AI-powered SEO suggestions ("Your about section is missing keywords")
+> **Makes the builder feel like a real product. Section variants + more themes.**
+
+- Section layout variants:
+  - Hero: centered / image-left / image-right / fullscreen video
+  - Features: 2/3/4-col grid, icon list, alternating rows
+  - Testimonials: cards / carousel / masonry
+  - About: image-left / image-right / stats-only
+- Per-section background: white / gray / brand / image overlay
+- 5 new themes (10–12 total) with distinct layout personalities, not just color swaps
+- Font pairing selector: 5 curated heading+body combinations
+- Color accent customizer per site (primary / accent override)
+- Spacing/density control: compact / normal / spacious
+- MCP tool: `set_section_layout`
+
+---
+
+## Phase 11: Blog, Forms & Rich Content
+
+> **Content marketing + lead capture for every site on the platform.**
+
+- Blog post system: title, slug, excerpt, body (rich text JSON), author, tags, cover image, published_at
+- Blog index section + individual post pages at `/[site_slug]/blog/[slug]`
+- RSS feed at `/[site_slug]/feed.xml`
+- Contact form: real submissions with email notifications to site owner
+- Form submission inbox in admin dashboard (read/unread, delete)
+- Rich text body section (headings, lists, links, inline images)
+- Custom HTML/embed section (advanced users)
+- MCP tools: `create_post`, `list_posts`, `update_post`, `publish_post`, `delete_post`
+
+---
+
+## Phase 12: Static Site Generation & Hosting
+
+> **Architecture shift: published sites become static HTML served from CDN.**
+
+- On every publish: generate full static HTML snapshot (sections + theme + SEO)
+- Serve static output from Cloudflare R2/Pages — zero Next.js per user visit
+- Admin dashboard remains server-rendered (only public sites go static)
+- Custom domain support: CNAME → static site (SSL via Cloudflare proxy)
+- Groundwork for user site stacks on Coolify (containerized per-user, needed for contact forms / members / ecommerce backends per site)
+- Site-level publish ("publish all pages at once")
+
+---
+
+## Phase 13: Growth & Analytics
+
+- Self-hosted site analytics: pageviews, referrers, top pages (privacy-first, no cookies)
+- AI-powered SEO suggestions per section
 - Shareable preview URLs (token-protected, 24hr expiry)
 - Scheduled publishing (publish at specific datetime)
-- Industry-specific templates: Restaurant, Portfolio, Agency/SaaS, Services
+- Diff view between page versions
+- Industry-specific starter templates: Restaurant, Portfolio, Agency/SaaS, Freelancer
 
 ---
 
@@ -120,7 +172,7 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 **AI:**
 - AI translation for multilingual sites
-- AI image generation (DALL-E, Flux)
+- AI image generation (DALL-E / Flux via MCP tool)
 - Bulk site generation from document/spreadsheet
 - A/B testing (serve version A to 50% of visitors)
 
@@ -133,11 +185,15 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 **Sites:**
 - Password-protected pages (members-only)
-- Contact form builder with email notifications
 - eCommerce product pages (links to external cart)
 - Multilingual content with language switcher
-- Site-level publish ("deploy all pages at once")
-- Diff view between page versions
+- Blog: AI translation, scheduled posts, categories
+
+**WordPress Plugin (parallel track):**
+- WP plugin connecting WP sites to MyStorey MCP
+- Sync posts/pages → MyStorey content sections
+- Paid from day one ($X/mo)
+- `/wordpress` landing page
 
 ---
 
@@ -145,20 +201,20 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 | Phase | Status |
 |-------|--------|
-| Foundation | Done |
-| Backend | Done |
-| Frontend | Done |
-| Integration | Done |
-| MCP Server | Done |
-| Content Architecture + Renderer | Done |
-| Growth Features | Done |
-| Admin + Billing Foundation | Partial (Stripe pending) |
-| Stripe Integration | Next |
-| Email Service | Next |
-| WordPress Plugin | Parallel track |
-| Content Expansion | Planned |
-| Growth & Analytics | Planned |
+| Foundation | ✅ Done |
+| Backend | ✅ Done |
+| Frontend | ✅ Done |
+| Integration | ✅ Done |
+| MCP Server | ✅ Done |
+| Content Architecture + Renderer | ✅ Done |
+| Growth Features | ✅ Done |
+| Admin + Billing (Stripe + Email) | ✅ Done |
+| Phase 9 — Media & Files | 🔨 In progress |
+| Phase 10 — Design System Expansion | Planned |
+| Phase 11 — Blog, Forms & Rich Content | Planned |
+| Phase 12 — Static Site Generation | Planned |
+| Phase 13 — Growth & Analytics | Planned |
 
 ---
 
-**Last updated:** 2026-03-06
+**Last updated:** 2026-03-07
