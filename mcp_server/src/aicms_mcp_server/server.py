@@ -47,6 +47,8 @@ SECTION_DEFAULTS: Dict[str, Any] = {
             {"icon": "🔒", "title": "Secure", "description": "Enterprise-grade security"},
             {"icon": "📱", "title": "Responsive", "description": "Works on every device"},
         ],
+        # layout: grid-3 (default) | grid-2 | grid-4 | list
+        # background: default | white | gray | brand | dark
     },
     "testimonials": {
         "headline": "What our customers say",
@@ -59,6 +61,8 @@ SECTION_DEFAULTS: Dict[str, Any] = {
                 "avatar_url": None,  # Headshot: recommended 200×200 px square
             },
         ],
+        # layout: cards (default) | masonry | featured
+        # background: default (dark) | white | gray
     },
     "about": {
         "headline": "About Us",
@@ -69,6 +73,7 @@ SECTION_DEFAULTS: Dict[str, Any] = {
         ],
         # Optional: set image_url OR stats — image takes priority when both are set
         "image_url": None,  # About photo/illustration: recommended 1200×800 px
+        # layout: image-right (default) | image-left | stats-only
     },
     "contact": {
         "headline": "Get in Touch",
@@ -1068,11 +1073,20 @@ def _build_tools() -> list[Tool]:
             name="set_section_layout",
             description=(
                 "Change the layout variant of a section without overwriting its content. "
-                "Reads current draft content, patches the layout field, and saves. "
-                "Currently supported for the hero section:\n"
-                "• centered — full-width gradient, text centred (default)\n"
-                "• split — text on left, background_image on right — ideal for product shots\n"
-                "• fullscreen — 100vh height with strong background image overlay\n\n"
+                "Reads current draft content, patches the layout field, and saves.\n\n"
+                "Layout options by section type:\n"
+                "• hero: centered (default) | split | fullscreen\n"
+                "  - centered: full-width gradient, text centred\n"
+                "  - split: text left, background_image right — great for product shots\n"
+                "  - fullscreen: 100vh with strong bg image overlay\n"
+                "• features: grid-3 (default) | grid-2 | grid-4 | list\n"
+                "  - list: icon left + text right, single column — good for detailed feature lists\n"
+                "• testimonials: cards (default) | masonry | featured\n"
+                "  - masonry: Pinterest-style columns; featured: first quote large, rest below\n"
+                "• about: image-right (default) | image-left | stats-only\n"
+                "  - stats-only: full-width text + stats grid, no image column\n\n"
+                "You can also set `background` on features/testimonials: "
+                "default | white | gray | brand | dark\n\n"
                 "After setting layout, call publish_page to make the change live."
             ),
             inputSchema={
