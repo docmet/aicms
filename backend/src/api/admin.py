@@ -49,6 +49,8 @@ async def require_admin(
 class UserWithStats(BaseModel):
     id: UUID
     email: str
+    name: str | None
+    phone: str | None
     is_admin: bool
     plan: str
     site_count: int
@@ -77,6 +79,8 @@ class AdminSiteRow(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
+    name: str | None = None
+    phone: str | None = None
     email: EmailStr | None = None
     password: str | None = None
     is_admin: bool | None = None
@@ -143,6 +147,8 @@ async def list_users(
             UserWithStats(
                 id=user.id,
                 email=str(user.email),
+                name=user.name,  # type: ignore[arg-type]
+                phone=user.phone,  # type: ignore[arg-type]
                 is_admin=bool(user.is_admin),
                 plan=str(user.plan),
                 site_count=int(site_count),
@@ -193,6 +199,10 @@ async def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    if update.name is not None:
+        user.name = update.name  # type: ignore[assignment]
+    if update.phone is not None:
+        user.phone = update.phone  # type: ignore[assignment]
     if update.email is not None:
         user.email = update.email  # type: ignore[assignment]
     if update.password is not None:

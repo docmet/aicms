@@ -7,6 +7,8 @@ import api from '@/lib/api';
 interface User {
   id: string;
   email: string;
+  name: string | null;
+  phone: string | null;
   is_admin: boolean;
   plan: 'free' | 'pro' | 'agency';
   email_verified: boolean;

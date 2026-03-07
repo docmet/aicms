@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
-import { ArrowRight, Sparkles, Check, Loader2, Settings } from 'lucide-react';
+import { ArrowRight, Sparkles, Check, Loader2, Settings, Save } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const PLAN_CONFIG = {
   free: {
@@ -40,11 +41,30 @@ const PLAN_CONFIG = {
 };
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const { toast } = useToast();
   const plan = user?.plan ?? 'free';
   const config = PLAN_CONFIG[plan];
+
+  const [name, setName] = useState(user?.name ?? '');
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [saving, setSaving] = useState(false);
+
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState('');
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      await api.patch('/auth/me', { name: name.trim() || null, phone: phone.trim() || null });
+      await refreshUser();
+      toast({ title: 'Profile saved' });
+    } catch {
+      toast({ title: 'Failed to save profile', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handlePortal = async () => {
     setPortalLoading(true);
@@ -68,15 +88,45 @@ export default function SettingsPage() {
       {/* Account */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
         <h2 className="text-sm font-semibold text-gray-900">Account</h2>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Full name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your full name"
+            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Phone number</label>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+1 555 000 0000"
+            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          />
+        </div>
+
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1.5">Email address</label>
           <input
             value={user?.email ?? ''}
             disabled
-            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 bg-gray-50"
+            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-gray-50"
           />
-          <p className="text-xs text-gray-400 mt-1">Email cannot be changed.</p>
+          <p className="text-xs text-gray-400 mt-1">To change your email, contact support.</p>
         </div>
+
+        <button
+          onClick={handleSaveProfile}
+          disabled={saving}
+          className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+        >
+          {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+          Save changes
+        </button>
       </div>
 
       {/* Plan */}

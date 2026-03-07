@@ -119,6 +119,32 @@ async def get_me(current_user: Annotated[User, Depends(get_current_user)]) -> Us
     return current_user
 
 
+class UpdateProfileRequest(BaseModel):
+    name: str | None = None
+    phone: str | None = None
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    body: UpdateProfileRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> User:
+    """Update the current user's profile (name/phone — email requires admin)."""
+    changed = False
+    if body.name is not None:
+        current_user.name = body.name  # type: ignore[assignment]
+        changed = True
+    if body.phone is not None:
+        current_user.phone = body.phone  # type: ignore[assignment]
+        changed = True
+    if changed:
+        db.add(current_user)
+        await db.commit()
+        await db.refresh(current_user)
+    return current_user
+
+
 # ── Email verification ─────────────────────────────────────────────────────────
 
 

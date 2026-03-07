@@ -29,6 +29,8 @@ class UserInDB(UserBase):
     """Schema for user as stored in database."""
 
     id: UUID
+    name: str | None
+    phone: str | None
     is_admin: bool
     plan: UserPlan
     email_verified: bool
