@@ -49,7 +49,7 @@ All requirements below are shipped and confirmed working.
 - [x] **WP-06**: MCP tools available for WP: `wp_get_site_info`, `wp_update_site_settings`
 - [x] **WP-07**: `/wordpress` landing page with Matrix pill framing live on mystorey.io
 - [x] **WP-08**: Stripe checkout for WP plugin subscription ($7/mo Starter, $24/mo Pro)
-- [ ] **WP-09**: WP plugin connection flow tested end-to-end with Claude.ai and ChatGPT
+- [x] **WP-09**: WP plugin connection flow tested end-to-end with Claude.ai and ChatGPT
 
 ### Operator Admin MCP Tools
 
@@ -148,7 +148,7 @@ All requirements below are shipped and confirmed working.
 | WP-06 | Phase 15 | Complete |
 | WP-07 | Phase 15 | Complete |
 | WP-08 | Phase 15 | Complete |
-| WP-09 | Phase 15 | Pending |
+| WP-09 | Phase 15 | Complete |
 | AGCY-01 | Phase 16 | Pending |
 | AGCY-02 | Phase 16 | Pending |
 | AGCY-03 | Phase 16 | Pending |

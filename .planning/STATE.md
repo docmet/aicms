@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Ready
 status: executing
-stopped_at: Completed 15-02-PLAN.md (WP MCP tools + dispatch endpoint)
-last_updated: "2026-03-07T16:21:56.649Z"
+stopped_at: Completed 15-04-PLAN.md (WP PHP plugin zip + E2E test playbook)
+last_updated: "2026-03-07T17:34:07.470Z"
 last_activity: 2026-03-07 — Phase 14 planned (research → 7 plans → verified)
 progress:
   total_phases: 17
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
   percent: 14
 ---
 
@@ -56,6 +56,7 @@ Progress: [█░░░░░░░░░] 14%
 | Phase 15-wordpress-plugin P01 | 12min | 2 tasks | 9 files |
 | Phase 15-wordpress-plugin P03 | 6min | 2 tasks | 9 files |
 | Phase 15-wordpress-plugin P02 | 18min | 2 tasks | 8 files |
+| Phase 15-wordpress-plugin P04 | 8min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,7 @@ From PROJECT.md Key Decisions table — decisions affecting current work:
 - [Phase 15-wordpress-plugin]: AlertDialog not in shadcn/ui install — Dialog with open state used for WP site delete confirmation
 - [Phase 15-wordpress-plugin]: wp_starter/wp_pro billing: VALID_PLANS extended, 503 guard if Stripe price ID env var not set; checkout buttons show Coming soon if NEXT_PUBLIC_ var empty
 - [Phase 15-wordpress-plugin]: WP mcp_token auth in POST /mcp: check MCPClient first, then WordPressSite.mcp_token as fallback
+- [Phase 15-wordpress-plugin]: Plugin is a pure UX guide (no API calls from WP) — credentials entered in MyStorey dashboard only; download endpoint returns 404 with helpful message if build.sh not run
 
 ### Pending Todos
 
@@ -105,6 +107,6 @@ From CONCERNS.md — items relevant to Phase 14:
 
 ## Session Continuity
 
-Last session: 2026-03-07T16:21:56.647Z
-Stopped at: Completed 15-02-PLAN.md (WP MCP tools + dispatch endpoint)
+Last session: 2026-03-07T17:34:07.468Z
+Stopped at: Completed 15-04-PLAN.md (WP PHP plugin zip + E2E test playbook)
 Resume file: None
