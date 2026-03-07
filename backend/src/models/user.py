@@ -57,6 +57,7 @@ class User(Base):
 
     # Relationships
     sites = relationship("Site", back_populates="user", cascade="all, delete-orphan")
+    wordpress_sites = relationship("WordPressSite", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, plan={self.plan})>"
