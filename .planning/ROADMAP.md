@@ -145,7 +145,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1–13. Foundation | v1.0 | All | Complete | 2026-03-07 |
-| 14. Polish & Stability | 5/7 | In Progress|  | - |
+| 14. Polish & Stability | 6/7 | In Progress|  | - |
 | 15. WordPress Plugin | v1.1 | 0/TBD | Not started | - |
 | 16. Agency & Webshop | v1.1 | 0/TBD | Not started | - |
 | 17. Pricing, Affiliate & Launch | v1.1 | 0/TBD | Not started | - |

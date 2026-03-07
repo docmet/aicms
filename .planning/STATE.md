@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Ready
 status: executing
-stopped_at: Completed 14-04-PLAN.md (Sentry SDK integration)
-last_updated: "2026-03-07T13:57:21.040Z"
+stopped_at: Completed 14-05-PLAN.md (MCP tool description enrichment)
+last_updated: "2026-03-07T14:00:04.898Z"
 last_activity: 2026-03-07 — Phase 14 planned (research → 7 plans → verified)
 progress:
   total_phases: 17
   completed_phases: 0
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 14
 ---
 
@@ -51,6 +51,7 @@ Progress: [█░░░░░░░░░] 14%
 | Phase 14 P01 | 15m | 2 tasks | 4 files |
 | Phase 14-polish-stability P06 | 12 | 2 tasks | 2 files |
 | Phase 14 P04 | 4 | 2 tasks | 5 files |
+| Phase 14-polish-stability P05 | 15min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ From PROJECT.md Key Decisions table — decisions affecting current work:
 - [Phase 14-polish-stability]: Admin MCP tools verify access by catching 403 from /admin/stats — no new auth layer needed
 - [Phase 14]: traces_sample_rate=0.0 — errors only, no performance tracing cost until explicitly enabled
 - [Phase 14]: Sentry disabled via empty SENTRY_DSN string — safe local dev default, SENTRY_DSN already set in Coolify prod
+- [Phase 14-polish-stability]: delete_page and delete_site get destructiveHint=True to signal MCP clients to show confirmation UI
+- [Phase 14-polish-stability]: update_page warns about slug URL changes and directs AI to use publish_page for publishing (version snapshot)
+- [Phase 14-polish-stability]: revert_to_version only writes to draft — must call publish_page after to go live
 
 ### Pending Todos
 
@@ -89,6 +93,6 @@ From CONCERNS.md — items relevant to Phase 14:
 
 ## Session Continuity
 
-Last session: 2026-03-07T13:57:21.038Z
-Stopped at: Completed 14-04-PLAN.md (Sentry SDK integration)
+Last session: 2026-03-07T14:00:04.896Z
+Stopped at: Completed 14-05-PLAN.md (MCP tool description enrichment)
 Resume file: None
