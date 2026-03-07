@@ -41,13 +41,13 @@ All requirements below are shipped and confirmed working.
 
 ### WordPress Plugin
 
-- [ ] **WP-01**: PHP plugin installable via zip — settings page shows site URL and Application Password instructions
-- [ ] **WP-02**: Plugin generates and displays the MyStorey MCP URL for the user to paste into their AI client
+- [x] **WP-01**: PHP plugin installable via zip — settings page shows site URL and Application Password instructions
+- [x] **WP-02**: Plugin generates and displays the MyStorey MCP URL for the user to paste into their AI client
 - [x] **WP-03**: MCP server authenticates WP sites via Application Password stored in MyStorey
 - [ ] **WP-04**: MCP tools available for WP: `wp_list_pages`, `wp_get_page`, `wp_update_page`, `wp_create_page`, `wp_publish_page`
 - [ ] **WP-05**: MCP tools available for WP: `wp_list_posts`, `wp_update_post`, `wp_create_post`, `wp_publish_post`
 - [ ] **WP-06**: MCP tools available for WP: `wp_get_site_info`, `wp_update_site_settings`
-- [ ] **WP-07**: `/wordpress` landing page with Matrix pill framing live on mystorey.io
+- [x] **WP-07**: `/wordpress` landing page with Matrix pill framing live on mystorey.io
 - [x] **WP-08**: Stripe checkout for WP plugin subscription ($7/mo Starter, $24/mo Pro)
 - [ ] **WP-09**: WP plugin connection flow tested end-to-end with Claude.ai and ChatGPT
 
@@ -140,13 +140,13 @@ All requirements below are shipped and confirmed working.
 | OPS-01 | Phase 14 | Complete |
 | OPS-02 | Phase 14 | Complete |
 | OPS-03 | Phase 14 | Complete |
-| WP-01 | Phase 15 | Pending |
-| WP-02 | Phase 15 | Pending |
+| WP-01 | Phase 15 | Complete |
+| WP-02 | Phase 15 | Complete |
 | WP-03 | Phase 15 | Complete |
 | WP-04 | Phase 15 | Pending |
 | WP-05 | Phase 15 | Pending |
 | WP-06 | Phase 15 | Pending |
-| WP-07 | Phase 15 | Pending |
+| WP-07 | Phase 15 | Complete |
 | WP-08 | Phase 15 | Complete |
 | WP-09 | Phase 15 | Pending |
 | AGCY-01 | Phase 16 | Pending |

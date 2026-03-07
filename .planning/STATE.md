@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Ready
 status: executing
-stopped_at: Completed 15-01-PLAN.md (WordPressSite model, WP REST client, CRUD API)
-last_updated: "2026-03-07T16:12:14.541Z"
+stopped_at: Completed 15-03-PLAN.md (WordPress frontend + billing plans)
+last_updated: "2026-03-07T16:21:30.204Z"
 last_activity: 2026-03-07 — Phase 14 planned (research → 7 plans → verified)
 progress:
   total_phases: 17
   completed_phases: 1
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 10
   percent: 14
 ---
 
@@ -54,6 +54,7 @@ Progress: [█░░░░░░░░░] 14%
 | Phase 14-polish-stability P05 | 15min | 1 tasks | 1 files |
 | Phase 14-polish-stability P02 | 10min | 2 tasks | 6 files |
 | Phase 15-wordpress-plugin P01 | 12min | 2 tasks | 9 files |
+| Phase 15-wordpress-plugin P03 | 6min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,9 @@ From PROJECT.md Key Decisions table — decisions affecting current work:
 - [Phase 14-polish-stability]: Tailwind grid-cols-1 sm:grid-cols-N pattern established for all section editor two/three-column grids
 - [Phase 15-wordpress-plugin]: app_password_encrypted column stores plaintext for now; encryption layer deferred
 - [Phase 15-wordpress-plugin]: mcp_token rotated automatically on credential change in WP site PATCH
+- [Phase 15-wordpress-plugin]: Server/client split for landing page: page.tsx exports metadata, WordPressLanding.tsx handles hooks
+- [Phase 15-wordpress-plugin]: AlertDialog not in shadcn/ui install — Dialog with open state used for WP site delete confirmation
+- [Phase 15-wordpress-plugin]: wp_starter/wp_pro billing: VALID_PLANS extended, 503 guard if Stripe price ID env var not set; checkout buttons show Coming soon if NEXT_PUBLIC_ var empty
 
 ### Pending Todos
 
@@ -99,6 +103,6 @@ From CONCERNS.md — items relevant to Phase 14:
 
 ## Session Continuity
 
-Last session: 2026-03-07T16:12:09.612Z
-Stopped at: Completed 15-01-PLAN.md (WordPressSite model, WP REST client, CRUD API)
+Last session: 2026-03-07T16:21:30.202Z
+Stopped at: Completed 15-03-PLAN.md (WordPress frontend + billing plans)
 Resume file: None
