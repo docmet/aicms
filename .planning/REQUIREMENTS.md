@@ -36,7 +36,7 @@ All requirements below are shipped and confirmed working.
 - [x] **PLSH-02**: Image field UX — clear upload/paste/URL flow with dimension hints visible
 - [ ] **PLSH-03**: Admin editor is usable on mobile (hamburger, scrollable editors)
 - [x] **PLSH-04**: Slug uniqueness enforced at DB level (unique constraint, no race condition)
-- [ ] **PLSH-05**: Structured error logging with Sentry integration in production
+- [x] **PLSH-05**: Structured error logging with Sentry integration in production
 - [ ] **PLSH-06**: MCP tool descriptions and response copy enriched with richer examples and field hints
 
 ### WordPress Plugin
@@ -135,7 +135,7 @@ All requirements below are shipped and confirmed working.
 | PLSH-02 | Phase 14 | Complete |
 | PLSH-03 | Phase 14 | Pending |
 | PLSH-04 | Phase 14 | Complete |
-| PLSH-05 | Phase 14 | Pending |
+| PLSH-05 | Phase 14 | Complete |
 | PLSH-06 | Phase 14 | Pending |
 | OPS-01 | Phase 14 | Complete |
 | OPS-02 | Phase 14 | Complete |

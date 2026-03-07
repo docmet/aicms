@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Ready
 status: executing
-stopped_at: Completed 14-polish-stability 14-06-PLAN.md
-last_updated: "2026-03-07T13:57:15.881Z"
+stopped_at: Completed 14-04-PLAN.md (Sentry SDK integration)
+last_updated: "2026-03-07T13:57:21.040Z"
 last_activity: 2026-03-07 — Phase 14 planned (research → 7 plans → verified)
 progress:
   total_phases: 17
@@ -72,6 +72,8 @@ From PROJECT.md Key Decisions table — decisions affecting current work:
 - [Phase 14-polish-stability]: create_page wraps db.commit() in try/except IntegrityError returning 409, alongside SELECT fast-path for race-condition safety
 - [Phase 14-polish-stability]: trigger_deployment is a stub explaining GitHub Actions flow — Coolify API wiring deferred to per-user site deployment phase
 - [Phase 14-polish-stability]: Admin MCP tools verify access by catching 403 from /admin/stats — no new auth layer needed
+- [Phase 14]: traces_sample_rate=0.0 — errors only, no performance tracing cost until explicitly enabled
+- [Phase 14]: Sentry disabled via empty SENTRY_DSN string — safe local dev default, SENTRY_DSN already set in Coolify prod
 
 ### Pending Todos
 
@@ -87,6 +89,6 @@ From CONCERNS.md — items relevant to Phase 14:
 
 ## Session Continuity
 
-Last session: 2026-03-07T13:57:04.243Z
-Stopped at: Completed 14-polish-stability 14-06-PLAN.md
+Last session: 2026-03-07T13:57:21.038Z
+Stopped at: Completed 14-04-PLAN.md (Sentry SDK integration)
 Resume file: None
