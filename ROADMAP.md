@@ -73,26 +73,36 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 ## Up Next
 
-### Stripe Integration
-- Replace Revolut billing stub with Stripe Checkout
-- Stripe webhook: handle `checkout.session.completed`, `customer.subscription.deleted`
-- Customer portal link (manage/cancel subscription)
-- Stripe Tax (automatic EU VAT calculation)
-- Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, `STRIPE_AGENCY_PRICE_ID`
+### Phase 14: Polish & Refinements
+- UI/UX improvements: section editor quality, image field UX, mobile editor
+- `generate_section` MCP tool: real AI content generation (currently placeholder)
+- Email verification flow + password reset
+- Slug uniqueness DB constraint (race condition fix)
+- Structured logging + error monitoring (Sentry)
+- Performance: index `site.slug` / `page.slug`, fix N+1 badge query, Redis cache for public data
 
-### Email Service
-- Mailpit container for local dev (port 8025, web UI)
-- Mail-in-a-Box (docmet.systems) for staging/prod SMTP
-- Transactional emails: welcome, plan upgrade confirmation, plan limit reached, publish confirmation
-- Backend: `src/services/email.py` using SMTP (aiosmtplib or similar)
+### Phase 15: WordPress Plugin
+- WP plugin (PHP): settings page, Application Password setup, copy-MCP-URL
+- WP tool handlers in existing MCP server (`httpx` calls to `wp-json/wp/v2/*`)
+- Tools: list/create/update pages, posts, settings, publish, list versions, revert
+- Pricing: $9/mo (1 site) / $29/mo (5 sites + WooCommerce)
+- `/wordpress` landing page with Matrix pill framing
+- Stripe checkout reused from existing billing infra
+- See `.planning/research/wordpress-mcp-plugin-opportunity.md` for full plan
 
-### WordPress Plugin (parallel track)
-- WP plugin: connects WP sites to MyStorey MCP
-- Sync posts/pages → MyStorey content sections
-- Paid from day one ($X/mo, managed WP hosting pitch)
-- 2-3 day build: plugin scaffold → MCP bridge → payment
-- `/wordpress` landing page with Matrix pill angle ("stay in WordPress, add AI superpowers")
-- See `.planning/research/wordpress-mcp-plugin-opportunity.md`
+### Phase 16: Agency / White-Label Track
+- Serve existing docmet.com client sites on MyStorey engine
+- Internal tool: migrate existing sites from legacy to MyStorey
+- White-label option: custom branding + domain per agency seat
+- WooCommerce-style product pages (external cart link)
+- Password-protected pages (members-only content)
+
+### Phase 17: Public Launch
+- mystorey.io public launch (landing page, blog, pricing page live)
+- Onboarding funnel: sign up → create site → connect AI → publish in under 10 min
+- AI tool connection guide for Claude, ChatGPT, Perplexity
+- Social proof: 3 real client sites live as case studies
+- Product Hunt / Hacker News launch post
 
 ---
 
@@ -220,6 +230,10 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 | Phase 11 — Blog, Forms & Rich Content | ✅ Done |
 | Phase 12 — Static Site Generation | 🔨 In progress |
 | Phase 13 — Growth & Analytics | ✅ Done |
+| Phase 14 — Polish & Refinements | 📋 Planned |
+| Phase 15 — WordPress Plugin | 📋 Planned |
+| Phase 16 — Agency / White-Label | 📋 Planned |
+| Phase 17 — Public Launch | 📋 Planned |
 
 ---
 

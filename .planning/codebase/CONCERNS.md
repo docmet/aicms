@@ -54,16 +54,19 @@
 
 ## Missing Features (Production Gaps)
 
-- **Email verification** — no flow exists
-- **Password reset** — no flow exists
-- **Billing integration** — pricing tiers in DB but no Stripe/payment provider
-- **Custom domains** — Pro plan promises custom domains; not implemented
-- **AI automations** — Agency plan feature; not implemented
-- **File/image uploads** — no object storage integration
+- **Email verification** — no flow exists (planned Phase 14)
+- **Password reset** — no flow exists (planned Phase 14)
+- **AI automations** — Agency plan feature; `generate_section` is a placeholder (planned Phase 14)
 - **API rate limiting** (fine-grained) — nginx has generic limits but no per-user or per-endpoint limits
-- **Structured logging / observability** — no structured logs, no tracing, no error monitoring (e.g., Sentry)
+- **Structured logging / observability** — no structured logs, no tracing, no error monitoring (Sentry planned Phase 14)
 - **Backup / restore** — no export/import for site content
 - **Graceful MCP server degradation** — site creation fails hard if MCP server is down
+- **Static HTML snapshot generation** — Phase 12 partial; Cloudflare R2/Pages serving not yet implemented
+
+### Resolved (no longer gaps)
+- ~~Billing integration~~ — Stripe Checkout + webhook + Customer Portal done (Phase 8)
+- ~~Custom domains~~ — `domain` field on Site + Settings UI + MCP tool done (Phase 12)
+- ~~File/image uploads~~ — Cloudflare R2 + local volume storage done (Phase 9)
 
 ## Dependency Concerns
 
