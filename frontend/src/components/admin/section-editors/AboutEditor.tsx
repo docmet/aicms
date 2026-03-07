@@ -59,7 +59,7 @@ export function AboutEditor({ siteId, content, onChange }: Props) {
             <Plus size={14} className="mr-1" /> Add Stat
           </Button>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {stats.map((stat, i) => (
             <div key={i} className="flex gap-2 p-2 border rounded-lg bg-muted/30 items-center">
               <div className="flex-1 space-y-1">

@@ -624,7 +624,7 @@ export default function SiteEditorPage({
           </Button>
           <h1 className="text-2xl font-bold">{site.name}</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/dashboard/sites/${site_id}/analytics`}>
               <BarChart2 size={16} className="mr-1.5" /> Analytics
@@ -691,7 +691,7 @@ export default function SiteEditorPage({
           }
         }}
       >
-        <TabsList className="grid w-full max-w-lg grid-cols-4">
+        <TabsList className="grid w-full sm:max-w-lg grid-cols-4">
           <TabsTrigger value="content">
             <Type size={14} className="mr-1.5" /> Content
           </TabsTrigger>

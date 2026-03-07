@@ -24,7 +24,7 @@ export function ContactEditor({ content, onChange }: Props) {
         <Label>Section Headline</Label>
         <Input value={content.headline || ""} onChange={(e) => set({ headline: e.target.value })} placeholder='e.g. "Get in Touch"' />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Email</Label>
           <Input type="email" value={content.email || ""} onChange={(e) => set({ email: e.target.value })} placeholder="hello@example.com" />

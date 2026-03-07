@@ -60,7 +60,7 @@ export function HeroEditor({ siteId, content, onChange }: Props) {
         <Label>Badge</Label>
         <Input value={content.badge || ""} onChange={(e) => set({ badge: e.target.value })} placeholder='e.g. "Now in beta"' />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <p className="text-sm font-medium">Primary Button</p>
           <Input value={content.cta_primary?.label || ""} onChange={(e) => setCta("cta_primary", { label: e.target.value })} placeholder="Label" />

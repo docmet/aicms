@@ -50,7 +50,7 @@ export function PricingEditor({ content, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Headline</Label>
           <Input value={content.headline || ""} onChange={(e) => set({ headline: e.target.value })} placeholder="Pricing" />
@@ -83,12 +83,12 @@ export function PricingEditor({ content, onChange }: Props) {
                   <Trash2 size={14} />
                 </Button>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Input value={plan.name} onChange={(e) => setPlan(i, { name: e.target.value })} placeholder="Plan name *" className="text-sm" />
                 <Input value={plan.price} onChange={(e) => setPlan(i, { price: e.target.value })} placeholder='Price e.g. "$29"' className="text-sm" />
                 <Input value={plan.period || ""} onChange={(e) => setPlan(i, { period: e.target.value })} placeholder='Period e.g. "/month"' className="text-sm" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <Input value={plan.cta_label || ""} onChange={(e) => setPlan(i, { cta_label: e.target.value })} placeholder="Button label" className="text-sm" />
                 <Input value={plan.cta_href || ""} onChange={(e) => setPlan(i, { cta_href: e.target.value })} placeholder="Button URL" className="text-sm" />
               </div>
