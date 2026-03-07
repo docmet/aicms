@@ -2,10 +2,12 @@
 
 import os
 import secrets
+from pathlib import Path
 from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +24,22 @@ from src.schemas.wordpress import (
 from src.services.wordpress_client import WordPressClient
 
 router = APIRouter(prefix="/wordpress", tags=["wordpress"])
+
+
+@router.get("/plugin/download")
+async def download_plugin() -> FileResponse:
+    """Serve the WordPress plugin zip file for download."""
+    plugin_path = Path(__file__).parent.parent.parent.parent.parent / "wp-plugin" / "mystorey-connector.zip"
+    if not plugin_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Plugin zip not found. Run wp-plugin/build.sh first.",
+        )
+    return FileResponse(
+        path=str(plugin_path),
+        media_type="application/zip",
+        filename="mystorey-connector.zip",
+    )
 
 
 @router.post("/sites", response_model=WordPressSiteResponse, status_code=status.HTTP_201_CREATED)
