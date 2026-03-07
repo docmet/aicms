@@ -71,7 +71,7 @@ Commands:
   db:migrate           Run database migrations
   db:seed              Seed the database
   db:reset             Reset database (drop, create, migrate, seed)
-  make:admin <email>   Promote a registered user to admin
+  make:admin <email> [dev|staging|prod]   Promote a registered user to admin (default: dev)
   clean-db             Remove database volume only
   
   build                Build Docker images for production
@@ -365,16 +365,17 @@ db_seed_command() {
 
 make_admin_command() {
   local email="${2:-}"
+  local env="${3:-dev}"  # dev (default) | staging | prod
+
   if [[ -z "$email" ]]; then
-    log_error "Usage: ./cli.sh make:admin <email>"
+    log_error "Usage: ./cli.sh make:admin <email> [dev|staging|prod]"
+    log_info "  dev (default): runs against local Docker stack"
+    log_info "  staging/prod:  runs against remote Coolify container via SSH"
     exit 1
   fi
 
-  local compose_cmd
-  compose_cmd="$(compose_cmd)"
-
-  log_info "Promoting $email to admin..."
-  ${compose_cmd} -f "${COMPOSE_DEV}" exec backend python - <<PYEOF
+  local python_script
+  python_script=$(cat <<'PYEOF'
 import asyncio, sys
 sys.path.insert(0, "/app")
 from sqlalchemy import select
@@ -383,7 +384,7 @@ from src.models.user import User
 
 async def run():
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.email == "$email"))
+        result = await db.execute(select(User).where(User.email == "EMAIL_PLACEHOLDER"))
         user = result.scalar_one_or_none()
         if not user:
             print("ERROR: User not found — register via the UI first, then re-run this command")
@@ -398,6 +399,45 @@ async def run():
 
 asyncio.run(run())
 PYEOF
+)
+  python_script="${python_script//EMAIL_PLACEHOLDER/$email}"
+
+  if [[ "$env" == "dev" ]]; then
+    local compose_cmd
+    compose_cmd="$(compose_cmd)"
+    log_info "Promoting $email to admin (local dev)..."
+    echo "$python_script" | ${compose_cmd} -f "${COMPOSE_DEV}" exec -T backend python -
+
+  else
+    # Remote: SSH into the server and exec into the running backend container
+    local ssh_host="docmet@144.76.198.26"
+    local container_name
+
+    if [[ "$env" == "staging" ]]; then
+      container_name="mystorey-staging"
+    elif [[ "$env" == "prod" ]]; then
+      container_name="mystorey-production"
+    else
+      log_error "Unknown env '$env'. Use: dev | staging | prod"
+      exit 1
+    fi
+
+    log_info "Promoting $email to admin ($env via SSH)..."
+    # Find the actual running container on the remote host matching the app name
+    local container_id
+    container_id=$(ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR "$ssh_host" \
+      "docker ps --filter name=$container_name --filter name=backend --format '{{.ID}}' | head -1")
+
+    if [[ -z "$container_id" ]]; then
+      log_error "No running backend container found matching '$container_name' on remote host"
+      log_info "Check running containers with: ssh $ssh_host docker ps"
+      exit 1
+    fi
+
+    log_info "Found container: $container_id"
+    echo "$python_script" | ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR "$ssh_host" \
+      "docker exec -i $container_id python -"
+  fi
 }
 
 db_reset_command() {
