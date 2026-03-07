@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # JWT
     jwt_secret: str = "your-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"
-    jwt_expiration_minutes: int = 30
+    jwt_expiration_minutes: int = 1440  # 24 hours
 
     # Application
     frontend_url: str = "http://localhost:3000"

@@ -634,16 +634,22 @@ export default function SiteEditorPage({
             variant="outline"
             size="sm"
             onClick={async () => {
+              let full = '';
               try {
                 const res = await api.post(`/sites/${site_id}/share`, {
                   page_id: currentPage?.id ?? null,
                 });
                 const { url } = res.data as { url: string };
-                const full = `${window.location.origin}${url}`;
+                full = `${window.location.origin}${url}`;
+              } catch {
+                toast({ title: "Error", description: "Failed to create share link.", variant: "destructive" });
+                return;
+              }
+              try {
                 await navigator.clipboard.writeText(full);
                 toast({ title: "Share link copied!", description: "Link expires in 24 hours." });
               } catch {
-                toast({ title: "Error", description: "Failed to create share link.", variant: "destructive" });
+                toast({ title: "Share link created", description: full, duration: 10000 });
               }
             }}
           >
