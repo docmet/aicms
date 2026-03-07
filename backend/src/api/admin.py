@@ -5,6 +5,7 @@ Requires is_admin=True on the authenticated user.
 Routes (all under /api/admin):
   GET  /stats                    — platform-wide counts
   GET  /users                    — list all users with site count
+  GET  /sites                    — list all active sites across all users
   PATCH /users/{user_id}         — update email / password / is_admin
   DELETE /users/{user_id}        — delete user + all their data
   POST /impersonate/{user_id}    — get a short-lived JWT for any user (admin only)
@@ -59,6 +60,18 @@ class PlatformStats(BaseModel):
     total_sites: int
     total_pages: int
     total_sections: int
+
+
+class AdminSiteRow(BaseModel):
+    id: UUID
+    name: str
+    slug: str
+    user_email: str
+    user_plan: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class AdminUserUpdate(BaseModel):
@@ -132,6 +145,34 @@ async def list_users(
                 plan=str(user.plan),
                 site_count=int(site_count),
                 created_at=user.created_at,  # type: ignore[arg-type]
+            )
+        )
+    return result
+
+
+@router.get("/sites", response_model=list[AdminSiteRow])
+async def list_all_sites_admin(
+    _: Annotated[User, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[AdminSiteRow]:
+    """List all active sites across all users — admin only."""
+    rows = await db.execute(
+        select(Site, User.email, User.plan)  # type: ignore[call-overload]
+        .join(User, Site.user_id == User.id)
+        .where(Site.is_deleted.is_(False))
+        .order_by(Site.updated_at.desc())
+    )
+    result = []
+    for site, email, plan in rows.all():
+        result.append(
+            AdminSiteRow(
+                id=site.id,
+                name=site.name,
+                slug=site.slug,
+                user_email=str(email),
+                user_plan=str(plan),
+                created_at=site.created_at,
+                updated_at=site.updated_at,
             )
         )
     return result
