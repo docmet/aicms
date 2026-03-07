@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 import Link from 'next/link';
@@ -14,12 +14,14 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, loading, login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from') || '/dashboard';
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard');
+      router.push(from);
     }
-  }, [loading, user, router]);
+  }, [loading, user, router, from]);
 
   if (loading || user) {
     return (
@@ -42,7 +44,7 @@ export default function LoginPage() {
       const response = await api.post('/auth/login', formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
-      login(response.data.access_token);
+      login(response.data.access_token, from);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
       setError(e.response?.data?.detail || 'Incorrect email or password.');

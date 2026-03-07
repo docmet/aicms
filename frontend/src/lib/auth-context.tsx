@@ -15,7 +15,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (token: string) => void;
+  login: (token: string, redirectTo?: string) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -41,7 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Failed to fetch user', error);
         localStorage.removeItem('token');
-        router.push('/login');
+        const from = encodeURIComponent(window.location.pathname + window.location.search);
+        router.push(`/login?from=${from}`);
       } finally {
         setLoading(false);
       }
@@ -50,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, [router]);
 
-  const login = (token: string) => {
+  const login = (token: string, redirectTo?: string) => {
     localStorage.setItem('token', token);
     setLoading(true);
     api
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((response) => {
         setUser(response.data);
         setLoading(false);
-        router.push('/dashboard');
+        router.push(redirectTo || '/dashboard');
       })
       .catch(() => {
         localStorage.removeItem('token');

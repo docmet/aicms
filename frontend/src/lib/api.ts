@@ -21,4 +21,21 @@ api.interceptors.request.use(
   }
 );
 
+// Global 401 handler — redirect to login with return URL
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      error.response?.status === 401 &&
+      typeof window !== 'undefined' &&
+      !error.config?.url?.includes('/auth/')
+    ) {
+      localStorage.removeItem('token');
+      const from = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/login?from=${from}`;
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
