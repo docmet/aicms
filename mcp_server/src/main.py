@@ -462,8 +462,22 @@ async def mcp_generic_endpoint(
         tool_args = params.get("arguments", {})
 
         if tool_name in WP_TOOLS:
-            # The bearer token IS the wp mcp_token — proxy to backend dispatch
-            effective_wp_token = wp_token if wp_token else token
+            # Resolve the WP site mcp_token:
+            # - Direct WP token auth: wp_token is already the site's mcp_token
+            # - OAuth (ChatGPT/Claude) auth: look up the user's active WP site
+            if wp_token:
+                effective_wp_token = wp_token
+            else:
+                wp_row = await db.execute(
+                    select(WordPressSite)
+                    .where(WordPressSite.user_id == authed_client.user_id)  # type: ignore[union-attr]
+                    .where(WordPressSite.is_active.is_(True))
+                    .limit(1)
+                )
+                user_wp_site = wp_row.scalar_one_or_none()
+                if not user_wp_site:
+                    return ok({"content": [{"type": "text", "text": "No WordPress site connected to your MyStorey account. Visit the dashboard to add one."}], "isError": True})
+                effective_wp_token = str(user_wp_site.mcp_token)
             wp_call_result = await _call_wp_tool(effective_wp_token, tool_name, tool_args)
             return ok({"content": [{"type": "text", "text": wp_call_result}], "isError": False})
 
