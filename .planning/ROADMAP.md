@@ -112,7 +112,13 @@ Plans:
   3. Claude can create, update, and publish a WordPress page and blog post via MCP tools with no manual steps
   4. The `/wordpress` landing page on mystorey.io is live with Matrix pill framing and a Stripe checkout link
   5. The plugin connection flow works identically with ChatGPT (Developer mode) — end-to-end test passes
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — Backend: WordPressSite model, Alembic migration, WP REST client service, WordPress API router
+- [ ] 15-02-PLAN.md — MCP server: 10 WordPress tools + backend WP-MCP dispatch endpoint
+- [ ] 15-03-PLAN.md — Frontend: WordPress dashboard registration UI + /wordpress landing page
+- [ ] 15-04-PLAN.md — WordPress PHP plugin zip + E2E connection test playbook
 
 ### Phase 16: Agency & Webshop
 **Goal**: Agency client sites on MyStorey can sell products via embedded payment links, and the internal migration path is documented and proven with 3 live client sites
@@ -146,6 +152,6 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1–13. Foundation | v1.0 | All | Complete | 2026-03-07 |
 | 14. Polish & Stability | 7/7 | Complete   | 2026-03-07 | - |
-| 15. WordPress Plugin | v1.1 | 0/TBD | Not started | - |
+| 15. WordPress Plugin | v1.1 | 0/4 | Planned | - |
 | 16. Agency & Webshop | v1.1 | 0/TBD | Not started | - |
 | 17. Pricing, Affiliate & Launch | v1.1 | 0/TBD | Not started | - |
