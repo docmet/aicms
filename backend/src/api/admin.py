@@ -157,7 +157,7 @@ async def list_all_sites_admin(
 ) -> list[AdminSiteRow]:
     """List all active sites across all users — admin only."""
     rows = await db.execute(
-        select(Site, User.email, User.plan)  # type: ignore[call-overload]  # type: ignore[call-overload]
+        select(Site, User.email, User.plan)  # type: ignore[call-overload]
         .join(User, Site.user_id == User.id)
         .where(Site.is_deleted.is_(False))
         .order_by(Site.updated_at.desc())
