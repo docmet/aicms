@@ -60,6 +60,12 @@ add_action( 'admin_menu', function() {
     );
 });
 
+add_filter( 'plugin_action_links_mystorey-connector/mystorey-connector.php', function( $links ) {
+    $settings_link = '<a href="' . esc_url( admin_url( 'options-general.php?page=' . MYSTOREY_SETTINGS_PAGE ) ) . '"><strong>Settings</strong></a>';
+    array_unshift( $links, $settings_link );
+    return $links;
+});
+
 add_action( 'admin_enqueue_scripts', function( $hook ) {
     if ( $hook !== 'settings_page_mystorey-connector' ) return;
     wp_add_inline_script( 'jquery-core', '
