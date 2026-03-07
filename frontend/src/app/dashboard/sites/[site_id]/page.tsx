@@ -647,10 +647,11 @@ export default function SiteEditorPage({
               }
               try {
                 await navigator.clipboard.writeText(full);
-                toast({ title: "Share link copied!", description: "Link expires in 24 hours." });
               } catch {
-                toast({ title: "Share link created", description: full, duration: 10000 });
+                // Clipboard unavailable — open the share link directly
+                window.open(full, '_blank');
               }
+              toast({ title: "Share link copied!", description: "Link expires in 24 hours." });
             }}
           >
             <Share2 size={14} className="mr-1.5" /> Share Draft
