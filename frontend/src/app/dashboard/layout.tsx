@@ -66,21 +66,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {showImpersonationBar && (
-        <div className="bg-violet-600 px-4 py-2 flex items-center justify-between gap-4 text-sm text-white shrink-0">
-          <div className="flex items-center gap-2">
-            <ShieldAlert size={15} className="flex-shrink-0" />
-            <span>
-              Viewing as <span className="font-semibold">{user.email}</span>
-            </span>
+        <>
+          <div className="fixed top-0 left-0 right-0 z-50 bg-violet-600 px-4 py-2 flex items-center justify-between gap-4 text-sm text-white">
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={15} className="flex-shrink-0" />
+              <span>
+                Viewing as <span className="font-semibold">{user.email}</span>
+              </span>
+            </div>
+            <button
+              onClick={handleReturnToAdmin}
+              className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 rounded px-2.5 py-1 font-medium text-xs transition-colors flex-shrink-0"
+            >
+              <X size={12} />
+              Back to Admin
+            </button>
           </div>
-          <button
-            onClick={handleReturnToAdmin}
-            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 rounded px-2.5 py-1 font-medium text-xs transition-colors flex-shrink-0"
-          >
-            <X size={12} />
-            Back to Admin
-          </button>
-        </div>
+          {/* spacer to push content below fixed bar */}
+          <div className="h-9 shrink-0" />
+        </>
       )}
       <div className="flex flex-1 overflow-hidden">
         <DashboardSidebar />
