@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -31,6 +32,13 @@ from src.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# ── Sentry error monitoring ────────────────────────────────────────────────────
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        traces_sample_rate=0.0,  # Errors only — enable traces when needed
+    )
 
 
 async def _run_scheduled_publishes() -> None:
