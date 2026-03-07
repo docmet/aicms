@@ -844,15 +844,16 @@ def _build_tools() -> list[Tool]:
         Tool(
             name="delete_site",
             description=(
-                "Permanently delete a site and all its pages. "
-                "Always confirm with the user before calling — this cannot be undone."
+                "Permanently delete an entire site including all pages and sections (soft-delete). "
+                "This cannot be undone. Always get explicit confirmation from the user before calling. "
+                "Consider describing what will be lost (site name, number of pages)."
             ),
             inputSchema={
                 "type": "object",
-                "properties": {"site_id": {"type": "string"}},
+                "properties": {"site_id": {"type": "string", "description": "ID of the site to delete (from list_sites)"}},
                 "required": ["site_id"],
             },
-            annotations=ToolAnnotations(destructiveHint=False),
+            annotations=ToolAnnotations(destructiveHint=True),
         ),
         # ── Pages ──────────────────────────────────────────────────────────
         Tool(
@@ -889,15 +890,26 @@ def _build_tools() -> list[Tool]:
         ),
         Tool(
             name="update_page",
-            description="Update page title, slug, or publish status.",
+            description=(
+                "Update a page's title, URL slug, or published status. "
+                "Confirm slug changes with the user first — changing a slug changes the public URL and may break existing links. "
+                "To publish a page (make it live), use publish_page instead — it also creates a version snapshot. "
+                "Use is_published: false to unpublish (take offline without deleting)."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "site_id": {"type": "string"},
-                    "page_id": {"type": "string"},
-                    "title": {"type": "string"},
-                    "slug": {"type": "string"},
-                    "is_published": {"type": "boolean"},
+                    "site_id": {"type": "string", "description": "ID of the site containing the page (from list_sites or get_site_info)"},
+                    "page_id": {"type": "string", "description": "ID of the page to update (from list_pages or get_site_info)"},
+                    "title": {"type": "string", "description": "New page title, e.g. 'About Us'"},
+                    "slug": {
+                        "type": "string",
+                        "description": "New URL slug — lowercase letters and hyphens only, e.g. 'about-us'. WARNING: changing the slug changes the public URL and may break bookmarks or links.",
+                    },
+                    "is_published": {
+                        "type": "boolean",
+                        "description": "Set false to unpublish (take offline). To publish, prefer using publish_page which also creates a version snapshot.",
+                    },
                 },
                 "required": ["site_id", "page_id"],
             },
@@ -905,22 +917,28 @@ def _build_tools() -> list[Tool]:
         ),
         Tool(
             name="delete_page",
-            description="Delete a page. Confirm with the user if the page has content.",
+            description=(
+                "Permanently remove a page from a site (soft-delete). "
+                "This cannot be undone from the MCP interface — the page and all its content sections are deleted. "
+                "Always confirm with the user before calling this. "
+                "If you want to hide a page temporarily, use update_page with is_published: false instead."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "site_id": {"type": "string"},
-                    "page_id": {"type": "string"},
+                    "site_id": {"type": "string", "description": "ID of the site containing the page"},
+                    "page_id": {"type": "string", "description": "ID of the page to delete (from list_pages or get_site_info)"},
                 },
                 "required": ["site_id", "page_id"],
             },
-            annotations=ToolAnnotations(destructiveHint=False),
+            annotations=ToolAnnotations(destructiveHint=True),
         ),
         Tool(
             name="publish_page",
             description=(
-                "Make all draft changes live for a single page — sections and any staged theme. "
-                "Always call this after updating content, unless the user wants to keep it as a draft. "
+                "Publish a page's current draft content, making it live on the public site. "
+                "Also creates a version snapshot (viewable with list_versions). "
+                "Always publish after making content changes — draft changes are not visible to visitors until published. "
                 "After publishing, share the live URL and ask if anything needs tweaking. "
                 "To publish ALL pages at once, use publish_site instead."
             ),
@@ -1040,15 +1058,15 @@ def _build_tools() -> list[Tool]:
         Tool(
             name="list_versions",
             description=(
-                "List the published version history for a page (newest first, up to 5). "
-                "Call this before reverting so you can show the user their options "
-                "and let them choose which version to restore."
+                "List the saved version history for a page (up to 5 most recent). "
+                "Each version was created when the page was published. "
+                "Use this before revert_to_version to pick the version number to restore."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "site_id": {"type": "string"},
-                    "page_id": {"type": "string"},
+                    "site_id": {"type": "string", "description": "ID of the site"},
+                    "page_id": {"type": "string", "description": "ID of the page to list versions for"},
                 },
                 "required": ["site_id", "page_id"],
             },
@@ -1057,16 +1075,20 @@ def _build_tools() -> list[Tool]:
         Tool(
             name="revert_to_version",
             description=(
-                "Revert all draft content (sections + theme) back to a previously published version. "
-                "Always call list_versions first to show the user their options and confirm which version. "
-                "This updates the draft — call publish_page after to make the reverted content live."
+                "Restore a page's draft content to a previous published version. "
+                "This overwrites the current draft but does NOT immediately publish — "
+                "you must call publish_page after reverting if you want the restored content to go live. "
+                "Use list_versions first to find the version_id."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "site_id": {"type": "string"},
-                    "page_id": {"type": "string"},
-                    "version_id": {"type": "string", "description": "Version UUID from list_versions"},
+                    "site_id": {"type": "string", "description": "ID of the site"},
+                    "page_id": {"type": "string", "description": "ID of the page to revert"},
+                    "version_id": {
+                        "type": "string",
+                        "description": "ID of the version to restore to (from list_versions)",
+                    },
                 },
                 "required": ["site_id", "page_id", "version_id"],
             },
@@ -1257,6 +1279,46 @@ def _build_tools() -> list[Tool]:
                 "required": ["site_id", "post_id"],
             },
             annotations=ToolAnnotations(destructiveHint=True),
+        ),
+        # ── Admin (operator tools) ─────────────────────────────────────────
+        Tool(
+            name="get_platform_stats",
+            description=(
+                "Admin-only. Get platform-wide statistics: total users, sites, pages, sections, "
+                "and a breakdown of users by plan (free / pro / agency). "
+                "Requires an admin account's MCP token."
+            ),
+            inputSchema={"type": "object", "properties": {}, "required": []},
+        ),
+        Tool(
+            name="list_all_sites",
+            description=(
+                "Admin-only. List all active sites across all users, sorted by most recently updated. "
+                "Returns site name, slug, owner email, owner plan, and last activity date. "
+                "Requires an admin account's MCP token."
+            ),
+            inputSchema={"type": "object", "properties": {}, "required": []},
+        ),
+        Tool(
+            name="get_error_report",
+            description=(
+                "Admin-only. Fetch the latest unresolved errors from Sentry for the MyStorey backend. "
+                "Returns up to 10 issues sorted by last seen, with title, event count, and when it was first/last seen. "
+                "Use this to check production health without opening the Sentry dashboard. "
+                "Requires SENTRY_AUTH_TOKEN, SENTRY_ORG, and SENTRY_PROJECT env vars on the MCP server. "
+                "Requires an admin account's MCP token."
+            ),
+            inputSchema={"type": "object", "properties": {}, "required": []},
+        ),
+        Tool(
+            name="trigger_deployment",
+            description=(
+                "Admin-only. Not yet active — deployments currently run via GitHub Actions "
+                "(push to main triggers build + Coolify deploy automatically). "
+                "This tool will be wired to the Coolify API in a future phase when per-user site deployments are introduced. "
+                "Requires an admin account's MCP token."
+            ),
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         # ── Layout ─────────────────────────────────────────────────────────
         Tool(

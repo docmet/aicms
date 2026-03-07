@@ -26,6 +26,7 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.auth import get_current_user
@@ -93,8 +94,15 @@ async def create_page(
 
     db_page = Page(**page_in.model_dump(), site_id=site_id)
     db.add(db_page)
-    await db.commit()
-    await db.refresh(db_page)
+    try:
+        await db.commit()
+        await db.refresh(db_page)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A page with this slug already exists in this site",
+        )
     return db_page
 
 

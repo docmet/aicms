@@ -50,7 +50,7 @@ export function AboutEditor({ siteId, content, onChange }: Props) {
         value={content.image_url}
         onChange={(url) => set({ image_url: url })}
         label="Section Image"
-        hint="Displayed alongside your about text in a two-column layout."
+        hint="Displayed alongside your about text. Recommended: 1200×800 px."
       />
       <div>
         <div className="flex items-center justify-between mb-2">

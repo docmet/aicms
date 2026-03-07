@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     r2_public_url: str = ""  # e.g. https://media.mystorey.io
     max_upload_size_mb: int = 10
 
+    # Error monitoring (Sentry)
+    sentry_dsn: str = ""  # Set in production — empty string disables Sentry
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
 

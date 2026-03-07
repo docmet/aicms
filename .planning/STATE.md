@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Ready
 status: executing
-stopped_at: Completed 14-polish-stability 14-00-PLAN.md
-last_updated: "2026-03-07T13:53:26.009Z"
+stopped_at: Completed 14-00-PLAN.md
+last_updated: "2026-03-07T13:53:55.595Z"
 last_activity: 2026-03-07 — Phase 14 planned (research → 7 plans → verified)
 progress:
   total_phases: 17
@@ -47,6 +47,7 @@ Progress: [█░░░░░░░░░] 14%
 
 *Updated after each plan completion*
 | Phase 14-polish-stability P00 | 3min | 2 tasks | 2 files |
+| Phase 14 P00 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,7 @@ From PROJECT.md Key Decisions table — decisions affecting current work:
 - **Webshop approach**: Embed first (Stripe Payment Links / Gumroad), native product section later
 - [Phase 14-polish-stability]: Mark slug uniqueness tests xfail not skip so pytest discovers/counts them while SQLite cannot enforce PostgreSQL partial indexes
 - [Phase 14-polish-stability]: Wave 0 xfail scaffold pattern: create test files before production code to satisfy Nyquist compliance for downstream plans
+- [Phase 14]: Mark slug uniqueness tests xfail(strict=False) so pytest discovers them while SQLite cannot enforce PostgreSQL partial indexes
 
 ### Pending Todos
 
@@ -76,6 +78,6 @@ From CONCERNS.md — items relevant to Phase 14:
 
 ## Session Continuity
 
-Last session: 2026-03-07T13:53:26.007Z
-Stopped at: Completed 14-polish-stability 14-00-PLAN.md
+Last session: 2026-03-07T13:53:46.745Z
+Stopped at: Completed 14-00-PLAN.md
 Resume file: None

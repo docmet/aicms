@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { MediaLibrary, type MediaFile } from "./MediaLibrary";
 
 interface Props {
@@ -16,14 +17,70 @@ interface Props {
 
 export function ImagePicker({ siteId, value, onChange, label = "Image", hint }: Props) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"library" | "url">("library");
+  const [urlInput, setUrlInput] = useState("");
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   const handleSelect = (file: MediaFile) => {
     onChange(file.url);
   };
 
+  const validateAndApplyUrl = (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      setUrlError(null);
+      onChange(null);
+      return;
+    }
+    try {
+      new URL(trimmed);
+      setUrlError(null);
+      onChange(trimmed);
+    } catch {
+      setUrlError("Enter a valid URL — e.g. https://example.com/image.jpg");
+    }
+  };
+
+  const handleUrlKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      validateAndApplyUrl(urlInput);
+    }
+  };
+
+  const handleUrlBlur = () => {
+    validateAndApplyUrl(urlInput);
+  };
+
   return (
     <div className="space-y-1.5">
       <p className="text-sm font-medium">{label}</p>
+
+      {/* Mode toggle — shown when no value is set */}
+      {!value && (
+        <div className="flex gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant={mode === "library" ? "default" : "outline"}
+            onClick={() => {
+              setMode("library");
+              setUrlError(null);
+            }}
+          >
+            Library
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={mode === "url" ? "default" : "outline"}
+            onClick={() => setMode("url")}
+          >
+            Paste URL
+          </Button>
+        </div>
+      )}
+
       {value ? (
         <div className="relative group w-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -51,7 +108,7 @@ export function ImagePicker({ siteId, value, onChange, label = "Image", hint }: 
             </Button>
           </div>
         </div>
-      ) : (
+      ) : mode === "library" ? (
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -60,7 +117,25 @@ export function ImagePicker({ siteId, value, onChange, label = "Image", hint }: 
           <ImageIcon size={20} />
           <span className="text-xs">Click to select image</span>
         </button>
+      ) : (
+        <div className="space-y-1">
+          <Input
+            value={urlInput}
+            onChange={(e) => {
+              setUrlInput(e.target.value);
+              setUrlError(null);
+            }}
+            onBlur={handleUrlBlur}
+            onKeyDown={handleUrlKeyDown}
+            placeholder="https://example.com/image.jpg"
+            className={urlError ? "border-destructive focus-visible:ring-destructive" : ""}
+          />
+          {urlError && (
+            <p className="text-xs text-destructive">{urlError}</p>
+          )}
+        </div>
       )}
+
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
 
       <MediaLibrary

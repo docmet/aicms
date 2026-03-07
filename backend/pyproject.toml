@@ -19,6 +19,7 @@ dependencies = [
     "bcrypt<4.1.0",
     "stripe>=14.4.0",
     "aiosmtplib>=5.1.0",
+    "sentry-sdk[fastapi]>=2.54.0",
 ]
 
 [project.optional-dependencies]

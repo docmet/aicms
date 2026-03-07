@@ -84,7 +84,7 @@ export function HeroEditor({ siteId, content, onChange }: Props) {
         value={content.logo_url}
         onChange={(url) => set({ logo_url: url })}
         label="Logo"
-        hint="Optional logo shown in the hero area."
+        hint="Optional logo shown in the hero area. Recommended: 400×200 px PNG (transparent bg)."
       />
     </div>
   );
