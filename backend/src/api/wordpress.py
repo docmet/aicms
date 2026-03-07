@@ -318,6 +318,34 @@ async def get_wordpress_site(
     return db_site
 
 
+@router.post("/sites/{site_id}/test")
+async def test_wordpress_site(
+    site_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, Any]:
+    """Test the live connection to a registered WordPress site."""
+    result = await db.execute(
+        select(WordPressSite).where(WordPressSite.id == site_id)
+    )
+    db_site = result.scalar_one_or_none()
+    if not db_site:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="WordPress site not found")
+    if db_site.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    client = WordPressClient(
+        site_url=str(db_site.site_url),
+        username=str(db_site.app_username),
+        password=str(db_site.app_password_encrypted),
+    )
+    try:
+        wp_info = await client.get_site_info()
+        return {"ok": True, "site_name": wp_info.get("name"), "site_url": wp_info.get("url")}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
 @router.patch("/sites/{site_id}", response_model=WordPressSiteResponse)
 async def update_wordpress_site(
     site_id: UUID,

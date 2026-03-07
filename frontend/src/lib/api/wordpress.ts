@@ -30,3 +30,15 @@ export async function listWordPressSites(): Promise<WordPressSite[]> {
 export async function deleteWordPressSite(siteId: string): Promise<void> {
   await api.delete(`/wordpress/sites/${siteId}`);
 }
+
+export interface WPTestResult {
+  ok: boolean;
+  site_name?: string;
+  site_url?: string;
+  error?: string;
+}
+
+export async function testWordPressSiteConnection(siteId: string): Promise<WPTestResult> {
+  const res = await api.post<WPTestResult>(`/wordpress/sites/${siteId}/test`);
+  return res.data;
+}

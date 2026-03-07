@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Copy, Check, Trash2, Plus } from 'lucide-react';
+import { Eye, EyeOff, Copy, Check, Trash2, Plus, Zap, CheckCircle2, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { listWordPressSites, deleteWordPressSite, WordPressSite } from '@/lib/api/wordpress';
+import {
+  listWordPressSites,
+  deleteWordPressSite,
+  testWordPressSiteConnection,
+  WordPressSite,
+} from '@/lib/api/wordpress';
 import { RegisterWordPressSite } from '@/components/wordpress/RegisterWordPressSite';
 
 // ── Copy/reveal field ─────────────────────────────────────────────────────────
@@ -69,6 +74,8 @@ function CopyField({
 
 // ── Site card ─────────────────────────────────────────────────────────────────
 
+type TestStatus = 'idle' | 'loading' | 'ok' | 'error';
+
 function SiteCard({
   site,
   onDelete,
@@ -77,8 +84,23 @@ function SiteCard({
   onDelete: (id: string) => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [testStatus, setTestStatus] = useState<TestStatus>('idle');
+  const [testMessage, setTestMessage] = useState('');
   const mcpUrl =
     typeof window !== 'undefined' ? `${window.location.origin}/mcp` : '';
+
+  const runTest = async () => {
+    setTestStatus('loading');
+    setTestMessage('');
+    const result = await testWordPressSiteConnection(site.id);
+    if (result.ok) {
+      setTestStatus('ok');
+      setTestMessage(result.site_name ? `Connected — "${result.site_name}"` : 'Connected');
+    } else {
+      setTestStatus('error');
+      setTestMessage(result.error ?? 'Connection failed');
+    }
+  };
 
   return (
     <Card>
@@ -128,6 +150,34 @@ function SiteCard({
           In Claude.ai or ChatGPT: add the MCP URL as a custom connector, then use your MCP Token as
           the credential when prompted.
         </p>
+
+        {/* Test connection */}
+        <div className="flex items-center gap-3 pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs h-8"
+            onClick={runTest}
+            disabled={testStatus === 'loading'}
+          >
+            {testStatus === 'loading' ? (
+              <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Zap size={13} />
+            )}
+            {testStatus === 'loading' ? 'Testing…' : 'Test connection'}
+          </Button>
+          {testStatus === 'ok' && (
+            <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+              <CheckCircle2 size={13} /> {testMessage}
+            </span>
+          )}
+          {testStatus === 'error' && (
+            <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
+              <XCircle size={13} /> {testMessage}
+            </span>
+          )}
+        </div>
       </CardContent>
 
       {/* Delete confirmation dialog */}
