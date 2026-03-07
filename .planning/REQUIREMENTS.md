@@ -131,12 +131,36 @@ All requirements below are shipped and confirmed working.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLSH-01–06 | Phase 14 | Pending |
-| WP-01–09 | Phase 15 | Pending |
-| OPS-01–03 | Phase 14 | Pending |
-| AGCY-01–03 | Phase 16 | Pending |
-| PRIC-01–04 | Phase 17 | Pending |
-| LAUN-01–05 | Phase 17 | Pending |
+| PLSH-01 | Phase 14 | Pending |
+| PLSH-02 | Phase 14 | Pending |
+| PLSH-03 | Phase 14 | Pending |
+| PLSH-04 | Phase 14 | Pending |
+| PLSH-05 | Phase 14 | Pending |
+| PLSH-06 | Phase 14 | Pending |
+| OPS-01 | Phase 14 | Pending |
+| OPS-02 | Phase 14 | Pending |
+| OPS-03 | Phase 14 | Pending |
+| WP-01 | Phase 15 | Pending |
+| WP-02 | Phase 15 | Pending |
+| WP-03 | Phase 15 | Pending |
+| WP-04 | Phase 15 | Pending |
+| WP-05 | Phase 15 | Pending |
+| WP-06 | Phase 15 | Pending |
+| WP-07 | Phase 15 | Pending |
+| WP-08 | Phase 15 | Pending |
+| WP-09 | Phase 15 | Pending |
+| AGCY-01 | Phase 16 | Pending |
+| AGCY-02 | Phase 16 | Pending |
+| AGCY-03 | Phase 16 | Pending |
+| PRIC-01 | Phase 17 | Pending |
+| PRIC-02 | Phase 17 | Pending |
+| PRIC-03 | Phase 17 | Pending |
+| PRIC-04 | Phase 17 | Pending |
+| LAUN-01 | Phase 17 | Pending |
+| LAUN-02 | Phase 17 | Pending |
+| LAUN-03 | Phase 17 | Pending |
+| LAUN-04 | Phase 17 | Pending |
+| LAUN-05 | Phase 17 | Pending |
 
 **Coverage:**
 - v1 requirements: 30 total
@@ -145,4 +169,4 @@ All requirements below are shipped and confirmed working.
 
 ---
 *Requirements defined: 2026-03-07*
-*Last updated: 2026-03-07 after GSD initialization*
+*Last updated: 2026-03-07 — traceability expanded to per-requirement rows, phase 14–17 assignments confirmed*
