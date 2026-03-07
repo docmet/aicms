@@ -115,7 +115,8 @@ const steps = [
   {
     n: 1,
     title: 'Install the MyStorey plugin',
-    desc: 'Download and activate the MyStorey plugin on your WordPress site. Plugin download coming soon.',
+    desc: 'Download and activate the free MyStorey plugin on your WordPress site.',
+    action: { label: 'Download plugin', href: '/api/wordpress/plugin/download' },
   },
   {
     n: 2,
@@ -235,6 +236,14 @@ export function WordPressLanding() {
                 <div>
                   <h3 className="font-semibold text-white mb-2">{step.title}</h3>
                   <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+                  {'action' in step && step.action && (
+                    <a
+                      href={step.action.href}
+                      className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-violet-400 hover:text-violet-300 transition-colors"
+                    >
+                      {step.action.label} →
+                    </a>
+                  )}
                 </div>
               </div>
             ))}

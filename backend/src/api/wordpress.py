@@ -1,13 +1,15 @@
 """WordPress site registration and management API."""
 
+import io
 import os
 import secrets
+import zipfile
 from pathlib import Path
 from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,18 +29,45 @@ router = APIRouter(prefix="/wordpress", tags=["wordpress"])
 
 
 @router.get("/plugin/download")
-async def download_plugin() -> FileResponse:
-    """Serve the WordPress plugin zip file for download."""
-    plugin_path = Path(__file__).parent.parent.parent.parent.parent / "wp-plugin" / "mystorey-connector.zip"
-    if not plugin_path.exists():
+async def download_plugin(request: Request) -> Response:
+    """Generate and serve the WordPress plugin zip with the server URL baked in.
+
+    The plugin PHP contains {{MYSTOREY_URL}} placeholders that are replaced
+    at download time with the actual server origin — so a zip from staging
+    points to staging, local to localhost, production to mystorey.io.
+    """
+    php_template_path = (
+        Path(__file__).parent.parent.parent.parent.parent
+        / "wp-plugin"
+        / "mystorey-connector"
+        / "mystorey-connector.php"
+    )
+    readme_path = php_template_path.parent / "readme.txt"
+
+    if not php_template_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plugin zip not found. Run wp-plugin/build.sh first.",
+            detail="Plugin source not found.",
         )
-    return FileResponse(
-        path=str(plugin_path),
+
+    # Derive the server URL from the request origin
+    server_url = str(request.base_url).rstrip("/")
+
+    php_content = php_template_path.read_text(encoding="utf-8").replace(
+        "{{MYSTOREY_URL}}", server_url
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("mystorey-connector/mystorey-connector.php", php_content)
+        if readme_path.exists():
+            zf.writestr("mystorey-connector/readme.txt", readme_path.read_text(encoding="utf-8"))
+    buf.seek(0)
+
+    return Response(
+        content=buf.read(),
         media_type="application/zip",
-        filename="mystorey-connector.zip",
+        headers={"Content-Disposition": "attachment; filename=mystorey-connector.zip"},
     )
 
 
