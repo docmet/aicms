@@ -28,6 +28,7 @@ from src.api.sites import router as sites_router
 from src.api.submissions import private_router as submissions_router
 from src.api.submissions import public_router as submissions_public_router
 from src.api.themes import router as themes_router
+from src.api.wordpress import router as wordpress_router
 from src.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -189,6 +190,7 @@ app.include_router(mcp_router, prefix="/api/mcp", tags=["mcp"])
 app.include_router(oauth_router, tags=["oauth"])
 app.include_router(preview_router, prefix="/api/preview", tags=["preview"])
 app.include_router(billing_router, prefix="/api/billing", tags=["billing"])
+app.include_router(wordpress_router, prefix="/api", tags=["wordpress"])
 
 # Serve local uploads (dev only; in production, R2 serves files directly)
 if settings.storage_backend == "local":
