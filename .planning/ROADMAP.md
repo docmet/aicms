@@ -92,7 +92,15 @@
   3. Slug creation never results in a duplicate — DB constraint enforces uniqueness even under concurrent requests
   4. Sentry captures and reports backend exceptions in production within 30 seconds of occurrence
   5. An admin user connected to MyStorey MCP can ask Claude for platform stats, a cross-user site list, and trigger a deployment — all via chat with no UI
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Section editor polish: ImagePicker URL-paste mode + TestimonialsEditor avatar + dimension hints
+- [ ] 14-02-PLAN.md — Mobile admin responsiveness: header wrap + section editor grid fixes
+- [ ] 14-03-PLAN.md — Slug uniqueness: Alembic partial unique index + pages.py IntegrityError handler
+- [ ] 14-04-PLAN.md — Sentry integration: install SDK, add config field, init in main.py
+- [ ] 14-05-PLAN.md — MCP tool description enrichment: rewrite 6 sparse tool descriptions
+- [ ] 14-06-PLAN.md — Admin MCP operator tools: get_platform_stats, list_all_sites, trigger_deployment
 
 ### Phase 15: WordPress Plugin
 **Goal**: WordPress site owners can control their WP content via AI chat by connecting to MyStorey as a bridge, with a compelling landing page and working Stripe billing
@@ -137,7 +145,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1–13. Foundation | v1.0 | All | Complete | 2026-03-07 |
-| 14. Polish & Stability | v1.1 | 0/TBD | Not started | - |
+| 14. Polish & Stability | v1.1 | 0/6 | Planned | - |
 | 15. WordPress Plugin | v1.1 | 0/TBD | Not started | - |
 | 16. Agency & Webshop | v1.1 | 0/TBD | Not started | - |
 | 17. Pricing, Affiliate & Launch | v1.1 | 0/TBD | Not started | - |
