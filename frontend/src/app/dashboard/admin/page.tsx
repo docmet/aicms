@@ -27,7 +27,7 @@ interface PlatformStats {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -102,6 +102,8 @@ export default function AdminPage() {
       await api.patch(`/admin/users/${userId}`, { plan });
       toast({ title: `Plan updated to ${plan}` });
       fetchData();
+      // If admin changed their own plan, refresh auth context so sidebar + limits update immediately
+      if (userId === user?.id) await refreshUser();
     } catch {
       toast({ title: "Plan update failed", variant: "destructive" });
     }
