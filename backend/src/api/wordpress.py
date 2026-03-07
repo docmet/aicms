@@ -152,7 +152,11 @@ function mystorey_settings_page() {
                     <div class="ms-step-num">2</div>
                     <h2 class="ms-step-title">Register this site on MyStorey</h2>
                 </div>
-                <p>Open your MyStorey dashboard and add this site. Copy your WordPress URL below and paste it along with the Application Password you just created.</p>
+                <p>Open your MyStorey dashboard and add this site. You will need two things:</p>
+                <ol>
+                    <li>Your <strong>WordPress URL</strong> (copy below)</li>
+                    <li>Your <strong>WordPress login username</strong> (e.g. <code>admin</code> &mdash; <em>not</em> the name you gave the Application Password) and the Application Password itself</li>
+                </ol>
 
                 <div class="ms-field-label">Your WordPress URL</div>
                 <div class="ms-copy-row" style="margin-bottom:20px;">

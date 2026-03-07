@@ -72,15 +72,19 @@ export function RegisterWordPressSite({ onSuccess }: RegisterWordPressSiteProps)
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="appUsername">Application Username</Label>
+            <Label htmlFor="appUsername">WordPress Username</Label>
             <Input
               id="appUsername"
               type="text"
-              placeholder="your-wp-username"
+              placeholder="admin"
               value={appUsername}
               onChange={(e) => setAppUsername(e.target.value)}
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Your WordPress login username — the one you use to sign in to WP admin (e.g.{' '}
+              <code className="bg-muted px-1 rounded">admin</code>). Not the name you give the Application Password.
+            </p>
           </div>
 
           <div className="space-y-1.5">
@@ -94,8 +98,9 @@ export function RegisterWordPressSite({ onSuccess }: RegisterWordPressSiteProps)
               required
             />
             <p className="text-xs text-muted-foreground">
-              Create this in WordPress Admin &rarr; Users &rarr; Profile &rarr; Application Passwords.
-              This is <strong>not</strong> your regular WP admin password.
+              Go to WordPress Admin &rarr; Users &rarr; Profile &rarr; Application Passwords. Enter any
+              name (e.g. <code className="bg-muted px-1 rounded">MyStorey</code>), click{' '}
+              <strong>Add New</strong>, and paste the generated password here.
             </p>
           </div>
 
