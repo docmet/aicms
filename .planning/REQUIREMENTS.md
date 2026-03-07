@@ -34,7 +34,7 @@ All requirements below are shipped and confirmed working.
 
 - [x] **PLSH-01**: Section editors render correctly for all 8 section types without visual glitches
 - [x] **PLSH-02**: Image field UX — clear upload/paste/URL flow with dimension hints visible
-- [ ] **PLSH-03**: Admin editor is usable on mobile (hamburger, scrollable editors)
+- [x] **PLSH-03**: Admin editor is usable on mobile (hamburger, scrollable editors)
 - [x] **PLSH-04**: Slug uniqueness enforced at DB level (unique constraint, no race condition)
 - [x] **PLSH-05**: Structured error logging with Sentry integration in production
 - [x] **PLSH-06**: MCP tool descriptions and response copy enriched with richer examples and field hints
@@ -133,7 +133,7 @@ All requirements below are shipped and confirmed working.
 |-------------|-------|--------|
 | PLSH-01 | Phase 14 | Complete |
 | PLSH-02 | Phase 14 | Complete |
-| PLSH-03 | Phase 14 | Pending |
+| PLSH-03 | Phase 14 | Complete |
 | PLSH-04 | Phase 14 | Complete |
 | PLSH-05 | Phase 14 | Complete |
 | PLSH-06 | Phase 14 | Complete |
