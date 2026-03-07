@@ -152,6 +152,6 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1–13. Foundation | v1.0 | All | Complete | 2026-03-07 |
 | 14. Polish & Stability | 7/7 | Complete   | 2026-03-07 | - |
-| 15. WordPress Plugin | 4/4 | Complete   | 2026-03-07 | - |
+| 15. WordPress Plugin | 4/4 | Complete    | 2026-03-07 | - |
 | 16. Agency & Webshop | v1.1 | 0/TBD | Not started | - |
 | 17. Pricing, Affiliate & Launch | v1.1 | 0/TBD | Not started | - |
