@@ -436,7 +436,7 @@ PYEOF
 
     log_info "Found container: $container_id"
     echo "$python_script" | ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR "$ssh_host" \
-      "docker exec -i $container_id python -"
+      "docker exec -i $container_id uv run python -"
   fi
 }
 
