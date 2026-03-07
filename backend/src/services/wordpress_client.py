@@ -50,6 +50,10 @@ class WordPressClient:
         except httpx.HTTPStatusError:
             raise
 
+    async def verify_credentials(self) -> Any:
+        """GET /wp/v2/users/me — verifies auth and returns user role/capabilities."""
+        return await self._request("GET", "/users/me?context=edit")
+
     async def list_posts(self, status: str = "any", per_page: int = 20) -> Any:
         """List WordPress posts."""
         return await self._request("GET", f"/posts?status={status}&per_page={per_page}&_embed=1")

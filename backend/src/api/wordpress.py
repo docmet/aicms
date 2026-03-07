@@ -340,8 +340,20 @@ async def test_wordpress_site(
         password=str(db_site.app_password_encrypted),
     )
     try:
-        wp_info = await client.get_site_info()
-        return {"ok": True, "site_name": wp_info.get("name"), "site_url": wp_info.get("url")}
+        user_info = await client.verify_credentials()
+        roles: list[str] = user_info.get("roles", [])
+        can_write = any(r in roles for r in ("administrator", "editor", "author"))
+        name = user_info.get("name") or user_info.get("slug") or str(db_site.app_username)
+        if not can_write:
+            return {
+                "ok": False,
+                "error": (
+                    f"Connected as '{name}' (role: {', '.join(roles) or 'unknown'}) — "
+                    "this user cannot create or edit posts. "
+                    "Use an Administrator or Editor account."
+                ),
+            }
+        return {"ok": True, "site_name": str(db_site.site_name), "site_url": str(db_site.site_url), "wp_user": name, "roles": roles}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
 
