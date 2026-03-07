@@ -6,10 +6,12 @@ import { useAuth } from '@/lib/auth-context';
 import { DashboardSidebar } from '@/components/admin/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import api from '@/lib/api';
-import { Mail, X, ShieldAlert } from 'lucide-react';
+import { Mail, X, ShieldAlert, Sparkles } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, planChangedTo, clearPlanChanged } = useAuth();
   const router = useRouter();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [resent, setResent] = useState(false);
@@ -118,6 +120,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </div>
       <Toaster />
+
+      {/* Plan change notification modal */}
+      <Dialog open={!!planChangedTo} onOpenChange={(open) => !open && clearPlanChanged()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles size={18} className="text-violet-500" />
+              Your plan has been updated
+            </DialogTitle>
+            <DialogDescription>
+              Your subscription has been changed to{' '}
+              <span className="font-semibold capitalize text-gray-900">{planChangedTo}</span> by an administrator.
+              Your new features and site limits are active immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={clearPlanChanged} className="w-full bg-violet-600 hover:bg-violet-700">
+            Got it
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

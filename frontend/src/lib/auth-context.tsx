@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
@@ -18,6 +18,8 @@ interface AuthContextType {
   login: (token: string, redirectTo?: string) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  planChangedTo: string | null;
+  clearPlanChanged: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +27,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [planChangedTo, setPlanChangedTo] = useState<string | null>(null);
+  const planRef = useRef<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -38,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await api.get('/auth/me');
         setUser(response.data);
+        planRef.current = response.data.plan;
       } catch {
         // Token invalid/expired — clear it and let each layout decide whether to redirect
         localStorage.removeItem('token');
@@ -47,6 +52,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchUser();
+  }, []);
+
+  // Poll /auth/me every 15s to detect externally-triggered plan changes (e.g. admin upgrade)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const response = await api.get('/auth/me');
+        const fresh = response.data as User;
+        if (planRef.current && fresh.plan !== planRef.current) {
+          setPlanChangedTo(fresh.plan);
+        }
+        planRef.current = fresh.plan;
+        setUser(fresh);
+      } catch {
+        // ignore — stale user stays
+      }
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const login = (token: string, redirectTo?: string) => {
@@ -74,14 +99,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     try {
       const response = await api.get('/auth/me');
+      planRef.current = response.data.plan;
       setUser(response.data);
     } catch {
       // ignore — stale user stays until next full reload
     }
   };
 
+  const clearPlanChanged = () => setPlanChangedTo(null);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, planChangedTo, clearPlanChanged }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

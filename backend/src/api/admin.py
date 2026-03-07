@@ -11,6 +11,7 @@ Routes (all under /api/admin):
   POST /impersonate/{user_id}    — get a short-lived JWT for any user (admin only)
 """
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
@@ -28,6 +29,7 @@ from src.models.page import Page
 from src.models.user import User, UserPlan
 from src.schemas.user import UserResponse
 from src.services.auth import AuthService
+from src.services.email import EmailService
 
 router = APIRouter()
 
@@ -197,12 +199,17 @@ async def update_user(
         user.password_hash = AuthService.get_password_hash(update.password)  # type: ignore[assignment]
     if update.is_admin is not None:
         user.is_admin = update.is_admin  # type: ignore[assignment]
+    plan_changed = update.plan is not None and update.plan != user.plan
     if update.plan is not None:
         user.plan = update.plan  # type: ignore[assignment]
 
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    if plan_changed:
+        asyncio.create_task(EmailService.send_plan_upgraded(str(user.email), str(user.plan)))
+
     return user
 
 
