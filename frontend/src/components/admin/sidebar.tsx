@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { LayoutDashboard, Settings, HelpCircle, Bot, LogOut, Shield, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Settings, HelpCircle, Bot, LogOut, Shield, Menu, X, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import {
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: false },
   { name: 'Connect AI', href: '/dashboard/mcp', icon: Bot, adminOnly: false },
+  { name: 'WordPress', href: '/dashboard/wordpress', icon: Globe, adminOnly: false },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings, adminOnly: false },
   { name: 'Help', href: '/dashboard/help', icon: HelpCircle, adminOnly: false },
   { name: 'Admin', href: '/dashboard/admin', icon: Shield, adminOnly: true },

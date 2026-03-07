@@ -1,10 +1,11 @@
 """WordPress site registration and management API."""
 
+import os
 import secrets
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,7 @@ from src.schemas.wordpress import (
     WordPressSiteCreate,
     WordPressSiteResponse,
     WordPressSiteUpdate,
+    WPDispatchRequest,
 )
 from src.services.wordpress_client import WordPressClient
 
@@ -166,3 +168,89 @@ async def delete_wordpress_site(
     db_site.is_active = False  # type: ignore[assignment]
     db.add(db_site)
     await db.commit()
+
+
+@router.post("/wp-mcp/{wp_mcp_token}/dispatch")
+async def wp_mcp_dispatch(
+    wp_mcp_token: str,
+    request_body: WPDispatchRequest,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, Any]:
+    """Internal endpoint: MCP server proxies WP REST calls through here.
+
+    No user auth — authenticated via X-Internal-Secret header.
+    The wp_mcp_token identifies the WordPressSite.
+    """
+    internal_secret = os.getenv("INTERNAL_SECRET", "")
+    if internal_secret:
+        provided = request.headers.get("x-internal-secret", "")
+        if provided != internal_secret:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid internal secret")
+
+    result = await db.execute(
+        select(WordPressSite).where(
+            WordPressSite.mcp_token == wp_mcp_token,
+            WordPressSite.is_active.is_(True),
+        )
+    )
+    db_site = result.scalar_one_or_none()
+    if not db_site:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="WordPress site not found")
+
+    client = WordPressClient(
+        site_url=str(db_site.site_url),
+        username=str(db_site.app_username),
+        password=str(db_site.app_password_encrypted),
+    )
+
+    tool = request_body.tool
+    args = request_body.args
+
+    try:
+        if tool == "wp_list_posts":
+            wp_result = await client.list_posts(
+                status=args.get("status", "any"),
+                per_page=args.get("per_page", 20),
+            )
+        elif tool == "wp_get_post":
+            wp_result = await client.get_post(args["post_id"])
+        elif tool == "wp_create_post":
+            extra = {k: v for k, v in args.items() if k not in ("title", "content", "status")}
+            wp_result = await client.create_post(args["title"], args["content"], args.get("status", "draft"), **extra)
+        elif tool == "wp_update_post":
+            extra = {k: v for k, v in args.items() if k != "post_id"}
+            wp_result = await client.update_post(args["post_id"], **extra)
+        elif tool == "wp_publish_post":
+            wp_result = await client.update_post(args["post_id"], status="publish")
+        elif tool == "wp_list_pages":
+            wp_result = await client.list_pages(
+                status=args.get("status", "any"),
+                per_page=args.get("per_page", 20),
+            )
+        elif tool == "wp_get_page":
+            wp_result = await client.get_page(args["page_id"])
+        elif tool == "wp_create_page":
+            extra = {k: v for k, v in args.items() if k not in ("title", "content", "status")}
+            wp_result = await client.create_page(args["title"], args["content"], args.get("status", "draft"), **extra)
+        elif tool == "wp_update_page":
+            extra = {k: v for k, v in args.items() if k != "page_id"}
+            wp_result = await client.update_page(args["page_id"], **extra)
+        elif tool == "wp_publish_page":
+            wp_result = await client.update_page(args["page_id"], status="publish")
+        elif tool == "wp_list_categories":
+            wp_result = await client.list_categories()
+        elif tool == "wp_list_tags":
+            wp_result = await client.list_tags()
+        elif tool == "wp_get_site_info":
+            wp_result = await client.get_site_info()
+        elif tool == "wp_update_site_settings":
+            wp_result = await client.update_site_settings(args.get("title"), args.get("description"))
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown WP tool: {tool}")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return {"result": wp_result}
