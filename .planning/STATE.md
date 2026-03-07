@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.1
+milestone_name: Launch Ready
+status: executing
+stopped_at: Completed 14-polish-stability 14-00-PLAN.md
+last_updated: "2026-03-07T13:53:26.009Z"
+last_activity: 2026-03-07 — Phase 14 planned (research → 7 plans → verified)
+progress:
+  total_phases: 17
+  completed_phases: 0
+  total_plans: 7
+  completed_plans: 1
+  percent: 14
+---
+
 # Project State
 
 ## Project Reference
@@ -14,7 +30,7 @@ Plan: 7 plans across 2 waves (14-00 through 14-06) — ready to execute
 Status: Planned, ready to execute
 Last activity: 2026-03-07 — Phase 14 planned (research → 7 plans → verified)
 
-Progress: [████████░░░░░░░░░░░░] ~35% (phases 1–13 complete, 4 remaining)
+Progress: [█░░░░░░░░░] 14%
 
 ## Performance Metrics
 
@@ -30,6 +46,7 @@ Progress: [████████░░░░░░░░░░░░] ~35% (p
 | 14–17 | TBD | - | - |
 
 *Updated after each plan completion*
+| Phase 14-polish-stability P00 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -42,6 +59,8 @@ From PROJECT.md Key Decisions table — decisions affecting current work:
 - **Affiliate tooling**: Use Rewardful ($49/mo) rather than build in-house until €5k MRR
 - **WP plugin sequencing**: Ship WP plugin (Phase 15) before operator AI tools (OPS tools now in Phase 14 but scoped small); WP plugin is revenue
 - **Webshop approach**: Embed first (Stripe Payment Links / Gumroad), native product section later
+- [Phase 14-polish-stability]: Mark slug uniqueness tests xfail not skip so pytest discovers/counts them while SQLite cannot enforce PostgreSQL partial indexes
+- [Phase 14-polish-stability]: Wave 0 xfail scaffold pattern: create test files before production code to satisfy Nyquist compliance for downstream plans
 
 ### Pending Todos
 
@@ -57,6 +76,6 @@ From CONCERNS.md — items relevant to Phase 14:
 
 ## Session Continuity
 
-Last session: 2026-03-07
-Stopped at: Phase 14 planned — ready to execute
+Last session: 2026-03-07T13:53:26.007Z
+Stopped at: Completed 14-polish-stability 14-00-PLAN.md
 Resume file: None
