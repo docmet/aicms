@@ -35,3 +35,10 @@ class WordPressSiteUpdate(BaseModel):
     app_username: str | None = None
     app_password: str | None = None
     is_active: bool | None = None
+
+
+class WPDispatchRequest(BaseModel):
+    """Schema for internal WP-MCP dispatch endpoint."""
+
+    tool: str
+    args: dict = {}
