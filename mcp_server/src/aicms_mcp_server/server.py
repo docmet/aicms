@@ -1484,8 +1484,10 @@ def _build_wp_tools() -> list[Tool]:
         Tool(
             name="wp_list_posts",
             description=(
-                "List WordPress posts. Returns id, title, status, link, date for each post. "
-                "Use status='publish' for live posts, 'draft' for unpublished, 'any' for all (default)."
+                "List blog posts on the user's connected WordPress site. "
+                "Returns id, title, status, link, and date for each post. "
+                "Call this when the user asks to see, list, or manage their WordPress posts or blog. "
+                "Use status='publish' for live posts, 'draft' for unpublished, 'any' for all."
             ),
             inputSchema={
                 "type": "object",
@@ -1564,7 +1566,12 @@ def _build_wp_tools() -> list[Tool]:
         ),
         Tool(
             name="wp_list_pages",
-            description="List WordPress pages. Returns id, title, status, link, date for each page.",
+            description=(
+                "List pages on the user's connected WordPress site. "
+                "Returns id, title, status, link, and date for each page. "
+                "Call this when the user asks to see their WordPress pages, homepage, about page, etc. "
+                "Default status is 'publish'. Use 'any' to include drafts."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -1636,13 +1643,17 @@ def _build_wp_tools() -> list[Tool]:
         ),
         Tool(
             name="wp_get_site_info",
-            description="Get WordPress site name, description, and URL.",
+            description=(
+                "Get the name, tagline, and URL of the user's connected WordPress site. "
+                "Call this first when the user mentions their WordPress site or asks what you can do with it. "
+                "This confirms the connection is working and shows which site is connected."
+            ),
             inputSchema={"type": "object", "properties": {}},
             annotations=ToolAnnotations(readOnlyHint=True),
         ),
         Tool(
             name="wp_update_site_settings",
-            description="Update WordPress site title or tagline.",
+            description="Update the title or tagline of the user's connected WordPress site without logging into WP admin.",
             inputSchema={
                 "type": "object",
                 "properties": {

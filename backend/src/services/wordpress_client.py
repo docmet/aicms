@@ -70,9 +70,13 @@ class WordPressClient:
         """Update an existing WordPress post."""
         return await self._request("PATCH", f"/posts/{post_id}", json=fields)
 
-    async def list_pages(self, status: str = "any", per_page: int = 20) -> Any:
+    async def list_pages(self, status: str = "publish", per_page: int = 20) -> Any:
         """List WordPress pages."""
-        return await self._request("GET", f"/pages?status={status}&per_page={per_page}&_embed=1")
+        # WP REST API returns 400 for status=any on pages without explicit edit context;
+        # expand to comma-separated list instead.
+        if status == "any":
+            status = "publish,draft,pending,private"
+        return await self._request("GET", f"/pages?status={status}&per_page={per_page}")
 
     async def get_page(self, page_id: int) -> Any:
         """Get a single WordPress page."""
