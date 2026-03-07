@@ -27,7 +27,7 @@ router = APIRouter()
 
 PLAN_PRICE_IDS: dict[str, str] = {}  # populated lazily from settings
 
-VALID_PLANS = {"pro", "agency"}
+VALID_PLANS = {"pro", "agency", "wp_starter", "wp_pro"}
 
 
 def _get_stripe() -> None:
@@ -43,6 +43,14 @@ def _price_id(plan: str) -> str:
         return settings.stripe_pro_price_id
     if plan == "agency":
         return settings.stripe_agency_price_id
+    if plan == "wp_starter":
+        if not settings.stripe_wp_starter_price_id:
+            raise HTTPException(status_code=503, detail="WP billing not configured")
+        return settings.stripe_wp_starter_price_id
+    if plan == "wp_pro":
+        if not settings.stripe_wp_pro_price_id:
+            raise HTTPException(status_code=503, detail="WP billing not configured")
+        return settings.stripe_wp_pro_price_id
     raise HTTPException(status_code=400, detail="Invalid plan")
 
 

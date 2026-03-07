@@ -1434,6 +1434,8 @@ def _build_tools() -> list[Tool]:
             ),
             inputSchema={"type": "object", "properties": {}, "required": []},
         ),
+        # ── WordPress ──────────────────────────────────────────────────────
+        *_build_wp_tools(),
         # ── Layout ─────────────────────────────────────────────────────────
         Tool(
             name="set_section_layout",
@@ -1469,6 +1471,186 @@ def _build_tools() -> list[Tool]:
                 "required": ["site_id", "page_id", "section_type", "layout"],
             },
             annotations=ToolAnnotations(destructiveHint=False, idempotentHint=True),
+        ),
+    ]
+
+
+def _build_wp_tools() -> list[Tool]:
+    """Build WordPress-specific MCP tool definitions."""
+    status_enum = ["any", "draft", "publish", "pending", "private"]
+    publish_enum = ["draft", "publish"]
+
+    return [
+        Tool(
+            name="wp_list_posts",
+            description=(
+                "List WordPress posts. Returns id, title, status, link, date for each post. "
+                "Use status='publish' for live posts, 'draft' for unpublished, 'any' for all (default)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": status_enum,
+                        "default": "any",
+                        "description": "Filter posts by status. Default: any.",
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "default": 20,
+                        "maximum": 100,
+                        "description": "Number of posts to return (max 100).",
+                    },
+                },
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="wp_create_post",
+            description="Create a new WordPress blog post. Returns the created post with its id.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Post title"},
+                    "content": {"type": "string", "description": "HTML content — WordPress accepts basic HTML"},
+                    "status": {
+                        "type": "string",
+                        "enum": publish_enum,
+                        "default": "draft",
+                        "description": "Post status. Default: draft.",
+                    },
+                    "categories": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "Category IDs to assign to this post",
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "Tag IDs to assign to this post",
+                    },
+                },
+                "required": ["title", "content"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="wp_update_post",
+            description="Update an existing WordPress post's title, content, or status.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "post_id": {"type": "integer", "description": "ID of the post to update"},
+                    "title": {"type": "string", "description": "New title"},
+                    "content": {"type": "string", "description": "New HTML content"},
+                    "status": {"type": "string", "enum": publish_enum, "description": "New status"},
+                },
+                "required": ["post_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=True),
+        ),
+        Tool(
+            name="wp_publish_post",
+            description="Publish a WordPress post (set status to publish). Equivalent to clicking Publish in the WP editor.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "post_id": {"type": "integer", "description": "ID of the post to publish"},
+                },
+                "required": ["post_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=True),
+        ),
+        Tool(
+            name="wp_list_pages",
+            description="List WordPress pages. Returns id, title, status, link, date for each page.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": status_enum,
+                        "default": "any",
+                        "description": "Filter pages by status. Default: any.",
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "default": 20,
+                        "maximum": 100,
+                        "description": "Number of pages to return (max 100).",
+                    },
+                },
+            },
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="wp_create_page",
+            description="Create a new WordPress page.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Page title"},
+                    "content": {"type": "string", "description": "HTML content"},
+                    "status": {
+                        "type": "string",
+                        "enum": publish_enum,
+                        "default": "draft",
+                        "description": "Page status. Default: draft.",
+                    },
+                    "parent": {
+                        "type": "integer",
+                        "description": "Parent page ID for hierarchy (optional)",
+                    },
+                },
+                "required": ["title", "content"],
+            },
+            annotations=ToolAnnotations(destructiveHint=False),
+        ),
+        Tool(
+            name="wp_update_page",
+            description="Update an existing WordPress page.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "page_id": {"type": "integer", "description": "ID of the page to update"},
+                    "title": {"type": "string", "description": "New title"},
+                    "content": {"type": "string", "description": "New HTML content"},
+                    "status": {"type": "string", "enum": publish_enum, "description": "New status"},
+                },
+                "required": ["page_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=True),
+        ),
+        Tool(
+            name="wp_publish_page",
+            description="Publish a WordPress page.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "page_id": {"type": "integer", "description": "ID of the page to publish"},
+                },
+                "required": ["page_id"],
+            },
+            annotations=ToolAnnotations(destructiveHint=True),
+        ),
+        Tool(
+            name="wp_get_site_info",
+            description="Get WordPress site name, description, and URL.",
+            inputSchema={"type": "object", "properties": {}},
+            annotations=ToolAnnotations(readOnlyHint=True),
+        ),
+        Tool(
+            name="wp_update_site_settings",
+            description="Update WordPress site title or tagline.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "New site title"},
+                    "description": {"type": "string", "description": "New tagline / description"},
+                },
+            },
+            annotations=ToolAnnotations(destructiveHint=True),
         ),
     ]
 

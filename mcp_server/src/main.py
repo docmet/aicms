@@ -22,7 +22,7 @@ from mcp.server.models import InitializationOptions
 from starlette.responses import Response
 
 from .database import get_db, engine, get_db_session
-from .models import MCPClient
+from .models import MCPClient, WordPressSite
 from .schemas import MCPClientCreate, MCPClientResponse
 from .aicms_mcp_server.server import MCPServer
 
@@ -79,6 +79,58 @@ async def get_current_user(
         )
     
     return str(client.user_id)
+
+
+async def _call_wp_tool(wp_mcp_token: str, tool: str, args: dict) -> str:
+    """Proxy a WP tool call to the backend dispatch endpoint.
+
+    Returns a human-readable string for the MCP content block.
+    """
+    api_url = os.getenv("API_URL", "http://backend:8000/api")
+    internal_secret = os.getenv("INTERNAL_SECRET", "")
+    url = f"{api_url}/wordpress/wp-mcp/{wp_mcp_token}/dispatch"
+    headers = {"X-Internal-Secret": internal_secret, "Content-Type": "application/json"}
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(url, json={"tool": tool, "args": args}, headers=headers)
+    except Exception as exc:
+        return f"Error contacting backend: {exc}"
+
+    if response.status_code == 404:
+        return (
+            "WordPress site not found for this token. "
+            "Register your WP site at mystorey.io/dashboard/wordpress."
+        )
+    if response.status_code == 403:
+        return "Internal authentication error. Contact support."
+    if not response.is_success:
+        try:
+            detail = response.json().get("detail", response.text)
+        except Exception:
+            detail = response.text
+        return f"WordPress error: {detail}"
+
+    data = response.json()
+    result = data.get("result", data)
+
+    # Format result as readable text
+    if isinstance(result, list):
+        import json as _json
+        return _json.dumps(result, indent=2, default=str)
+    if isinstance(result, dict):
+        # For create/update operations, produce a compact summary
+        title = result.get("title", {})
+        if isinstance(title, dict):
+            title = title.get("rendered", title.get("raw", ""))
+        rid = result.get("id")
+        rstatus = result.get("status")
+        rlink = result.get("link", "")
+        if rid and rstatus:
+            return f"Post/Page '{title}' (id={rid}) — status: {rstatus}. URL: {rlink}"
+        import json as _json
+        return _json.dumps(result, indent=2, default=str)
+    return str(result)
 
 
 @app.on_event("startup")
@@ -349,22 +401,44 @@ async def mcp_generic_endpoint(
         .where(MCPClient.expires_at > datetime.utcnow())
     )
     authed_client = result.scalar_one_or_none()
+
+    # Check if this is a WordPress mcp_token (WP users paste their mcp_token directly)
+    wp_token: str | None = None
+    wp_site: WordPressSite | None = None
     if not authed_client:
-        return JSONResponse(
-            status_code=401,
-            content={"error": "invalid_token"},
-            headers={"WWW-Authenticate": f'Bearer error="invalid_token", resource_metadata="{resource_metadata}"'},
+        wp_row = await db.execute(
+            select(WordPressSite)
+            .where(WordPressSite.mcp_token == token)
+            .where(WordPressSite.is_active.is_(True))
         )
+        wp_site = wp_row.scalar_one_or_none()
+        if wp_site:
+            wp_token = token
+        else:
+            return JSONResponse(
+                status_code=401,
+                content={"error": "invalid_token"},
+                headers={"WWW-Authenticate": f'Bearer error="invalid_token", resource_metadata="{resource_metadata}"'},
+            )
 
     method = body.get("method", "")
     req_id = body.get("id")
-    print(f"[/mcp] method={method} user={authed_client.user_id}")
+    user_id_log = wp_site.user_id if wp_token else authed_client.user_id  # type: ignore[union-attr]
+    print(f"[/mcp] method={method} user={user_id_log} wp={wp_token is not None}")
 
     def ok(result):
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
+    WP_TOOLS = {
+        "wp_list_posts", "wp_create_post", "wp_update_post", "wp_publish_post",
+        "wp_list_pages", "wp_create_page", "wp_update_page", "wp_publish_page",
+        "wp_get_site_info", "wp_update_site_settings",
+        "wp_list_categories", "wp_list_tags",
+    }
+
     api_url = os.getenv("API_URL", "http://backend:8000/api")
-    per_request_server = MCPServer(api_url, authed_client.token, os.getenv("APP_URL", ""))
+    mcp_token_for_server = token if not wp_token else ""
+    per_request_server = MCPServer(api_url, mcp_token_for_server, os.getenv("APP_URL", ""))
 
     if method == "initialize":
         return ok({
@@ -375,15 +449,25 @@ async def mcp_generic_endpoint(
     elif method == "notifications/initialized":
         # Push tools/list_changed so clients that do lazy discovery (e.g. Perplexity)
         # know to call tools/list immediately after initialization.
-        sse_queue = _sse_queues.get(str(authed_client.id))
-        if sse_queue:
-            await sse_queue.put({"jsonrpc": "2.0", "method": "notifications/tools/list_changed"})
+        if authed_client:
+            sse_queue = _sse_queues.get(str(authed_client.id))
+            if sse_queue:
+                await sse_queue.put({"jsonrpc": "2.0", "method": "notifications/tools/list_changed"})
         return {}
     elif method == "tools/list":
         return ok({"tools": _make_tool_list()})
     elif method == "tools/call":
         params = body.get("params", {})
-        result = await per_request_server._dispatch(params.get("name", ""), params.get("arguments", {}))
+        tool_name = params.get("name", "")
+        tool_args = params.get("arguments", {})
+
+        if tool_name in WP_TOOLS:
+            # The bearer token IS the wp mcp_token — proxy to backend dispatch
+            effective_wp_token = wp_token if wp_token else token
+            wp_call_result = await _call_wp_tool(effective_wp_token, tool_name, tool_args)
+            return ok({"content": [{"type": "text", "text": wp_call_result}], "isError": False})
+
+        result = await per_request_server._dispatch(tool_name, tool_args)
         return ok({"content": [{"type": c.type, "text": c.text} for c in result.content], "isError": result.isError})
     elif method == "ping":
         return ok({})

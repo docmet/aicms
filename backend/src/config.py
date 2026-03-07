@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
     stripe_pro_price_id: str = ""
     stripe_agency_price_id: str = ""
+    stripe_wp_starter_price_id: str = ""
+    stripe_wp_pro_price_id: str = ""
 
     # Email (SMTP)
     smtp_host: str = "localhost"
