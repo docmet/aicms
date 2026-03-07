@@ -32,8 +32,8 @@ All requirements below are shipped and confirmed working.
 
 ### Polish & Stability
 
-- [ ] **PLSH-01**: Section editors render correctly for all 8 section types without visual glitches
-- [ ] **PLSH-02**: Image field UX — clear upload/paste/URL flow with dimension hints visible
+- [x] **PLSH-01**: Section editors render correctly for all 8 section types without visual glitches
+- [x] **PLSH-02**: Image field UX — clear upload/paste/URL flow with dimension hints visible
 - [ ] **PLSH-03**: Admin editor is usable on mobile (hamburger, scrollable editors)
 - [x] **PLSH-04**: Slug uniqueness enforced at DB level (unique constraint, no race condition)
 - [ ] **PLSH-05**: Structured error logging with Sentry integration in production
@@ -131,8 +131,8 @@ All requirements below are shipped and confirmed working.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLSH-01 | Phase 14 | Pending |
-| PLSH-02 | Phase 14 | Pending |
+| PLSH-01 | Phase 14 | Complete |
+| PLSH-02 | Phase 14 | Complete |
 | PLSH-03 | Phase 14 | Pending |
 | PLSH-04 | Phase 14 | Complete |
 | PLSH-05 | Phase 14 | Pending |

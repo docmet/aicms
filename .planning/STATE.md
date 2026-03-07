@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Launch Ready
 status: executing
-stopped_at: Completed 14-00-PLAN.md
-last_updated: "2026-03-07T13:53:55.595Z"
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-07T13:56:56.059Z"
 last_activity: 2026-03-07 — Phase 14 planned (research → 7 plans → verified)
 progress:
   total_phases: 17
   completed_phases: 0
   total_plans: 7
-  completed_plans: 1
+  completed_plans: 5
   percent: 14
 ---
 
@@ -48,6 +48,7 @@ Progress: [█░░░░░░░░░] 14%
 *Updated after each plan completion*
 | Phase 14-polish-stability P00 | 3min | 2 tasks | 2 files |
 | Phase 14 P00 | 3min | 2 tasks | 2 files |
+| Phase 14 P01 | 15m | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,10 @@ From PROJECT.md Key Decisions table — decisions affecting current work:
 - [Phase 14-polish-stability]: Mark slug uniqueness tests xfail not skip so pytest discovers/counts them while SQLite cannot enforce PostgreSQL partial indexes
 - [Phase 14-polish-stability]: Wave 0 xfail scaffold pattern: create test files before production code to satisfy Nyquist compliance for downstream plans
 - [Phase 14]: Mark slug uniqueness tests xfail(strict=False) so pytest discovers them while SQLite cannot enforce PostgreSQL partial indexes
+- [Phase 14]: URL mode toggle hidden when image already set; mode only affects empty-state UX
+- [Phase 14]: Validate URL with new URL() constructor on blur + Enter; error shown inline without calling onChange
+- [Phase 14-polish-stability]: Partial unique index (WHERE is_deleted=false) used instead of plain UniqueConstraint to allow slug reuse after soft-delete
+- [Phase 14-polish-stability]: create_page wraps db.commit() in try/except IntegrityError returning 409, alongside SELECT fast-path for race-condition safety
 
 ### Pending Todos
 
@@ -78,6 +83,6 @@ From CONCERNS.md — items relevant to Phase 14:
 
 ## Session Continuity
 
-Last session: 2026-03-07T13:53:46.745Z
-Stopped at: Completed 14-00-PLAN.md
+Last session: 2026-03-07T13:56:45.903Z
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None
