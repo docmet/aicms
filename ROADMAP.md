@@ -75,11 +75,11 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 ### Phase 14: Polish & Refinements
 - UI/UX improvements: section editor quality, image field UX, mobile editor
-- `generate_section` MCP tool: real AI content generation (currently placeholder)
-- Email verification flow + password reset
+- MCP tool descriptions + response copy: richer examples, better field hints (this IS the product for AI clients)
 - Slug uniqueness DB constraint (race condition fix)
 - Structured logging + error monitoring (Sentry)
-- Performance: index `site.slug` / `page.slug`, fix N+1 badge query, Redis cache for public data
+- Performance: index `site.slug` / `page.slug`, fix N+1 badge query
+- Admin MCP tools (operator-only): platform stats, cross-user site list, deployment trigger
 
 ### Phase 15: WordPress Plugin
 - WP plugin (PHP): settings page, Application Password setup, copy-MCP-URL
@@ -99,10 +99,13 @@ Development roadmap: from MVP proof-of-concept to production-ready freemium SaaS
 
 ### Phase 17: Public Launch
 - mystorey.io public launch (landing page, blog, pricing page live)
+- Modular pricing: base plans + optional add-on packages, early bird urgency + countdown
+- Affiliate program: 25% recurring commission, referral dashboard
 - Onboarding funnel: sign up → create site → connect AI → publish in under 10 min
 - AI tool connection guide for Claude, ChatGPT, Perplexity
 - Social proof: 3 real client sites live as case studies
 - Product Hunt / Hacker News launch post
+- "Tip of the iceberg" messaging throughout — communicate platform velocity clearly
 
 ---
 

@@ -16,7 +16,7 @@
 
 ## Known Issues / Bugs
 
-- **`generate_section` is a placeholder**: MCP tool exists but has no real AI generation logic — returns placeholder content
+- **`generate_section` returns schema only**: By design — the calling AI (Claude/ChatGPT) does content generation from its own context. The tool's value is in the field documentation and examples it returns, not AI generation on our side.
 - **No email verification**: Users registered immediately without email confirmation (`backend/src/api/auth.py`)
 - **No password reset**: No password reset / recovery flow exists
 - **Slug collision race condition**: Between checking slug uniqueness and creating the record, another request could claim the same slug (no DB-level unique constraint race protection)

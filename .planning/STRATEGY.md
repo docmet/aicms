@@ -1,7 +1,32 @@
 # MyStorey — Business Strategy
 
 **Date:** 2026-03-07
-**Status:** Working document
+**Status:** Living document — update after every strategic decision
+
+---
+
+## Core Philosophy
+
+### The Dumb Toolbox Principle
+MyStorey is a **high-quality, well-documented backend**. The user's AI client (Claude, ChatGPT, Perplexity, etc.) is the intelligence layer. We never embed user-facing AI API calls into the platform.
+
+**Why:**
+- Cost ownership stays on the user — their subscription, their bill
+- Quality ownership stays on the AI provider — if ChatGPT writes bad copy, that's not our bug
+- Works with any current or future MCP-compatible AI client automatically
+- Keeps the platform lean, fast, and predictable
+
+**What this means in practice:**
+- Our MCP tool descriptions and response messages ARE the product — they must be exceptional
+- The richer our tool docs + field comments + example values, the better any AI performs with us
+- We never call Anthropic/OpenAI APIs for user-facing content generation
+
+### AI for Platform Operations (Gradual)
+We DO use AI on the operator side, and can offer it as a premium feature for users later:
+
+**Phase 1 (now):** Claude Code (Max subscription) for development — this session is the model
+**Phase 2 (soon):** Admin MCP tools — operator connects Claude.ai to MyStorey as admin, drives operations through conversation: platform stats, user audits, client site generation, deployment triggers
+**Phase 3 (later):** API-backed AI features for premium user tiers — e.g., "AI content audit", "AI SEO suggestions", "bulk site generation from a spreadsheet" — charged at Agency+ plan level where the economics work
 
 ---
 
@@ -17,6 +42,14 @@ All three share the same engine, MCP server, and billing infrastructure. Each ha
 
 ---
 
+## Platform Narrative: Tip of the Iceberg
+
+**Communicate everywhere:** what exists today is the foundation. The platform evolves at an extraordinary pace — new section types, AI tool integrations, WooCommerce support, multilingual, AI image generation, bulk site creation. Early adopters who join now lock in lower prices and shape the product directly.
+
+This is not just a feature promise — it is a real structural advantage. Every AI capability that gets added to Claude/ChatGPT automatically becomes available to MyStorey users with zero update needed on their end. The MCP protocol means our platform compounds in value as AI improves.
+
+---
+
 ## Go-to-Market Order
 
 ### Track 1: Agency use (internal, now)
@@ -25,20 +58,20 @@ All three share the same engine, MCP server, and billing infrastructure. Each ha
 - Forces us to build the features real clients need (eCommerce links, custom domains, contact forms working end-to-end)
 - Target: 3 client sites live before any public announcement
 
-### Track 2: WordPress plugin (next 2–3 weeks)
+### Track 2: WordPress plugin (this weekend)
 - Fastest path to external revenue — WP market is established and paying
 - Plugin is a free PHP install; subscription billed via MyStorey Stripe
-- Pricing: $9/mo (1 site) / $29/mo (5 sites + WooCommerce tools)
+- Pricing: modular (see Pricing section below)
 - `/wordpress` landing page with Matrix pill framing (see research doc)
 - Distribution: direct zip download first, WordPress.org listing later for organic
 - Every WP plugin customer is a warm lead for full MyStorey upsell
 
-### Track 3: MyStorey public launch (within 1–2 months)
-- Launch only when: (a) the product is solid enough for cold users, (b) we have 1–2 real testimonials
+### Track 3: MyStorey public launch (within 4–6 weeks)
+- Launch only when: (a) solid enough for cold users, (b) 2–3 real client sites as case studies
 - Landing page with demo video showing AI building a site in real time
-- Free plan as top-of-funnel (1 site, badge), Pro $9.99/mo, Agency $99/mo
-- Channels: Product Hunt, Hacker News "Show HN", AI/no-code communities
-- Content marketing: blog posts on "how to build a site with Claude" drive SEO
+- Communicate "tip of the iceberg" narrative prominently
+- Channels: Product Hunt, Hacker News "Show HN", AI/no-code communities, WP communities
+- Content marketing: "how to build a site with Claude in 5 minutes" → SEO
 
 ---
 
@@ -50,82 +83,145 @@ What client types the engine already supports:
 - **Multi-page sites** — nav, multiple pages, per-page publishing: done
 - **Contact/lead capture** — form submissions + email notification + admin inbox: done
 
-What's needed for webshops (next):
-- Product page section type (image, title, description, price, external "Buy" link)
-- Or: embed section to drop in a Gumroad / Snipcart / Stripe Payment Link widget
-- Custom domain + SSL (Cloudflare proxy): planned Phase 12 completion
-
-**Immediate action:** identify 1–2 docmet clients whose sites are simple enough to migrate first. Use the onboarding wizard to build their new site alongside them, then cut over DNS.
+What's needed for webshops:
+- Option A (fast): embed section with Stripe Payment Link / Gumroad widget (2h build)
+- Option B (proper): product page section type with image, price, "Buy" CTA (2 days)
+- Custom domain + Cloudflare SSL: Phase 12 completion
 
 ---
 
-## AI-Automated Operations
+## Pricing Strategy
 
-The goal: run the platform with near-zero human ops overhead by using AI for support, feedback triage, and development planning.
+### Principles
+- **Modular packages** — base price + optional add-ons clicked together, not rigid tiers
+- **Early bird urgency** — prices increase on visible schedule (e.g., +20% every 30 days until launch)
+- **Annual discount** — 2 months free for yearly commitment
+- **Affiliate program** — 20–30% recurring commission for referrers
+- **Communicate value trajectory** — "you lock in today's price forever" + roadmap preview on pricing page
 
-### Support automation (Phase 14+)
-- In-app help widget: user types question → Claude answers from a MyStorey knowledge base
-- Escalation only if Claude confidence is low or user explicitly requests human
-- Contact form on the landing page routes to Claude first → summarized ticket in Slack/email
-- Build the knowledge base as we document features (each new phase = update KB)
+### MyStorey SaaS (proposed structure)
 
-### Feedback triage
-- Form submissions from `/contact` tagged by intent: bug report / feature request / billing / general
-- AI categorizes + drafts response → human reviews before sending (for now)
-- Later: fully automated for common cases (billing questions, "how do I..." queries)
+**Base plans:**
+| Plan | Price | Sites |
+|---|---|---|
+| Starter | $7/mo (early bird → $9.99) | 1 site |
+| Growth | $19/mo (early bird → $29) | 5 sites |
+| Agency | $79/mo (early bird → $99) | 20 sites |
 
-### Development planning
-- Claude Code as the primary development tool (already in place)
-- Roadmap + STRATEGY.md as the persistent context — update after every session
-- Each week: review metrics (signups, active sites, support volume) → prioritize backlog
-- Bug reports from Sentry (planned) feed directly into planning sessions
+**Add-on packages (click to add to any plan):**
+| Package | Price | What it adds |
+|---|---|---|
+| Custom Domain | +$3/mo | 1 custom domain + SSL |
+| Extra Sites | +$5/mo | +3 additional sites |
+| Priority Support | +$9/mo | <4h response, dedicated channel |
+| AI Automations | +$19/mo | API-backed: SEO audit, bulk generation (Phase 3+) |
+| White Label | +$49/mo | Remove MyStorey branding, use own domain for dashboard |
+
+**Early bird mechanics:**
+- Current price shown prominently with strikethrough of future price
+- Countdown or "price increases on [date]" visible on pricing page
+- Lock-in message: "Subscribe now — your price never increases"
+- First 100 users get Founder badge in their dashboard
+
+### WordPress Plugin (proposed structure)
+| Plan | Price | Sites |
+|---|---|---|
+| Starter | $7/mo | 1 WP site |
+| Pro | $24/mo | 5 WP sites |
+| Agency | $69/mo | Unlimited WP sites + WooCommerce tools |
+
+Add-ons same structure as above.
+
+### Affiliate Program
+- 25% recurring commission for 12 months
+- Simple dashboard showing referrals + earnings
+- Payout via Stripe once/month at $50 minimum
+- Referral link embedded in every user's dashboard ("Refer a friend → earn cash")
+- Special rate for content creators: 30% for first 90 days if they produce a review/tutorial
 
 ---
 
 ## Marketing Strategy
 
 ### Positioning
-- Not "website builder" (crowded, feature war with Squarespace)
-- "The website platform built for AI assistants" — unique, defensible
-- Secondary: "build and manage your site just by chatting with Claude or ChatGPT"
+- NOT "website builder" — crowded, implies drag-and-drop, implies Squarespace competitor
+- "The website platform built for AI assistants"
+- Sub-message: "Your AI chat builds and manages your entire website. You just approve."
 
-### WordPress plugin angle
-- "Your WordPress stays WordPress. Your AI finally gets to work."
-- Matrix pill: blue pill (stay in WP + add AI) vs red pill (go native with MyStorey)
-- Content: blog post "How to give Claude access to your WordPress site in 5 minutes" → SEO + sharing
-
-### MyStorey SaaS angle
-- Hero demo: screencast of Claude building a full site in under 5 minutes
-- Testimonial from first real client (get permission from docmet client)
-- Free trial implicit: Free plan lets anyone start without credit card
+### Core message hierarchy
+1. **What**: AI-first website platform connected via MCP
+2. **Why now**: AI models (Claude, ChatGPT) just got powerful enough to build real sites
+3. **Why us**: Every AI improvement = your site gets smarter automatically. No update needed.
+4. **Why today**: Early bird pricing, lock in forever, help shape the product
 
 ### Channels (prioritized)
-1. Product Hunt — single coordinated launch day, all votes concentrated
-2. "Show HN" on Hacker News — technical audience, good for MCP angle
-3. Twitter/X — post the demo video, tag AI/developer communities
-4. WordPress community (forums, r/Wordpress, WPBeginner) — for plugin specifically
-5. SEO — "build website with Claude", "MCP website builder" — low competition right now
+1. Product Hunt — single coordinated launch day
+2. "Show HN" — technical audience, strong for MCP angle ("I built a website platform controlled entirely via MCP")
+3. Twitter/X — demo video of AI building a full site in 2 minutes
+4. WordPress community — for plugin (r/Wordpress, WPBeginner, WP forums)
+5. AI communities — r/ClaudeAI, r/ChatGPT, Perplexity forums
+6. SEO — "build website with Claude", "MCP website editor", "ChatGPT website builder"
+
+### Content to produce before launch
+- Demo video: 2-min screencast of Claude building a full coffee shop site from one sentence
+- Blog post: "How to give Claude control of your website in 5 minutes"
+- Blog post: "Why we built MyStorey instead of another website builder"
+- Landing page case studies: 2–3 real client sites with before/after
 
 ---
 
-## Revenue Model
+## Operator AI System (Self-Building Platform)
 
-| Product | Free | Paid |
+### Development (now)
+Claude Code (Max subscription, local) is the development environment. Every feature, fix, and refactor goes through Claude Code sessions. This session is the model.
+
+### Operations (Phase 14)
+Build admin-specific MCP tools accessible only to `is_admin=True` users:
+- `get_platform_stats` — total users, sites, pages, MRR estimate, active sessions
+- `list_all_sites` — cross-user site list with last activity, plan, status
+- `generate_client_site` — given a client brief, generate a full site (calls existing tools in sequence)
+- `audit_user_content` — check all sections for quality, completeness, broken images
+- `send_platform_announcement` — queue an email to all users
+- `trigger_deployment` — fire Coolify deploy from chat
+
+Operator workflow: connect Claude.ai (Max) to MyStorey MCP as `norbi@docmet.com` → ask "show me the 5 least active sites, give me suggestions for improving them" → Claude calls admin tools, synthesizes, responds.
+
+### Future (Phase 16+)
+API-backed AI features as premium add-ons for users:
+- AI content audit: Claude reviews all sections, flags thin/weak content, suggests improvements
+- AI SEO report: generates per-page SEO score + specific fix recommendations
+- Bulk site generation: upload a CSV of business info → generate N sites
+- These require Anthropic API key on our side — priced at Agency+ level to cover cost
+
+---
+
+## Revenue Model & Milestones
+
+| MRR | Meaning | Action |
 |---|---|---|
-| MyStorey SaaS | 1 site, badge, mystorey.io subdomain | $9.99/mo Pro (3 sites, custom domain) · $99/mo Agency (15 sites) |
-| WordPress Plugin | — | $9/mo Starter (1 site) · $29/mo Pro (5 sites + WooCommerce) |
-
-Revenue target milestones:
-- **€500 MRR** — validation. Pay for hosting + MCP API costs. Achievable with ~50 Pro users.
-- **€2,000 MRR** — ramen profitable. Focus full-time justified.
-- **€10,000 MRR** — hire part-time support/dev. Start Agency white-label track seriously.
+| €500 | Validation — covers hosting + API | Keep building |
+| €2,000 | Ramen profitable | Full-time focus justified |
+| €5,000 | Hire part-time (support or dev) | Start affiliate program seriously |
+| €10,000 | Small team possible | Dedicated support, white-label track |
 
 ---
 
-## Open Questions (to resolve)
+## Open Questions
 
-1. **Webshop approach** — embed external (Stripe Payment Links / Gumroad) or build native product pages? Embed is faster; native is stickier.
-2. **WordPress.org listing** — submit immediately for organic reach, or keep as direct download to stay nimble on updates? Recommendation: direct download first, submit after v1.1.
-3. **Support tooling** — build in-app AI help widget now (Phase 14) or rely on email for first 100 users? Recommendation: email first, build widget when ticket volume warrants it.
-4. **Agency pricing** — bill internal docmet clients separately, or treat as internal cost? Recommendation: no billing for internal use until platform is stable.
-5. **Staging environment** — mystorey-staging is live but not consistently used for QA. Should it mirror production data? Recommendation: yes, run seed against staging before each release.
+1. **Webshop approach** — embed (Stripe Payment Links/Gumroad, 2h) vs native product section (2 days)?
+   → Recommendation: embed first, native later when clients ask for it
+
+2. **WP plugin WordPress.org listing** — immediate vs after v1.1?
+   → Recommendation: direct zip download first, submit after first 10 paying users give feedback
+
+3. **Early bird date** — when does price go up?
+   → Set a real date (e.g., April 1), display prominently, stick to it
+
+4. **Affiliate tooling** — build in-house vs use a service (Rewardful, PartnerStack)?
+   → Recommendation: Rewardful ($49/mo) to start — not worth building from scratch until €5k MRR
+
+5. **Admin MCP tools** — build before WP plugin or after?
+   → After WP plugin — operator tools are nice-to-have, WP plugin is revenue
+
+6. **AI API features for users** — which plan level makes economics work?
+   → At $0.001–0.01 per call, Agency+ ($79+/mo) covers cost comfortably at expected usage
