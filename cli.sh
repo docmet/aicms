@@ -71,6 +71,7 @@ Commands:
   db:migrate           Run database migrations
   db:seed              Seed the database
   db:reset             Reset database (drop, create, migrate, seed)
+  make:admin <email>   Promote a registered user to admin
   clean-db             Remove database volume only
   
   build                Build Docker images for production
@@ -362,6 +363,43 @@ db_seed_command() {
   log_success "Database seeded"
 }
 
+make_admin_command() {
+  local email="${2:-}"
+  if [[ -z "$email" ]]; then
+    log_error "Usage: ./cli.sh make:admin <email>"
+    exit 1
+  fi
+
+  local compose_cmd
+  compose_cmd="$(compose_cmd)"
+
+  log_info "Promoting $email to admin..."
+  ${compose_cmd} -f "${COMPOSE_DEV}" exec backend python - <<PYEOF
+import asyncio, sys
+sys.path.insert(0, "/app")
+from sqlalchemy import select
+from src.database import AsyncSessionLocal
+from src.models.user import User
+
+async def run():
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == "$email"))
+        user = result.scalar_one_or_none()
+        if not user:
+            print("ERROR: User not found — register via the UI first, then re-run this command")
+            sys.exit(1)
+        if user.is_admin:
+            print(f"INFO: {user.email} is already an admin")
+            sys.exit(0)
+        user.is_admin = True
+        db.add(user)
+        await db.commit()
+        print(f"OK: {user.email} promoted to admin")
+
+asyncio.run(run())
+PYEOF
+}
+
 db_reset_command() {
   local compose_cmd
   compose_cmd="$(compose_cmd)"
@@ -648,6 +686,9 @@ main() {
       ;;
     db:seed)
       db_seed_command
+      ;;
+    make:admin)
+      make_admin_command "$@"
       ;;
     db:reset)
       db_reset_command
