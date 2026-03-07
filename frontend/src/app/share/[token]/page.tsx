@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { FeaturesSection } from "@/components/sections/FeaturesSection";
 import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
@@ -21,30 +21,77 @@ const SECTION_COMPONENTS: Record<string, React.ComponentType<{ content: string }
   custom: CustomSection,
 };
 
+interface Section {
+  id: string;
+  section_type: string;
+  content: string;
+}
+
 interface SiteData {
   name: string;
   theme_slug: string;
-  sections: { id: string; section_type: string; content: string }[];
+  sections: Section[];
   _expires_at?: string;
 }
 
 export default function SharePreviewPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const [data, setData] = useState<SiteData | null>(null);
-  const [status, setStatus] = useState<"loading" | "expired" | "error" | "ok">("loading");
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loadStatus, setLoadStatus] = useState<"loading" | "expired" | "error" | "ok">("loading");
+  const sseRef = useRef<EventSource | null>(null);
 
+  // Initial data load
   useEffect(() => {
     fetch(`/api/share/${token}`)
       .then(async (res) => {
-        if (res.status === 410) { setStatus("expired"); return; }
-        if (!res.ok) { setStatus("error"); return; }
-        setData(await res.json() as SiteData);
-        setStatus("ok");
+        if (res.status === 410) { setLoadStatus("expired"); return; }
+        if (!res.ok) { setLoadStatus("error"); return; }
+        const json = await res.json() as SiteData;
+        setData(json);
+        setSections(json.sections);
+        setLoadStatus("ok");
       })
-      .catch(() => setStatus("error"));
+      .catch(() => setLoadStatus("error"));
   }, [token]);
 
-  if (status === "loading") {
+  // SSE live updates — no auth required, token is in the URL
+  useEffect(() => {
+    if (loadStatus !== "ok") return;
+
+    const es = new EventSource(`/api/preview/share/${token}`);
+    sseRef.current = es;
+
+    es.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data) as {
+          type: string;
+          sections?: { id: string; section_type: string; content_draft: string | null; order: number }[];
+        };
+        if (msg.type === "sections_updated" && msg.sections) {
+          setSections(
+            msg.sections
+              .filter((s) => s.content_draft)
+              .sort((a, b) => a.order - b.order)
+              .map((s) => ({
+                id: s.id,
+                section_type: s.section_type,
+                content: s.content_draft!,
+              }))
+          );
+        }
+      } catch {
+        // ignore malformed events
+      }
+    };
+
+    return () => {
+      es.close();
+      sseRef.current = null;
+    };
+  }, [token, loadStatus]);
+
+  if (loadStatus === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 rounded-full animate-spin border-violet-200 border-t-violet-600" />
@@ -52,7 +99,7 @@ export default function SharePreviewPage({ params }: { params: Promise<{ token: 
     );
   }
 
-  if (status === "expired") {
+  if (loadStatus === "expired") {
     return (
       <div className="min-h-screen flex items-center justify-center text-center">
         <div>
@@ -64,7 +111,7 @@ export default function SharePreviewPage({ params }: { params: Promise<{ token: 
     );
   }
 
-  if (status === "error" || !data) {
+  if (loadStatus === "error" || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center text-center">
         <div>
@@ -80,15 +127,22 @@ export default function SharePreviewPage({ params }: { params: Promise<{ token: 
       data-theme={data.theme_slug || "default"}
       style={{ background: "var(--color-bg, #fff)", color: "var(--color-text, #0f172a)", fontFamily: "var(--font-sans)" }}
     >
-      {/* Preview banner */}
-      <div className="sticky top-0 z-50 flex items-center justify-center gap-2 py-2 text-xs font-medium bg-violet-600 text-white">
-        <span>✦</span> Draft Preview
-        {data._expires_at && (
-          <span className="opacity-75">— expires {new Date(data._expires_at).toLocaleString()}</span>
-        )}
+      {/* Draft preview banner — amber like the owner's preview, CTA instead of Close */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-amber-400 text-amber-900 text-sm font-semibold text-center py-2 flex items-center justify-center gap-3">
+        <span>DRAFT PREVIEW — changes not yet published</span>
+        <a
+          href="https://mystorey.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-3 py-0.5 rounded bg-amber-900/20 hover:bg-amber-900/30 text-xs whitespace-nowrap"
+        >
+          Build your site →
+        </a>
       </div>
+      {/* Spacer for fixed bar */}
+      <div className="h-9" />
 
-      {data.sections
+      {sections
         .filter((s) => s.content && s.content.trim().length > 0)
         .map((section) => {
           const Component = SECTION_COMPONENTS[section.section_type] || CustomSection;

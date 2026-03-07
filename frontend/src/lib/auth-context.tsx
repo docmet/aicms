@@ -38,18 +38,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await api.get('/auth/me');
         setUser(response.data);
-      } catch (error) {
-        console.error('Failed to fetch user', error);
+      } catch {
+        // Token invalid/expired — clear it and let each layout decide whether to redirect
         localStorage.removeItem('token');
-        const from = encodeURIComponent(window.location.pathname + window.location.search);
-        router.push(`/login?from=${from}`);
       } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, [router]);
+  }, []);
 
   const login = (token: string, redirectTo?: string) => {
     localStorage.setItem('token', token);
