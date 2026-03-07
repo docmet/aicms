@@ -674,6 +674,120 @@ class MCPServer:
                 f"Call `publish_page` when you're happy with the result."
             )
 
+        # ── get_platform_stats ────────────────────────────────────────────────────
+        elif tool_name == "get_platform_stats":
+            try:
+                stats = await self._make_request("GET", "/admin/stats")
+                users = await self._make_request("GET", "/admin/users")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 403:
+                    return self._text(
+                        "This tool requires admin access. "
+                        "Connect with an admin account's MCP token."
+                    )
+                raise
+            plan_counts: Dict[str, int] = {}
+            for u in users:
+                plan = u.get("plan", "free")
+                plan_counts[plan] = plan_counts.get(plan, 0) + 1
+            plan_lines = "\n".join(
+                f"  - {k}: {v}" for k, v in sorted(plan_counts.items())
+            )
+            return self._text(
+                f"**Platform Stats**\n"
+                f"- Total users: {stats['total_users']}\n"
+                f"- Active sites: {stats['total_sites']}\n"
+                f"- Total pages: {stats['total_pages']}\n"
+                f"- Total sections: {stats['total_sections']}\n\n"
+                f"**Users by plan:**\n{plan_lines}"
+            )
+
+        # ── list_all_sites ────────────────────────────────────────────────────────
+        elif tool_name == "list_all_sites":
+            try:
+                sites = await self._make_request("GET", "/admin/sites")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 403:
+                    return self._text(
+                        "This tool requires admin access. "
+                        "Connect with an admin account's MCP token."
+                    )
+                raise
+            if not sites:
+                return self._text("No active sites found on the platform.")
+            lines = []
+            for s in sites:
+                updated = s.get("updated_at", s.get("created_at", "unknown"))[:10]
+                lines.append(
+                    f"- **{s['name']}** (`/{s['slug']}`)"
+                    f" — {s['user_email']} [{s['user_plan']}]"
+                    f" — last updated: {updated}"
+                )
+            return self._text(
+                f"**All Sites ({len(sites)} total)**\n\n" + "\n".join(lines)
+            )
+
+        # ── get_error_report ──────────────────────────────────────────────────────
+        elif tool_name == "get_error_report":
+            # Admin check via stats endpoint
+            try:
+                await self._make_request("GET", "/admin/stats")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 403:
+                    return self._text(
+                        "This tool requires admin access. "
+                        "Connect with an admin account's MCP token."
+                    )
+                raise
+            sentry_token = os.environ.get("SENTRY_AUTH_TOKEN", "")
+            sentry_org = os.environ.get("SENTRY_ORG", "")
+            sentry_project = os.environ.get("SENTRY_PROJECT", "")
+            if not (sentry_token and sentry_org and sentry_project):
+                return self._text(
+                    "Sentry not configured — missing SENTRY_AUTH_TOKEN, SENTRY_ORG, or SENTRY_PROJECT env vars."
+                )
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                r = await client.get(
+                    f"https://sentry.io/api/0/projects/{sentry_org}/{sentry_project}/issues/",
+                    params={"query": "is:unresolved", "limit": 10, "sort": "date"},
+                    headers={"Authorization": f"Bearer {sentry_token}"},
+                )
+                r.raise_for_status()
+            issues = r.json()
+            if not issues:
+                return self._text("No unresolved errors in Sentry.")
+            lines_e = []
+            for issue in issues:
+                title = issue.get("title", "Unknown")
+                count = issue.get("count", "?")
+                last_seen = (issue.get("lastSeen") or "")[:10]
+                first_seen = (issue.get("firstSeen") or "")[:10]
+                lines_e.append(
+                    f"- **{title}**\n  {count} events · first: {first_seen} · last: {last_seen}"
+                )
+            return self._text(
+                f"**Unresolved Errors ({len(issues)} shown)**\n\n" + "\n".join(lines_e)
+            )
+
+        # ── trigger_deployment ────────────────────────────────────────────────────
+        elif tool_name == "trigger_deployment":
+            # Admin check via stats endpoint
+            try:
+                await self._make_request("GET", "/admin/stats")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 403:
+                    return self._text(
+                        "This tool requires admin access. "
+                        "Connect with an admin account's MCP token."
+                    )
+                raise
+            return self._text(
+                "Deployments run automatically via GitHub Actions — push to `main` triggers the build "
+                "and Coolify deploys the latest image automatically. No manual trigger needed.\n\n"
+                "This tool will be wired to direct Coolify API calls in a future phase when "
+                "per-user site deployments are introduced."
+            )
+
         else:
             return CallToolResult(
                 content=[TextContent(type="text", text=f"Unknown tool: {tool_name}")],
