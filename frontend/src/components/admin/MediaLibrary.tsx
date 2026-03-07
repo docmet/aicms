@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, X, Image as ImageIcon, FileText, Check } from "lucide-react";
+import { Upload, X, Image as ImageIcon, FileText, Check, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 
 export interface MediaFile {
@@ -41,6 +42,8 @@ export function MediaLibrary({ siteId, open, onClose, onSelect, filter = "image"
   const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"library" | "url">("library");
+  const [urlInput, setUrlInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchFiles = useCallback(async () => {
@@ -62,6 +65,8 @@ export function MediaLibrary({ siteId, open, onClose, onSelect, filter = "image"
     if (open) {
       fetchFiles();
       setSelected(null);
+      setTab("library");
+      setUrlInput("");
     }
   }, [open, fetchFiles]);
 
@@ -115,6 +120,13 @@ export function MediaLibrary({ siteId, open, onClose, onSelect, filter = "image"
         ? "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         : "image/*,application/pdf,application/msword,.docx";
 
+  const handleUrlConfirm = () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    onSelect({ id: "", original_filename: url, storage_key: "", url, mime_type: "image/*", file_type: "image", size_bytes: 0, alt_text: null, width: null, height: null, created_at: "" });
+    onClose();
+  };
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
@@ -122,6 +134,43 @@ export function MediaLibrary({ siteId, open, onClose, onSelect, filter = "image"
           <DialogTitle>Media Library</DialogTitle>
         </DialogHeader>
 
+        {/* Tabs */}
+        <div className="flex gap-1 border-b shrink-0 -mx-1 px-1">
+          <button
+            onClick={() => setTab("library")}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "library" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            <ImageIcon size={13} className="inline mr-1.5 -mt-0.5" />
+            Uploaded files
+          </button>
+          {filter === "image" && (
+            <button
+              onClick={() => setTab("url")}
+              className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "url" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              <Link size={13} className="inline mr-1.5 -mt-0.5" />
+              Paste URL
+            </button>
+          )}
+        </div>
+
+        {tab === "url" ? (
+          <div className="flex-1 flex flex-col justify-center gap-4 px-2 py-6">
+            <p className="text-sm text-muted-foreground">Paste any image URL (Unsplash, CDN, etc.)</p>
+            <Input
+              placeholder="https://images.unsplash.com/..."
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleUrlConfirm()}
+              autoFocus
+            />
+            {urlInput.trim() && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={urlInput.trim()} alt="preview" className="max-h-40 object-contain rounded border bg-muted" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            )}
+          </div>
+        ) : (
+          <>
         {/* Toolbar */}
         <div className="flex items-center gap-3 pb-3 border-b shrink-0">
           <Button
@@ -210,15 +259,25 @@ export function MediaLibrary({ siteId, open, onClose, onSelect, filter = "image"
           )}
         </div>
 
+          </>
+        )}
+
         {/* Footer */}
         <div className="flex justify-end gap-2 pt-3 border-t shrink-0">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={!selected}>
-            <Check size={14} className="mr-1.5" />
-            Use selected
-          </Button>
+          {tab === "url" ? (
+            <Button onClick={handleUrlConfirm} disabled={!urlInput.trim()}>
+              <Check size={14} className="mr-1.5" />
+              Use URL
+            </Button>
+          ) : (
+            <Button onClick={handleConfirm} disabled={!selected}>
+              <Check size={14} className="mr-1.5" />
+              Use selected
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

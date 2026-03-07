@@ -1,5 +1,6 @@
 "use client";
 
+import { ImagePicker } from "@/components/admin/ImagePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ interface TestimonialItem {
   name: string;
   role?: string;
   company?: string;
+  avatar_url?: string | null;
 }
 
 interface TestimonialsContent {
@@ -19,11 +21,12 @@ interface TestimonialsContent {
 }
 
 interface Props {
+  siteId: string;
   content: TestimonialsContent;
   onChange: (content: TestimonialsContent) => void;
 }
 
-export function TestimonialsEditor({ content, onChange }: Props) {
+export function TestimonialsEditor({ siteId, content, onChange }: Props) {
   const set = (patch: Partial<TestimonialsContent>) => onChange({ ...content, ...patch });
   const items = content.items || [];
 
@@ -60,6 +63,12 @@ export function TestimonialsEditor({ content, onChange }: Props) {
                 <Input value={item.role || ""} onChange={(e) => setItem(i, { role: e.target.value })} placeholder="Role" className="text-sm" />
                 <Input value={item.company || ""} onChange={(e) => setItem(i, { company: e.target.value })} placeholder="Company" className="text-sm" />
               </div>
+              <ImagePicker
+                siteId={siteId}
+                value={item.avatar_url}
+                onChange={(url) => setItem(i, { avatar_url: url })}
+                label="Avatar photo"
+              />
             </div>
           ))}
         </div>

@@ -38,6 +38,7 @@ export default function SharePreviewPage({ params }: { params: Promise<{ token: 
   const { token } = use(params);
   const [data, setData] = useState<SiteData | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
+  const [themeSlug, setThemeSlug] = useState<string>("default");
   const [loadStatus, setLoadStatus] = useState<"loading" | "expired" | "error" | "ok">("loading");
   const sseRef = useRef<EventSource | null>(null);
 
@@ -50,6 +51,7 @@ export default function SharePreviewPage({ params }: { params: Promise<{ token: 
         const json = await res.json() as SiteData;
         setData(json);
         setSections(json.sections);
+        setThemeSlug(json.theme_slug || "default");
         setLoadStatus("ok");
       })
       .catch(() => setLoadStatus("error"));
@@ -79,6 +81,9 @@ export default function SharePreviewPage({ params }: { params: Promise<{ token: 
                 content: s.content_draft!,
               }))
           );
+        } else if (msg.type === "theme_updated") {
+          const theme = msg as unknown as { theme_slug_draft?: string | null; theme_slug?: string | null };
+          setThemeSlug(theme.theme_slug_draft ?? theme.theme_slug ?? "default");
         }
       } catch {
         // ignore malformed events
@@ -124,7 +129,7 @@ export default function SharePreviewPage({ params }: { params: Promise<{ token: 
 
   return (
     <div
-      data-theme={data.theme_slug || "default"}
+      data-theme={themeSlug}
       style={{ background: "var(--color-bg, #fff)", color: "var(--color-text, #0f172a)", fontFamily: "var(--font-sans)" }}
     >
       {/* Draft preview banner — amber like the owner's preview, CTA instead of Close */}

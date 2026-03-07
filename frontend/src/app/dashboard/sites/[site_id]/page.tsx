@@ -222,7 +222,7 @@ function SectionEditorDispatch({
       )}
       {section.section_type === "hero" && <HeroEditor {...imageEditorProps} />}
       {section.section_type === "features" && <FeaturesEditor {...editorProps} />}
-      {section.section_type === "testimonials" && <TestimonialsEditor {...editorProps} />}
+      {section.section_type === "testimonials" && <TestimonialsEditor {...imageEditorProps} />}
       {section.section_type === "about" && <AboutEditor {...imageEditorProps} />}
       {section.section_type === "contact" && <ContactEditor {...editorProps} />}
       {section.section_type === "cta" && <CtaEditor {...editorProps} />}
