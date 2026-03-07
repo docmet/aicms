@@ -6,13 +6,18 @@ import { useAuth } from '@/lib/auth-context';
 import { DashboardSidebar } from '@/components/admin/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import api from '@/lib/api';
-import { Mail, X } from 'lucide-react';
+import { Mail, X, ShieldAlert } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [resent, setResent] = useState(false);
+  const [adminTokenBackup, setAdminTokenBackup] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAdminTokenBackup(localStorage.getItem('admin_token_backup'));
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -35,11 +40,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const showBanner = !bannerDismissed && user && !user.email_verified;
+  const showImpersonationBar = !!adminTokenBackup;
+
+  const handleReturnToAdmin = () => {
+    localStorage.setItem('token', adminTokenBackup!);
+    localStorage.removeItem('admin_token_backup');
+    window.location.href = '/dashboard/admin';
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <DashboardSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
+        {showImpersonationBar && (
+          <div className="bg-violet-600 px-4 py-2 flex items-center justify-between gap-4 text-sm text-white">
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={15} className="flex-shrink-0" />
+              <span>
+                Viewing as <span className="font-semibold">{user.email}</span>
+              </span>
+            </div>
+            <button
+              onClick={handleReturnToAdmin}
+              className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 rounded px-2.5 py-1 font-medium text-xs transition-colors flex-shrink-0"
+            >
+              <X size={12} />
+              Back to Admin
+            </button>
+          </div>
+        )}
         {showBanner && (
           <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-4 text-sm">
             <div className="flex items-center gap-2 text-amber-800">

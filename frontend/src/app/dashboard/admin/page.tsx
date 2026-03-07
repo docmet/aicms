@@ -241,24 +241,6 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
-      {/* Restore admin session if impersonating */}
-      {typeof window !== "undefined" && localStorage.getItem("admin_token_backup") && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Button
-            onClick={() => {
-              const backup = localStorage.getItem("admin_token_backup");
-              if (backup) {
-                localStorage.setItem("token", backup);
-                localStorage.removeItem("admin_token_backup");
-                window.location.href = "/dashboard/admin";
-              }
-            }}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white shadow-lg"
-          >
-            ← Return to Admin Account
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
